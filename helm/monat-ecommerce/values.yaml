@@ -1,0 +1,247 @@
+# Default values for monat-ecommerce
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+global:
+  registry: docker.io
+  imagePullPolicy: IfNotPresent
+  storageClass: standard
+
+## API Gateway Configuration
+apiGateway:
+  enabled: true
+  replicaCount: 2
+  image:
+    repository: monat/api-gateway
+    tag: latest
+  service:
+    type: LoadBalancer
+    port: 8080
+  resources:
+    requests:
+      memory: "512Mi"
+      cpu: "250m"
+    limits:
+      memory: "1Gi"
+      cpu: "500m"
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 5
+    targetCPUUtilizationPercentage: 70
+
+## User Service Configuration
+userService:
+  enabled: true
+  replicaCount: 2
+  image:
+    repository: monat/user-service
+    tag: latest
+  service:
+    type: ClusterIP
+    httpPort: 8080
+    grpcPort: 9090
+  resources:
+    requests:
+      memory: "512Mi"
+      cpu: "250m"
+    limits:
+      memory: "1Gi"
+      cpu: "500m"
+
+## Product Service Configuration
+productService:
+  enabled: true
+  replicaCount: 2
+  image:
+    repository: monat/product-service
+    tag: latest
+  service:
+    type: ClusterIP
+    port: 8080
+  resources:
+    requests:
+      memory: "512Mi"
+      cpu: "250m"
+    limits:
+      memory: "1Gi"
+      cpu: "500m"
+
+## Inventory Service Configuration
+inventoryService:
+  enabled: true
+  replicaCount: 2
+  image:
+    repository: monat/inventory-service
+    tag: latest
+  service:
+    type: ClusterIP
+    httpPort: 8080
+    grpcPort: 9090
+  resources:
+    requests:
+      memory: "512Mi"
+      cpu: "250m"
+    limits:
+      memory: "1Gi"
+      cpu: "500m"
+
+## Cart Service Configuration
+cartService:
+  enabled: true
+  replicaCount: 2
+  image:
+    repository: monat/cart-service
+    tag: latest
+  service:
+    type: ClusterIP
+    port: 8080
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "200m"
+    limits:
+      memory: "512Mi"
+      cpu: "400m"
+
+## Order Service Configuration
+orderService:
+  enabled: true
+  replicaCount: 2
+  image:
+    repository: monat/order-service
+    tag: latest
+  service:
+    type: ClusterIP
+    port: 8080
+  resources:
+    requests:
+      memory: "512Mi"
+      cpu: "250m"
+    limits:
+      memory: "1Gi"
+      cpu: "500m"
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 80
+
+## Payment Service Configuration
+paymentService:
+  enabled: true
+  replicaCount: 2
+  image:
+    repository: monat/payment-service
+    tag: latest
+  service:
+    type: ClusterIP
+    httpPort: 8080
+    grpcPort: 9090
+  resources:
+    requests:
+      memory: "512Mi"
+      cpu: "250m"
+    limits:
+      memory: "1Gi"
+      cpu: "500m"
+
+## Notification Service Configuration
+notificationService:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: monat/notification-service
+    tag: latest
+  service:
+    type: ClusterIP
+    port: 8080
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "200m"
+    limits:
+      memory: "512Mi"
+      cpu: "400m"
+
+## PostgreSQL Configuration
+postgresql:
+  enabled: true
+  auth:
+    username: postgres
+    password: postgres
+    database: postgres
+  primary:
+    persistence:
+      enabled: true
+      size: 10Gi
+
+## MongoDB Configuration
+mongodb:
+  enabled: true
+  auth:
+    rootPassword: admin
+    username: admin
+    password: admin
+    database: productdb
+  persistence:
+    enabled: true
+    size: 10Gi
+
+## Redis Configuration
+redis:
+  enabled: true
+  auth:
+    enabled: false
+  master:
+    persistence:
+      enabled: true
+      size: 5Gi
+
+## Elasticsearch Configuration
+elasticsearch:
+  enabled: true
+  replicas: 1
+  minimumMasterNodes: 1
+  persistence:
+    enabled: true
+    size: 10Gi
+
+## Kafka Configuration
+kafka:
+  enabled: true
+  replicaCount: 1
+  zookeeper:
+    enabled: true
+  persistence:
+    enabled: true
+    size: 10Gi
+
+## Monitoring Configuration
+monitoring:
+  prometheus:
+    enabled: true
+  grafana:
+    enabled: true
+    adminPassword: admin
+  jaeger:
+    enabled: true
+
+## Security Configuration
+security:
+  jwt:
+    secret: your-secret-key-change-in-production
+    expirationMs: 86400000
+  oauth2:
+    enabled: false
+    issuerUri: ""
+
+## ConfigMap and Secrets
+configMap:
+  create: true
+  data: {}
+
+secrets:
+  create: true
+  data: {}

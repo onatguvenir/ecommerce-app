@@ -1,0 +1,67 @@
+syntax = "proto3";
+
+package user;
+
+option java_multiple_files = true;
+option java_package = "com.monat.ecommerce.grpc.user";
+option java_outer_classname = "UserServiceProto";
+
+// User Service for user operations
+service UserService {
+  // Get user by ID
+  rpc GetUser(GetUserRequest) returns (GetUserResponse);
+  
+  // Validate user exists and is active
+  rpc ValidateUser(ValidateUserRequest) returns (ValidateUserResponse);
+  
+  // Get user addresses
+  rpc GetUserAddresses(GetUserAddressesRequest) returns (GetUserAddressesResponse);
+}
+
+message GetUserRequest {
+  string user_id = 1;
+}
+
+message GetUserResponse {
+  User user = 1;
+  bool found = 2;
+}
+
+message User {
+  string id = 1;
+  string email = 2;
+  string username = 3;
+  string first_name = 4;
+  string last_name = 5;
+  string phone = 6;
+  string status = 7;
+}
+
+message ValidateUserRequest {
+  string user_id = 1;
+}
+
+message ValidateUserResponse {
+  bool is_valid = 1;
+  bool is_active = 2;
+  string message = 3;
+}
+
+message GetUserAddressesRequest {
+  string user_id = 1;
+}
+
+message GetUserAddressesResponse {
+  repeated Address addresses = 1;
+}
+
+message Address {
+  string id = 1;
+  string address_type = 2;
+  string street = 3;
+  string city = 4;
+  string state = 5;
+  string postal_code = 6;
+  string country = 7;
+  bool is_default = 8;
+}

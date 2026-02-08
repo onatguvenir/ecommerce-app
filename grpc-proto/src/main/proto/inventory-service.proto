@@ -1,0 +1,82 @@
+syntax = "proto3";
+
+package inventory;
+
+option java_multiple_files = true;
+option java_package = "com.monat.ecommerce.grpc.inventory";
+option java_outer_classname = "InventoryServiceProto";
+
+// Inventory Service for stock management
+service InventoryService {
+  // Reserve stock for an order
+  rpc ReserveStock(ReserveStockRequest) returns (ReserveStockResponse);
+  
+  // Release reserved stock (compensation)
+  rpc ReleaseStock(ReleaseStockRequest) returns (ReleaseStockResponse);
+  
+  // Check stock availability
+  rpc CheckStock(CheckStockRequest) returns (CheckStockResponse);
+  
+  // Commit reserved stock (finalize order)
+  rpc CommitStock(CommitStockRequest) returns (CommitStockResponse);
+}
+
+// Request to reserve stock
+message ReserveStockRequest {
+  string order_id = 1;
+  repeated StockItem items = 2;
+}
+
+message StockItem {
+  string product_id = 1;
+  int32 quantity = 2;
+}
+
+message ReserveStockResponse {
+  string reservation_id = 1;
+  bool success = 2;
+  string message = 3;
+  repeated ReservationDetail details = 4;
+}
+
+message ReservationDetail {
+  string product_id = 1;
+  int32 requested_quantity = 2;
+  int32 reserved_quantity = 3;
+  bool fully_reserved = 4;
+}
+
+// Request to release stock
+message ReleaseStockRequest {
+  string reservation_id = 1;
+  string order_id = 2;
+  string reason = 3;
+}
+
+message ReleaseStockResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+// Request to check stock availability
+message CheckStockRequest {
+  string product_id = 1;
+}
+
+message CheckStockResponse {
+  string product_id = 1;
+  int32 available_quantity = 2;
+  int32 reserved_quantity = 3;
+  int32 total_quantity = 4;
+}
+
+// Request to commit reserved stock
+message CommitStockRequest {
+  string reservation_id = 1;
+  string order_id = 2;
+}
+
+message CommitStockResponse {
+  bool success = 1;
+  string message = 2;
+}

@@ -1,0 +1,92 @@
+resilience4j:
+  circuitbreaker:
+    configs:
+      default:
+        registerHealthIndicator: true
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        permittedNumberOfCallsInHalfOpenState: 3
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+        waitDurationInOpenState: 10s
+        failureRateThreshold: 50
+        eventConsumerBufferSize: 10
+        recordExceptions:
+          - org.springframework.web.client.HttpServerErrorException
+          - java.io.IOException
+          - java.util.concurrent.TimeoutException
+        ignoreExceptions:
+          - com.monat.ecommerce.common.exception.ResourceNotFoundException
+    instances:
+      payment-service:
+        baseConfig: default
+        failureRateThreshold: 60
+        waitDurationInOpenState: 30s
+      inventory-service:
+        baseConfig: default
+        failureRateThreshold: 40
+        waitDurationInOpenState: 5s
+      user-service:
+        baseConfig: default
+        failureRateThreshold: 50
+        waitDurationInOpenState: 10s
+
+  retry:
+    configs:
+      default:
+        maxAttempts: 3
+        waitDuration: 1s
+        enableExponentialBackoff: true
+        exponentialBackoffMultiplier: 2
+        retryExceptions:
+          - org.springframework.web.client.HttpServerErrorException
+          - java.io.IOException
+    instances:
+      payment-service:
+        maxAttempts: 2
+        waitDuration: 2s
+      inventory-service:
+        maxAttempts: 3
+        waitDuration: 500ms
+      user-service:
+        maxAttempts: 3
+        waitDuration: 1s
+
+  bulkhead:
+    configs:
+      default:
+        maxConcurrentCalls: 10
+        maxWaitDuration: 1s
+    instances:
+      payment-service:
+        maxConcurrentCalls: 5
+      inventory-service:
+        maxConcurrentCalls: 15
+      user-service:
+        maxConcurrentCalls: 10
+
+  timelimiter:
+    configs:
+      default:
+        timeoutDuration: 10s
+    instances:
+      payment-service:
+        timeoutDuration: 15s
+      inventory-service:
+        timeoutDuration: 5s
+      user-service:
+        timeoutDuration: 10s
+
+management:
+  health:
+    circuitbreakers:
+      enabled: true
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus,circuitbreakers,retries
+  metrics:
+    tags:
+      application: ${spring.application.name}
+    distribution:
+      percentiles-histogram:
+        resilience4j.circuitbreaker.calls: true

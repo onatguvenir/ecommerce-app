@@ -1,0 +1,78 @@
+syntax = "proto3";
+
+package payment;
+
+option java_multiple_files = true;
+option java_package = "com.monat.ecommerce.grpc.payment";
+option java_outer_classname = "PaymentServiceProto";
+
+// Payment Service for processing payments
+service PaymentService {
+  // Process payment for an order
+  rpc ProcessPayment(ProcessPaymentRequest) returns (ProcessPaymentResponse);
+  
+  // Refund payment (compensation)
+  rpc RefundPayment(RefundPaymentRequest) returns (RefundPaymentResponse);
+  
+  // Get payment status
+  rpc GetPaymentStatus(GetPaymentStatusRequest) returns (GetPaymentStatusResponse);
+}
+
+message ProcessPaymentRequest {
+  string order_id = 1;
+  string user_id = 2;
+  double amount = 3;
+  string currency = 4;
+  string payment_method = 5;
+  string idempotency_key = 6;
+  PaymentDetails payment_details = 7;
+}
+
+message PaymentDetails {
+  string card_number = 1;
+  string card_holder_name = 2;
+  string expiry_month = 3;
+  string expiry_year = 4;
+  string cvv = 5;
+}
+
+message ProcessPaymentResponse {
+  string payment_id = 1;
+  string payment_reference = 2;
+  bool success = 3;
+  PaymentStatus status = 4;
+  string message = 5;
+  string transaction_id = 6;
+}
+
+enum PaymentStatus {
+  PENDING = 0;
+  COMPLETED = 1;
+  FAILED = 2;
+  REFUNDED = 3;
+}
+
+message RefundPaymentRequest {
+  string payment_id = 1;
+  string order_id = 2;
+  double amount = 3;
+  string reason = 4;
+}
+
+message RefundPaymentResponse {
+  bool success = 1;
+  string message = 2;
+  string refund_transaction_id = 3;
+}
+
+message GetPaymentStatusRequest {
+  string payment_id = 1;
+}
+
+message GetPaymentStatusResponse {
+  string payment_id = 1;
+  PaymentStatus status = 2;
+  double amount = 3;
+  string currency = 4;
+  string created_at = 5;
+}

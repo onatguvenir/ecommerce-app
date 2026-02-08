@@ -1,0 +1,24 @@
+# Kubernetes ConfigMap for Application Configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+data:
+  # Kafka configuration
+  kafka.bootstrap.servers: "kafka-service:9092"
+
+  # Redis configuration
+  redis.host: "redis-service"
+  redis.port: "6379"
+
+  # Elasticsearch configuration
+  elasticsearch.uris: "http://elasticsearch-service:9200"
+
+  # Application settings
+  application.cart.expiry-days: "7"
+  application.cart.max-items: "100"
+  application.reservation.expiry-minutes: "15"
+  application.saga.timeout-minutes: "15"
+  application.payment.failure-rate: "0.3"
+  application.notification.simulate-email: "true"
+  application.notification.simulate-sms: "true"

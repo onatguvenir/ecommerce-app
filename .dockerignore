@@ -1,0 +1,34 @@
+# .dockerignore for all services
+target/
+!.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+
+# IDE
+.idea/
+.vscode/
+*.iws
+*.iml
+*.ipr
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+
+# Test
+**/test/**
+
+# Logs
+logs/
+*.log
+
+# Other
+*.md
+!README.md

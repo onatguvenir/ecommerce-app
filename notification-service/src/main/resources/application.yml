@@ -1,0 +1,73 @@
+spring:
+  application:
+    name: notification-service
+  
+  kafka:
+    bootstrap-servers: localhost:9092
+    consumer:
+      group-id: notification-service-group
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "*"
+  
+  # Email configuration (simulated - using console logging)
+  mail:
+    host: smtp.example.com
+    port: 587
+    username: noreply@monat-ecommerce.com
+    password: changeme
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
+# Server Configuration
+server:
+  port: 8087
+  shutdown: graceful
+
+# Management & Actuator
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+      probes:
+        enabled: true
+  health:
+    livenessState:
+      enabled: true
+    readinessState:
+      enabled: true
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+    tags:
+      application: ${spring.application.name}
+
+# Logging
+logging:
+  level:
+    root: INFO
+    com.monat.ecommerce: DEBUG
+    org.springframework.kafka: INFO
+
+# Application specific
+application:
+  notification:
+    # Simulate email sending (true = console log, false = actual SMTP)
+    simulate-email: true
+    # Simulate SMS sending (always simulated)
+    simulate-sms: true
+    # From email address
+    from-email: noreply@monat-ecommerce.com
+    # Support email
+    support-email: support@monat-ecommerce.com

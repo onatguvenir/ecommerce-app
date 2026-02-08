@@ -1,0 +1,138 @@
+# Deploy all microservices in the correct order
+# Usage: kubectl apply -f k8s/deploy-all.yaml
+
+# 1. Secrets and ConfigMaps
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: monat-ecommerce
+---
+# Apply secrets (from secrets.yaml)
+# Apply configmaps (from configmap.yaml)
+
+# 2. Infrastructure services (not shown - deploy separately via StatefulSets)
+
+# 3. Independent services (no dependencies on other microservices)
+---
+# User Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: user-service
+  namespace: monat-ecommerce
+spec:
+  selector:
+    app: user-service
+  ports:
+    - port: 8081
+      targetPort: 8081
+      name: http
+    - port: 9081
+      targetPort: 9081
+      name: grpc
+---
+# Product Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: product-service
+  namespace: monat-ecommerce
+spec:
+  selector:
+    app: product-service
+  ports:
+    - port: 8082
+      targetPort: 8082
+      name: http
+---
+# Inventory Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: inventory-service
+  namespace: monat-ecommerce
+spec:
+  selector:
+    app: inventory-service
+  ports:
+    - port: 8083
+      targetPort: 8083
+      name: http
+    - port: 9083
+      targetPort: 9083
+      name: grpc
+---
+# Payment Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: payment-service
+  namespace: monat-ecommerce
+spec:
+  selector:
+    app: payment-service
+  ports:
+    - port: 8086
+      targetPort: 8086
+      name: http
+    - port: 9086
+      targetPort: 9086
+      name: grpc
+---
+# Cart Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: cart-service
+  namespace: monat-ecommerce
+spec:
+  selector:
+    app: cart-service
+  ports:
+    - port: 8084
+      targetPort: 8084
+      name: http
+---
+# 4. Order Service (depends on User, Inventory, Payment)
+apiVersion: v1
+kind: Service
+metadata:
+  name: order-service
+  namespace: monat-ecommerce
+spec:
+  selector:
+    app: order-service
+  ports:
+    - port: 8085
+      targetPort: 8085
+      name: http
+---
+# Notification Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: notification-service
+  namespace: monat-ecommerce
+spec:
+  selector:
+    app: notification-service
+  ports:
+    - port: 8087
+      targetPort: 8087
+      name: http
+---
+# 5. API Gateway (external access)
+apiVersion: v1
+kind: Service
+metadata:
+  name: api-gateway-service
+  namespace: monat-ecommerce
+spec:
+  type: LoadBalancer
+  selector:
+    app: api-gateway
+  ports:
+    - port: 80
+      targetPort: 8080
+      name: http
