@@ -2,32 +2,41 @@ package com.monat.ecommerce.order.domain.repository;
 
 import com.monat.ecommerce.order.domain.model.Order;
 import com.monat.ecommerce.order.domain.model.OrderStatus;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Query;
-import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-@Repository
-public interface OrderRepository extends JpaRepository<Order, UUID> {
+/**
+ * Order Repository Interface - Defines the contract for Order persistence
+ * Independent of implementation details (JPA, etc.)
+ */
+public interface OrderRepository {
+
+    Order save(Order order);
+
+    Optional<Order> findById(UUID id);
 
     Optional<Order> findByOrderNumber(String orderNumber);
 
-    Page<Order> findByUserId(UUID userId, Pageable pageable);
+    List<Order> findByUserId(UUID userId, int page, int size);
 
-    Page<Order> findByStatus(OrderStatus status, Pageable pageable);
+    List<Order> findByStatus(OrderStatus status, int page, int size);
 
-    @Query("SELECT o FROM Order o LEFT JOIN FETCH o.items WHERE o.id = :id")
     Optional<Order> findByIdWithItems(UUID id);
 
-    @Query("SELECT o FROM Order o WHERE o.userId = :userId AND o.status = :status")
     List<Order> findByUserIdAndStatus(UUID userId, OrderStatus status);
 
-    @Query("SELECT o FROM Order o WHERE o.createdAt < :cutoffTime AND o.status = 'PENDING'")
+    long countByUserId(UUID userId);
+
+    long countByStatus(OrderStatus status);
+
+    long count();
+
+    void deleteAll();
+
     List<Order> findPendingOrdersOlderThan(LocalDateTime cutoffTime);
+
+    void delete(Order order);
 }

@@ -2,16 +2,14 @@ package com.monat.ecommerce.inventory.domain.repository;
 
 import com.monat.ecommerce.inventory.domain.model.ReservationStatus;
 import com.monat.ecommerce.inventory.domain.model.StockReservation;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 
-@Repository
-public interface StockReservationRepository extends JpaRepository<StockReservation, UUID> {
+public interface StockReservationRepository {
+
+    StockReservation save(StockReservation reservation);
 
     Optional<StockReservation> findByReservationId(String reservationId);
 

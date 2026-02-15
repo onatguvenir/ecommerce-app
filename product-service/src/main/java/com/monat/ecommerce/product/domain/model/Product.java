@@ -4,11 +4,6 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.springframework.data.annotation.CreatedDate;
-import org.springframework.data.annotation.Id;
-import org.springframework.data.annotation.LastModifiedDate;
-import org.springframework.data.mongodb.core.index.Indexed;
-import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -16,33 +11,22 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Product document stored in MongoDB
+ * Product domain model - Pure POJO
+ * Removed MongoDB annotations.
  */
-@Document(collection = "products")
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class Product {
 
-    @Id
     private String id;
-
-    @Indexed(unique = true)
-    private String productId;  // Business ID (e.g., PROD-001)
-
-    @Indexed
+    private String productId; // Business ID (e.g., PROD-001)
     private String name;
-
     private String description;
-
-    @Indexed
     private String category;
-
     private String brand;
-
     private BigDecimal price;
-
     private String currency;
 
     @Builder.Default
@@ -52,14 +36,9 @@ public class Product {
     private List<String> tags = new ArrayList<>();
 
     private ProductSpecifications specifications;
-
-    @Indexed
     private ProductStatus status;
 
-    @CreatedDate
     private LocalDateTime createdAt;
-
-    @LastModifiedDate
     private LocalDateTime updatedAt;
 
     @Builder.Default

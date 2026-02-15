@@ -2,15 +2,16 @@ package com.monat.ecommerce.payment.domain.repository;
 
 import com.monat.ecommerce.payment.domain.model.Payment;
 import com.monat.ecommerce.payment.domain.model.PaymentStatus;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-@Repository
-public interface PaymentRepository extends JpaRepository<Payment, UUID> {
+public interface PaymentRepository {
+
+    Payment save(Payment payment);
+
+    Optional<Payment> findById(UUID id);
 
     Optional<Payment> findByIdempotencyKey(String idempotencyKey);
 
@@ -23,4 +24,6 @@ public interface PaymentRepository extends JpaRepository<Payment, UUID> {
     List<Payment> findByStatus(PaymentStatus status);
 
     boolean existsByIdempotencyKey(String idempotencyKey);
+
+    long count();
 }

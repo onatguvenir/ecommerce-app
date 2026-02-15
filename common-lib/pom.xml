@@ -16,6 +16,10 @@
     <name>Common Library</name>
     <description>Shared utilities, DTOs, and configurations</description>
 
+    <properties>
+        <repackage.skip>true</repackage.skip>
+    </properties>
+
     <dependencies>
         <!-- Spring Boot Starter -->
         <dependency>
@@ -37,6 +41,25 @@
         <dependency>
             <groupId>org.springframework.kafka</groupId>
             <artifactId>spring-kafka</artifactId>
+        </dependency>
+
+        <!-- Micrometer Tracing for distributed tracing -->
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-tracing-bridge-brave</artifactId>
+        </dependency>
+
+        <!-- Zipkin reporter for sending traces -->
+        <dependency>
+            <groupId>io.zipkin.reporter2</groupId>
+            <artifactId>zipkin-reporter-brave</artifactId>
+        </dependency>
+
+        <!-- Logback encoder for structured logging with trace context -->
+        <dependency>
+            <groupId>net.logstash.logback</groupId>
+            <artifactId>logstash-logback-encoder</artifactId>
+            <version>7.4</version>
         </dependency>
 
         <!-- JWT -->

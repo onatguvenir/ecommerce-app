@@ -18,105 +18,142 @@ import java.util.UUID;
 /**
  * Global exception handler for all REST controllers
  */
+/**
+ * Global exception handler for the application.
+ * <p>
+ * This class acts as a centralized exception handling mechanism across the
+ * application.
+ * It intercepts exceptions thrown by Controllers and converts them into
+ * standard API responses.
+ * </p>
+ *
+ * @RestControllerAdvice is a specialized @Component that allows handling
+ *                       exceptions across the whole application
+ *                       in one global handling component. It can be viewed as
+ *                       an interceptor of exceptions thrown by methods
+ *                       annotated with @RequestMapping and similar.
+ *
+ * @Slf4j is a Lombok annotation that automatically generates a logger field for
+ *        the class.
+ */
 @Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    @ExceptionHandler(ResourceNotFoundException.class)
-    public ResponseEntity<ErrorResponse> handleResourceNotFound(
-            ResourceNotFoundException ex, HttpServletRequest request) {
+        @ExceptionHandler(ResourceNotFoundException.class)
+        public ResponseEntity<ErrorResponse> handleResourceNotFound(
+                        ResourceNotFoundException ex, HttpServletRequest request) {
 
-        log.error("Resource not found: {}", ex.getMessage());
+                log.error("Resource not found: {}", ex.getMessage());
 
-        ErrorResponse error = ErrorResponse.builder()
-                .error("Not Found")
-                .message(ex.getMessage())
-                .status(404)
-                .path(request.getRequestURI())
-                .timestamp(LocalDateTime.now())
-                .traceId(UUID.randomUUID().toString())
-                .build();
+                ErrorResponse error = ErrorResponse.builder()
+                                .error("Not Found")
+                                .message(ex.getMessage())
+                                .status(404)
+                                .path(request.getRequestURI())
+                                .timestamp(LocalDateTime.now())
+                                .traceId(UUID.randomUUID().toString())
+                                .build();
 
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
-    }
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+        }
 
-    @ExceptionHandler(ValidationException.class)
-    public ResponseEntity<ErrorResponse> handleValidation(
-            ValidationException ex, HttpServletRequest request) {
+        @ExceptionHandler(ValidationException.class)
+        public ResponseEntity<ErrorResponse> handleValidation(
+                        ValidationException ex, HttpServletRequest request) {
 
-        log.error("Validation error: {}", ex.getMessage());
+                log.error("Validation error: {}", ex.getMessage());
 
-        ErrorResponse error = ErrorResponse.builder()
-                .error("Validation Error")
-                .message(ex.getMessage())
-                .status(400)
-                .path(request.getRequestURI())
-                .timestamp(LocalDateTime.now())
-                .traceId(UUID.randomUUID().toString())
-                .build();
+                ErrorResponse error = ErrorResponse.builder()
+                                .error("Validation Error")
+                                .message(ex.getMessage())
+                                .status(400)
+                                .path(request.getRequestURI())
+                                .timestamp(LocalDateTime.now())
+                                .traceId(UUID.randomUUID().toString())
+                                .build();
 
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
-    }
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+        }
 
-    @ExceptionHandler(BusinessException.class)
-    public ResponseEntity<ErrorResponse> handleBusinessException(
-            BusinessException ex, HttpServletRequest request) {
+        @ExceptionHandler(BusinessException.class)
+        public ResponseEntity<ErrorResponse> handleBusinessException(
+                        BusinessException ex, HttpServletRequest request) {
 
-        log.error("Business exception: {}", ex.getMessage());
+                log.error("Business exception: {}", ex.getMessage());
 
-        ErrorResponse error = ErrorResponse.builder()
-                .error(ex.getErrorCode())
-                .message(ex.getMessage())
-                .status(ex.getHttpStatus())
-                .path(request.getRequestURI())
-                .timestamp(LocalDateTime.now())
-                .traceId(UUID.randomUUID().toString())
-                .build();
+                ErrorResponse error = ErrorResponse.builder()
+                                .error(ex.getErrorCode())
+                                .message(ex.getMessage())
+                                .status(ex.getHttpStatus())
+                                .path(request.getRequestURI())
+                                .timestamp(LocalDateTime.now())
+                                .traceId(UUID.randomUUID().toString())
+                                .build();
 
-        return ResponseEntity.status(ex.getHttpStatus()).body(error);
-    }
+                return ResponseEntity.status(ex.getHttpStatus()).body(error);
+        }
 
-    @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ErrorResponse> handleMethodArgumentNotValid(
-            MethodArgumentNotValidException ex, HttpServletRequest request) {
+        @ExceptionHandler(MethodArgumentNotValidException.class)
+        public ResponseEntity<ErrorResponse> handleMethodArgumentNotValid(
+                        MethodArgumentNotValidException ex, HttpServletRequest request) {
 
-        log.error("Validation failed: {}", ex.getMessage());
+                log.error("Validation failed: {}", ex.getMessage());
 
-        Map<String, String> validationErrors = new HashMap<>();
-        ex.getBindingResult().getAllErrors().forEach(error -> {
-            String fieldName = ((FieldError) error).getField();
-            String errorMessage = error.getDefaultMessage();
-            validationErrors.put(fieldName, errorMessage);
-        });
+                Map<String, String> validationErrors = new HashMap<>();
+                ex.getBindingResult().getAllErrors().forEach(error -> {
+                        String fieldName = ((FieldError) error).getField();
+                        String errorMessage = error.getDefaultMessage();
+                        validationErrors.put(fieldName, errorMessage);
+                });
 
-        ErrorResponse error = ErrorResponse.builder()
-                .error("Validation Failed")
-                .message("Input validation failed")
-                .status(400)
-                .path(request.getRequestURI())
-                .timestamp(LocalDateTime.now())
-                .traceId(UUID.randomUUID().toString())
-                .validationErrors(validationErrors)
-                .build();
+                ErrorResponse error = ErrorResponse.builder()
+                                .error("Validation Failed")
+                                .message("Input validation failed")
+                                .status(400)
+                                .path(request.getRequestURI())
+                                .timestamp(LocalDateTime.now())
+                                .traceId(UUID.randomUUID().toString())
+                                .validationErrors(validationErrors)
+                                .build();
 
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
-    }
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+        }
 
-    @ExceptionHandler(Exception.class)
-    public ResponseEntity<ErrorResponse> handleGenericException(
-            Exception ex, HttpServletRequest request) {
+        @ExceptionHandler(org.springframework.web.servlet.resource.NoResourceFoundException.class)
+        public ResponseEntity<ErrorResponse> handleNoResourceFound(
+                        org.springframework.web.servlet.resource.NoResourceFoundException ex,
+                        HttpServletRequest request) {
 
-        log.error("Unexpected error occurred", ex);
+                log.debug("Resource not found: {}", ex.getMessage());
 
-        ErrorResponse error = ErrorResponse.builder()
-                .error("Internal Server Error")
-                .message("An unexpected error occurred")
-                .status(500)
-                .path(request.getRequestURI())
-                .timestamp(LocalDateTime.now())
-                .traceId(UUID.randomUUID().toString())
-                .build();
+                ErrorResponse error = ErrorResponse.builder()
+                                .error("Not Found")
+                                .message(ex.getMessage())
+                                .status(404)
+                                .path(request.getRequestURI())
+                                .timestamp(LocalDateTime.now())
+                                .traceId(UUID.randomUUID().toString())
+                                .build();
 
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
-    }
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+        }
+
+        @ExceptionHandler(Exception.class)
+        public ResponseEntity<ErrorResponse> handleGenericException(
+                        Exception ex, HttpServletRequest request) {
+
+                log.error("Unexpected error occurred", ex);
+
+                ErrorResponse error = ErrorResponse.builder()
+                                .error("Internal Server Error")
+                                .message("An unexpected error occurred")
+                                .status(500)
+                                .path(request.getRequestURI())
+                                .timestamp(LocalDateTime.now())
+                                .traceId(UUID.randomUUID().toString())
+                                .build();
+
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
 }

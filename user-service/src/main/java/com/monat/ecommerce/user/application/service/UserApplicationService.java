@@ -23,6 +23,22 @@ import java.util.UUID;
  * Application service for user management
  */
 @Slf4j
+/**
+ * User Application Service.
+ * <p>
+ * This class contains the business logic for the User Service.
+ * It orchestrates the flow of data between the Controller (API layer) and the
+ * Repository (Data layer).
+ * </p>
+ * 
+ * @Service indicates that this class is a "Service", which is a
+ *          specialized @Component for holding business logic.
+ * 
+ * @Transactional ensures that methods are executed within a database
+ *                transaction.
+ *                If a method fails (throws an unchecked exception), the
+ *                transaction is rolled back.
+ */
 @Service
 @RequiredArgsConstructor
 public class UserApplicationService {

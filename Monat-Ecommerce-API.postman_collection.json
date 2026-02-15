@@ -1,0 +1,713 @@
+{
+	"info": {
+		"_postman_id": "monat-ecommerce-collection",
+		"name": "Monat E-Commerce Platform API",
+		"description": "Comprehensive API collection for testing all microservices in the Monat E-Commerce platform",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "User Service",
+			"item": [
+				{
+					"name": "Register User",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\",\n  \"email\": \"john.doe@example.com\",\n  \"password\": \"SecurePass123!\",\n  \"phoneNumber\": \"+905551234567\"\n}"
+						},
+						"url": {
+							"raw": "{{USER_SERVICE_URL}}/api/users/register",
+							"host": [
+								"{{USER_SERVICE_URL}}"
+							],
+							"path": [
+								"api",
+								"users",
+								"register"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get User by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{USER_SERVICE_URL}}/api/users/{{USER_ID}}",
+							"host": [
+								"{{USER_SERVICE_URL}}"
+							],
+							"path": [
+								"api",
+								"users",
+								"{{USER_ID}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get User by Email",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{USER_SERVICE_URL}}/api/users/email/john.doe@example.com",
+							"host": [
+								"{{USER_SERVICE_URL}}"
+							],
+							"path": [
+								"api",
+								"users",
+								"email",
+								"john.doe@example.com"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get All Users",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{USER_SERVICE_URL}}/api/users?page=0&size=20",
+							"host": [
+								"{{USER_SERVICE_URL}}"
+							],
+							"path": [
+								"api",
+								"users"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "0"
+								},
+								{
+									"key": "size",
+									"value": "20"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Add Address",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"street\": \"123 Main Street\",\n  \"city\": \"Istanbul\",\n  \"state\": \"Istanbul\",\n  \"postalCode\": \"34000\",\n  \"country\": \"Turkey\"\n}"
+						},
+						"url": {
+							"raw": "{{USER_SERVICE_URL}}/api/users/{{USER_ID}}/addresses",
+							"host": [
+								"{{USER_SERVICE_URL}}"
+							],
+							"path": [
+								"api",
+								"users",
+								"{{USER_ID}}",
+								"addresses"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get User Addresses",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{USER_SERVICE_URL}}/api/users/{{USER_ID}}/addresses",
+							"host": [
+								"{{USER_SERVICE_URL}}"
+							],
+							"path": [
+								"api",
+								"users",
+								"{{USER_ID}}",
+								"addresses"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Validate User",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{USER_SERVICE_URL}}/api/users/{{USER_ID}}/validate",
+							"host": [
+								"{{USER_SERVICE_URL}}"
+							],
+							"path": [
+								"api",
+								"users",
+								"{{USER_ID}}",
+								"validate"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Product Service",
+			"item": [
+				{
+					"name": "Create Product",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Premium Laptop\",\n  \"description\": \"High-performance laptop with 16GB RAM and 512GB SSD\",\n  \"price\": 1299.99,\n  \"category\": \"Electronics\",\n  \"brand\": \"TechBrand\",\n  \"sku\": \"LAPTOP-001\",\n  \"imageUrl\": \"https://example.com/laptop.jpg\",\n  \"tags\": [\"laptop\", \"electronics\", \"computer\"]\n}"
+						},
+						"url": {
+							"raw": "{{PRODUCT_SERVICE_URL}}/api/products",
+							"host": [
+								"{{PRODUCT_SERVICE_URL}}"
+							],
+							"path": [
+								"api",
+								"products"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Product",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Premium Laptop - Updated\",\n  \"description\": \"High-performance laptop with 32GB RAM and 1TB SSD\",\n  \"price\": 1499.99,\n  \"category\": \"Electronics\",\n  \"brand\": \"TechBrand\",\n  \"sku\": \"LAPTOP-001\",\n  \"imageUrl\": \"https://example.com/laptop-new.jpg\",\n  \"tags\": [\"laptop\", \"electronics\", \"computer\", \"premium\"]\n}"
+						},
+						"url": {
+							"raw": "{{PRODUCT_SERVICE_URL}}/api/products/{{PRODUCT_ID}}",
+							"host": [
+								"{{PRODUCT_SERVICE_URL}}"
+							],
+							"path": [
+								"api",
+								"products",
+								"{{PRODUCT_ID}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Product by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{PRODUCT_SERVICE_URL}}/api/products/{{PRODUCT_ID}}",
+							"host": [
+								"{{PRODUCT_SERVICE_URL}}"
+							],
+							"path": [
+								"api",
+								"products",
+								"{{PRODUCT_ID}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get All Products",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{PRODUCT_SERVICE_URL}}/api/products?page=0&size=20&sortBy=name",
+							"host": [
+								"{{PRODUCT_SERVICE_URL}}"
+							],
+							"path": [
+								"api",
+								"products"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "0"
+								},
+								{
+									"key": "size",
+									"value": "20"
+								},
+								{
+									"key": "sortBy",
+									"value": "name"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Products by Category",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{PRODUCT_SERVICE_URL}}/api/products/category/Electronics?page=0&size=20",
+							"host": [
+								"{{PRODUCT_SERVICE_URL}}"
+							],
+							"path": [
+								"api",
+								"products",
+								"category",
+								"Electronics"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "0"
+								},
+								{
+									"key": "size",
+									"value": "20"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Search Products",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{PRODUCT_SERVICE_URL}}/api/products/search?keyword=laptop&category=Electronics&minPrice=500&maxPrice=2000&page=0&size=20",
+							"host": [
+								"{{PRODUCT_SERVICE_URL}}"
+							],
+							"path": [
+								"api",
+								"products",
+								"search"
+							],
+							"query": [
+								{
+									"key": "keyword",
+									"value": "laptop"
+								},
+								{
+									"key": "category",
+									"value": "Electronics"
+								},
+								{
+									"key": "minPrice",
+									"value": "500"
+								},
+								{
+									"key": "maxPrice",
+									"value": "2000"
+								},
+								{
+									"key": "page",
+									"value": "0"
+								},
+								{
+									"key": "size",
+									"value": "20"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Product",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{PRODUCT_SERVICE_URL}}/api/products/{{PRODUCT_ID}}",
+							"host": [
+								"{{PRODUCT_SERVICE_URL}}"
+							],
+							"path": [
+								"api",
+								"products",
+								"{{PRODUCT_ID}}"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Cart Service",
+			"item": [
+				{
+					"name": "Get Cart",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{CART_SERVICE_URL}}/api/cart/{{CART_ID}}",
+							"host": [
+								"{{CART_SERVICE_URL}}"
+							],
+							"path": [
+								"api",
+								"cart",
+								"{{CART_ID}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Add Item to Cart",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"productId\": \"{{PRODUCT_ID}}\",\n  \"quantity\": 2,\n  \"unitPrice\": 1299.99\n}"
+						},
+						"url": {
+							"raw": "{{CART_SERVICE_URL}}/api/cart/{{CART_ID}}/items",
+							"host": [
+								"{{CART_SERVICE_URL}}"
+							],
+							"path": [
+								"api",
+								"cart",
+								"{{CART_ID}}",
+								"items"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Item Quantity",
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"url": {
+							"raw": "{{CART_SERVICE_URL}}/api/cart/{{CART_ID}}/items/{{PRODUCT_ID}}?quantity=3",
+							"host": [
+								"{{CART_SERVICE_URL}}"
+							],
+							"path": [
+								"api",
+								"cart",
+								"{{CART_ID}}",
+								"items",
+								"{{PRODUCT_ID}}"
+							],
+							"query": [
+								{
+									"key": "quantity",
+									"value": "3"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Remove Item from Cart",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{CART_SERVICE_URL}}/api/cart/{{CART_ID}}/items/{{PRODUCT_ID}}",
+							"host": [
+								"{{CART_SERVICE_URL}}"
+							],
+							"path": [
+								"api",
+								"cart",
+								"{{CART_ID}}",
+								"items",
+								"{{PRODUCT_ID}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Clear Cart",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{CART_SERVICE_URL}}/api/cart/{{CART_ID}}",
+							"host": [
+								"{{CART_SERVICE_URL}}"
+							],
+							"path": [
+								"api",
+								"cart",
+								"{{CART_ID}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Merge Carts",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{CART_SERVICE_URL}}/api/cart/merge?anonymousCartId={{ANONYMOUS_CART_ID}}&userId={{USER_ID}}",
+							"host": [
+								"{{CART_SERVICE_URL}}"
+							],
+							"path": [
+								"api",
+								"cart",
+								"merge"
+							],
+							"query": [
+								{
+									"key": "anonymousCartId",
+									"value": "{{ANONYMOUS_CART_ID}}"
+								},
+								{
+									"key": "userId",
+									"value": "{{USER_ID}}"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Order Service",
+			"item": [
+				{
+					"name": "Create Order (Direct)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"userId\": \"{{USER_ID}}\",\n  \"items\": [\n    {\n      \"productId\": \"{{PRODUCT_ID}}\",\n      \"quantity\": 2,\n      \"unitPrice\": 1299.99\n    }\n  ],\n  \"shippingAddress\": {\n    \"street\": \"123 Main Street\",\n    \"city\": \"Istanbul\",\n    \"state\": \"Istanbul\",\n    \"postalCode\": \"34000\",\n    \"country\": \"Turkey\"\n  }\n}"
+						},
+						"url": {
+							"raw": "{{ORDER_SERVICE_URL}}/api/orders",
+							"host": [
+								"{{ORDER_SERVICE_URL}}"
+							],
+							"path": [
+								"api",
+								"orders"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Order (From Cart)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"userId\": \"{{USER_ID}}\",\n  \"cartId\": \"{{CART_ID}}\",\n  \"shippingAddress\": {\n    \"street\": \"123 Main Street\",\n    \"city\": \"Istanbul\",\n    \"state\": \"Istanbul\",\n    \"postalCode\": \"34000\",\n    \"country\": \"Turkey\"\n  }\n}"
+						},
+						"url": {
+							"raw": "{{ORDER_SERVICE_URL}}/api/orders",
+							"host": [
+								"{{ORDER_SERVICE_URL}}"
+							],
+							"path": [
+								"api",
+								"orders"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Order by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{ORDER_SERVICE_URL}}/api/orders/{{ORDER_ID}}",
+							"host": [
+								"{{ORDER_SERVICE_URL}}"
+							],
+							"path": [
+								"api",
+								"orders",
+								"{{ORDER_ID}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Order by Number",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{ORDER_SERVICE_URL}}/api/orders/number/{{ORDER_NUMBER}}",
+							"host": [
+								"{{ORDER_SERVICE_URL}}"
+							],
+							"path": [
+								"api",
+								"orders",
+								"number",
+								"{{ORDER_NUMBER}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get User Orders",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{ORDER_SERVICE_URL}}/api/orders/user/{{USER_ID}}?page=0&size=20",
+							"host": [
+								"{{ORDER_SERVICE_URL}}"
+							],
+							"path": [
+								"api",
+								"orders",
+								"user",
+								"{{USER_ID}}"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "0"
+								},
+								{
+									"key": "size",
+									"value": "20"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"variable": [
+		{
+			"key": "USER_SERVICE_URL",
+			"value": "http://localhost:8081",
+			"type": "string"
+		},
+		{
+			"key": "PRODUCT_SERVICE_URL",
+			"value": "http://localhost:8082",
+			"type": "string"
+		},
+		{
+			"key": "CART_SERVICE_URL",
+			"value": "http://localhost:8084",
+			"type": "string"
+		},
+		{
+			"key": "ORDER_SERVICE_URL",
+			"value": "http://localhost:8085",
+			"type": "string"
+		},
+		{
+			"key": "USER_ID",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "PRODUCT_ID",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "CART_ID",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "ANONYMOUS_CART_ID",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "ORDER_ID",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "ORDER_NUMBER",
+			"value": "",
+			"type": "string"
+		}
+	]
+}

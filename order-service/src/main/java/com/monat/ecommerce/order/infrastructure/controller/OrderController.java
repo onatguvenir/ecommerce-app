@@ -17,6 +17,17 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
 
+/**
+ * Order REST Controller.
+ * <p>
+ * This class exposes Key API endpoints for Order management.
+ * </p>
+ * 
+ * @RestController combines @Controller and @ResponseBody.
+ * 
+ * @Tag is part of OpenAPI (Swagger) documentation. It groups operations under
+ *      "Order Management".
+ */
 @RestController
 @RequestMapping("/api/orders")
 @RequiredArgsConstructor
@@ -37,14 +48,15 @@ public class OrderController {
 
     @GetMapping("/{orderId}")
     @Operation(summary = "Get order by ID")
-    public ResponseEntity<ApiResponse<OrderResponse>> getOrderById(@PathVariable UUID orderId) {
+    public ResponseEntity<ApiResponse<OrderResponse>> getOrderById(@PathVariable("orderId") UUID orderId) {
         OrderResponse response = orderApplicationService.getOrderById(orderId);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
     @GetMapping("/number/{orderNumber}")
     @Operation(summary = "Get order by order number")
-    public ResponseEntity<ApiResponse<OrderResponse>> getOrderByNumber(@PathVariable String orderNumber) {
+    public ResponseEntity<ApiResponse<OrderResponse>> getOrderByNumber(
+            @PathVariable("orderNumber") String orderNumber) {
         OrderResponse response = orderApplicationService.getOrderByNumber(orderNumber);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
@@ -52,9 +64,9 @@ public class OrderController {
     @GetMapping("/user/{userId}")
     @Operation(summary = "Get orders for a user")
     public ResponseEntity<ApiResponse<PagedResponse<OrderResponse>>> getUserOrders(
-            @PathVariable UUID userId,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
+            @PathVariable("userId") UUID userId,
+            @RequestParam(defaultValue = "0", name = "page") int page,
+            @RequestParam(defaultValue = "20", name = "size") int size) {
 
         Pageable pageable = PageRequest.of(page, size);
         PagedResponse<OrderResponse> response = orderApplicationService.getUserOrders(userId, pageable);

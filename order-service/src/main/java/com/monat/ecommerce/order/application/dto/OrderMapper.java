@@ -18,7 +18,6 @@ public interface OrderMapper {
     OrderItemResponse toOrderItemResponse(OrderItem item);
 
     @Mapping(target = "id", ignore = true)
-    @Mapping(target = "order", ignore = true)
     @Mapping(target = "subtotal", ignore = true)
     OrderItem toOrderItem(OrderItemRequest request);
 

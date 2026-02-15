@@ -4,18 +4,18 @@ import com.monat.ecommerce.user.domain.model.User;
 import com.monat.ecommerce.user.domain.model.UserStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Query;
-import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
 import java.util.UUID;
 
 /**
- * Repository for User entity
+ * Repository for User domain model
  */
-@Repository
-public interface UserRepository extends JpaRepository<User, UUID> {
+public interface UserRepository {
+
+    User save(User user);
+
+    Optional<User> findById(UUID id);
 
     Optional<User> findByEmail(String email);
 
@@ -27,9 +27,15 @@ public interface UserRepository extends JpaRepository<User, UUID> {
 
     Page<User> findByStatus(UserStatus status, Pageable pageable);
 
-    @Query("SELECT u FROM User u WHERE u.email = :email AND u.status = 'ACTIVE'")
+    Page<User> findAll(Pageable pageable);
+
     Optional<User> findActiveUserByEmail(String email);
 
-    @Query("SELECT u FROM User u LEFT JOIN FETCH u.addresses WHERE u.id = :id")
     Optional<User> findByIdWithAddresses(UUID id);
+
+    void deleteById(UUID id);
+
+    void deleteAll();
+
+    long count();
 }

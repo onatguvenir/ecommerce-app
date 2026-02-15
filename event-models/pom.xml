@@ -16,6 +16,10 @@
     <name>Event Models</name>
     <description>Kafka event schemas for inter-service communication</description>
 
+    <properties>
+        <repackage.skip>true</repackage.skip>
+    </properties>
+
     <dependencies>
         <!-- Lombok -->
         <dependency>

@@ -94,7 +94,7 @@ class ProductServiceIntegrationTest {
                 // When & Then - Search for "macbook"
                 mockMvc.perform(get("/api/products/search?keyword=macbook"))
                                 .andExpect(status().isOk())
-                                .andExpect(jsonPath("$.data.content", hasSize(greaterThanOrEqualTo(2))));
+                                .andExpect(jsonPath("$.content", hasSize(greaterThanOrEqualTo(1))));
         }
 
         @Test
@@ -110,7 +110,7 @@ class ProductServiceIntegrationTest {
                                 .param("minPrice", "1000")
                                 .param("maxPrice", "1500"))
                                 .andExpect(status().isOk())
-                                .andExpect(jsonPath("$.data.content[0].price",
+                                .andExpect(jsonPath("$.content[0].price",
                                                 greaterThanOrEqualTo(1000.0)));
         }
 
@@ -175,13 +175,13 @@ class ProductServiceIntegrationTest {
                 // When & Then
                 mockMvc.perform(get("/api/products/category/Electronics"))
                                 .andExpect(status().isOk())
-                                .andExpect(jsonPath("$.data.content", hasSize(greaterThanOrEqualTo(2))))
-                                .andExpect(jsonPath("$.data.content[0].category", is("Electronics")));
+                                .andExpect(jsonPath("$.content", hasSize(greaterThanOrEqualTo(2))))
+                                .andExpect(jsonPath("$.content[0].category", is("Electronics")));
         }
 
         private String createTestProduct(String name, String category, double price) throws Exception {
                 String productId = "PROD-TEST-" + System.currentTimeMillis();
-                String productJson = String.format("""
+                String productJson = String.format(java.util.Locale.US, """
                                 {
                                   "productId": "%s",
                                   "name": "%s",

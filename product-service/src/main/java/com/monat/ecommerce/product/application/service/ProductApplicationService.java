@@ -21,7 +21,18 @@ import java.math.BigDecimal;
 import java.util.HashMap;
 
 /**
- * Product application service
+ * Product Application Service.
+ * <p>
+ * This class contains the business logic for the Product Service.
+ * It acts as a facade, coordinating between the Domain Layer (Repository) and
+ * the Infrastructure Layer (Search, Sync).
+ * </p>
+ * 
+ * @Service indicates that this class is a "Service" component containing
+ *          business logic.
+ * 
+ * @RequiredArgsConstructor generates a constructor with required arguments
+ *                          (final fields), enabling Constructor Injection.
  */
 @Slf4j
 @Service
@@ -167,7 +178,7 @@ public class ProductApplicationService {
             BigDecimal maxPrice,
             Pageable pageable) {
 
-        log.debug("Searching products - Keyword: {}, Category: {}, Price: {}-{}", 
+        log.debug("Searching products - Keyword: {}, Category: {}, Price: {}-{}",
                 keyword, category, minPrice, maxPrice);
 
         if (keyword != null && minPrice != null && maxPrice != null) {
@@ -204,10 +215,10 @@ public class ProductApplicationService {
 
         if (product.getSpecifications() != null) {
             builder.weight(product.getSpecifications().getWeight())
-                   .dimensions(product.getSpecifications().getDimensions())
-                   .color(product.getSpecifications().getColor())
-                   .material(product.getSpecifications().getMaterial())
-                   .additionalSpecs(product.getSpecifications().getAdditionalSpecs());
+                    .dimensions(product.getSpecifications().getDimensions())
+                    .color(product.getSpecifications().getColor())
+                    .material(product.getSpecifications().getMaterial())
+                    .additionalSpecs(product.getSpecifications().getAdditionalSpecs());
         }
 
         return builder.build();

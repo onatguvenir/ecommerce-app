@@ -1,0 +1,43 @@
+filebeat.inputs:
+  - type: container
+    enabled: true
+    paths:
+      - "/var/lib/docker/containers/*/*.log"
+
+    # Add container metadata
+    processors:
+      - add_docker_metadata:
+          host: "unix:///var/run/docker.sock"
+
+      # Filter only microservice containers
+      - drop_event:
+          when:
+            not:
+              or:
+                - contains:
+                    container.name: "user-service"
+                - contains:
+                    container.name: "product-service"
+                - contains:
+                    container.name: "inventory-service"
+                - contains:
+                    container.name: "cart-service"
+                - contains:
+                    container.name: "order-service"
+                - contains:
+                    container.name: "payment-service"
+                - contains:
+                    container.name: "notification-service"
+
+# Output to Logstash
+output.logstash:
+  hosts: ["logstash:5044"]
+
+# Logging
+logging.level: info
+logging.to_files: true
+logging.files:
+  path: /var/log/filebeat
+  name: filebeat
+  keepfiles: 7
+  permissions: 0644

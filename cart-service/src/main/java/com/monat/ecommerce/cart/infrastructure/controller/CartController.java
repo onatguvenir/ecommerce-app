@@ -21,95 +21,94 @@ import java.time.LocalDateTime;
 @Tag(name = "Shopping Cart", description = "Shopping cart operations")
 public class CartController {
 
-    private final CartApplicationService cartService;
+        private final CartApplicationService cartService;
 
-    @GetMapping("/{cartId}")
-    @Operation(summary = "Get cart by ID", description = "Get cart for user or anonymous session")
-    public ResponseEntity<ApiResponse<CartResponse>> getCart(@PathVariable String cartId) {
-        CartResponse cart = cartService.getCart(cartId);
+        @GetMapping("/{cartId}")
+        @Operation(summary = "Get cart by ID", description = "Get cart for user or anonymous session")
+        public ResponseEntity<ApiResponse<CartResponse>> getCart(@PathVariable("cartId") String cartId) {
+                CartResponse cart = cartService.getCart(cartId);
 
-        return ResponseEntity.ok(ApiResponse.<CartResponse>builder()
-                .success(true)
-                .data(cart)
-                .timestamp(LocalDateTime.now())
-                .build());
-    }
+                return ResponseEntity.ok(ApiResponse.<CartResponse>builder()
+                                .success(true)
+                                .data(cart)
+                                .timestamp(LocalDateTime.now())
+                                .build());
+        }
 
-    @PostMapping("/{cartId}/items")
-    @Operation(summary = "Add item to cart")
-    public ResponseEntity<ApiResponse<CartResponse>> addToCart(
-            @PathVariable String cartId,
-            @Valid @RequestBody AddToCartRequest request) {
+        @PostMapping("/{cartId}/items")
+        @Operation(summary = "Add item to cart")
+        public ResponseEntity<ApiResponse<CartResponse>> addToCart(
+                        @PathVariable("cartId") String cartId,
+                        @Valid @RequestBody AddToCartRequest request) {
 
-        CartResponse cart = cartService.addToCart(cartId, request);
+                CartResponse cart = cartService.addToCart(cartId, request);
 
-        return ResponseEntity.ok(ApiResponse.<CartResponse>builder()
-                .success(true)
-                .data(cart)
-                .message("Item added to cart")
-                .timestamp(LocalDateTime.now())
-                .build());
-    }
+                return ResponseEntity.ok(ApiResponse.<CartResponse>builder()
+                                .success(true)
+                                .data(cart)
+                                .message("Item added to cart")
+                                .timestamp(LocalDateTime.now())
+                                .build());
+        }
 
-    @PutMapping("/{cartId}/items/{productId}")
-    @Operation(summary = "Update item quantity")
-    public ResponseEntity<ApiResponse<CartResponse>> updateItemQuantity(
-            @PathVariable String cartId,
-            @PathVariable String productId,
-            @RequestParam Integer quantity) {
+        @PutMapping("/{cartId}/items/{productId}")
+        @Operation(summary = "Update item quantity")
+        public ResponseEntity<ApiResponse<CartResponse>> updateItemQuantity(
+                        @PathVariable("cartId") String cartId,
+                        @PathVariable("productId") String productId,
+                        @RequestParam(name = "quantity") Integer quantity) {
 
-        CartResponse cart = cartService.updateItemQuantity(cartId, productId, quantity);
+                CartResponse cart = cartService.updateItemQuantity(cartId, productId, quantity);
 
-        return ResponseEntity.ok(ApiResponse.<CartResponse>builder()
-                .success(true)
-                .data(cart)
-                .message("Item quantity updated")
-                .timestamp(LocalDateTime.now())
-                .build());
-    }
+                return ResponseEntity.ok(ApiResponse.<CartResponse>builder()
+                                .success(true)
+                                .data(cart)
+                                .message("Item quantity updated")
+                                .timestamp(LocalDateTime.now())
+                                .build());
+        }
 
-    @DeleteMapping("/{cartId}/items/{productId}")
-    @Operation(summary = "Remove item from cart")
-    public ResponseEntity<ApiResponse<CartResponse>> removeItem(
-            @PathVariable String cartId,
-            @PathVariable String productId) {
+        @DeleteMapping("/{cartId}/items/{productId}")
+        @Operation(summary = "Remove item from cart")
+        public ResponseEntity<ApiResponse<CartResponse>> removeItem(
+                        @PathVariable("cartId") String cartId,
+                        @PathVariable("productId") String productId) {
 
-        CartResponse cart = cartService.removeItem(cartId, productId);
+                CartResponse cart = cartService.removeItem(cartId, productId);
 
-        return ResponseEntity.ok(ApiResponse.<CartResponse>builder()
-                .success(true)
-                .data(cart)
-                .message("Item removed from cart")
-                .timestamp(LocalDateTime.now())
-                .build());
-    }
+                return ResponseEntity.ok(ApiResponse.<CartResponse>builder()
+                                .success(true)
+                                .data(cart)
+                                .message("Item removed from cart")
+                                .timestamp(LocalDateTime.now())
+                                .build());
+        }
 
-    @DeleteMapping("/{cartId}")
-    @Operation(summary = "Clear cart")
-    public ResponseEntity<ApiResponse<Void>> clearCart(@PathVariable String cartId) {
-        cartService.clearCart(cartId);
+        @DeleteMapping("/{cartId}")
+        @Operation(summary = "Clear cart")
+        public ResponseEntity<ApiResponse<Void>> clearCart(@PathVariable("cartId") String cartId) {
+                cartService.clearCart(cartId);
 
-        return ResponseEntity.ok(ApiResponse.<Void>builder()
-                .success(true)
-                .message("Cart cleared")
-                .timestamp(LocalDateTime.now())
-                .build());
-    }
+                return ResponseEntity.ok(ApiResponse.<Void>builder()
+                                .success(true)
+                                .message("Cart cleared")
+                                .timestamp(LocalDateTime.now())
+                                .build());
+        }
 
-    @PostMapping("/merge")
-    @Operation(summary = "Merge anonymous cart with user cart", 
-               description = "Merge anonymous session cart into authenticated user cart on login")
-    public ResponseEntity<ApiResponse<CartResponse>> mergeCart(
-            @RequestParam String anonymousCartId,
-            @RequestParam String userId) {
+        @PostMapping("/merge")
+        @Operation(summary = "Merge anonymous cart with user cart", description = "Merge anonymous session cart into authenticated user cart on login")
+        public ResponseEntity<ApiResponse<CartResponse>> mergeCart(
+                        @RequestParam(name = "anonymousCartId") String anonymousCartId,
+                        @RequestParam(name = "userId") String userId) {
 
-        CartResponse cart = cartService.mergeCart(anonymousCartId, userId);
+                CartResponse cart = cartService.mergeCart(anonymousCartId, userId);
 
-        return ResponseEntity.ok(ApiResponse.<CartResponse>builder()
-                .success(true)
-                .data(cart)
-                .message("Carts merged successfully")
-                .timestamp(LocalDateTime.now())
-                .build());
-    }
+                return ResponseEntity.ok(ApiResponse.<CartResponse>builder()
+                                .success(true)
+                                .data(cart)
+                                .message("Carts merged successfully")
+                                .timestamp(LocalDateTime.now())
+                                .build());
+        }
 }

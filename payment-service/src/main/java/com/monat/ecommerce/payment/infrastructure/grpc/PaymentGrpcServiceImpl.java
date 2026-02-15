@@ -13,7 +13,15 @@ import net.devh.boot.grpc.server.service.GrpcService;
 import java.math.BigDecimal;
 
 /**
- * gRPC Server implementation for Payment Service
+ * gRPC Server implementation for Payment Service.
+ * <p>
+ * This class handles payment processing requests from other services (e.g.,
+ * Order Service).
+ * It implements the generated `PaymentServiceImplBase` from the `.proto`
+ * definition.
+ * </p>
+ * 
+ * @GrpcService marks this class as a gRPC service bean.
  */
 @Slf4j
 @GrpcService

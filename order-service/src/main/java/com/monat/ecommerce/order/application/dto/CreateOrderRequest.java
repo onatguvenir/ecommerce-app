@@ -20,7 +20,8 @@ public class CreateOrderRequest {
     @NotNull(message = "User ID is required")
     private UUID userId;
 
-    @NotEmpty(message = "Order must have at least one item")
+    private String cartId;
+
     @Valid
     private List<OrderItemRequest> items;
 

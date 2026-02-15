@@ -18,6 +18,7 @@ import org.testcontainers.containers.KafkaContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
+import java.util.UUID;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -31,151 +32,154 @@ import static org.hamcrest.Matchers.*;
 @Testcontainers
 class OrderServiceIntegrationTest {
 
-    @Container
-    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>(
-            DockerImageName.parse("postgres:16-alpine"))
-            .withDatabaseName("testdb")
-            .withUsername("test")
-            .withPassword("test");
+  @Container
+  static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>(
+      DockerImageName.parse("postgres:16-alpine"))
+      .withDatabaseName("testdb")
+      .withUsername("test")
+      .withPassword("test");
 
-    @Container
-    static KafkaContainer kafka = new KafkaContainer(
-            DockerImageName.parse("confluentinc/cp-kafka:7.5.0"));
+  @Container
+  static KafkaContainer kafka = new KafkaContainer(
+      DockerImageName.parse("confluentinc/cp-kafka:7.5.0"));
 
-    @DynamicPropertySource
-    static void configureProperties(DynamicPropertyRegistry registry) {
-        registry.add("spring.datasource.url", postgres::getJdbcUrl);
-        registry.add("spring.datasource.username", postgres::getUsername);
-        registry.add("spring.datasource.password", postgres::getPassword);
-        registry.add("spring.kafka.bootstrap-servers", kafka::getBootstrapServers);
-    }
+  @DynamicPropertySource
+  static void configureProperties(DynamicPropertyRegistry registry) {
+    registry.add("spring.datasource.url", postgres::getJdbcUrl);
+    registry.add("spring.datasource.username", postgres::getUsername);
+    registry.add("spring.datasource.password", postgres::getPassword);
+    registry.add("spring.kafka.bootstrap-servers", kafka::getBootstrapServers);
+  }
 
-    @Autowired
-    private MockMvc mockMvc;
+  @Autowired
+  private MockMvc mockMvc;
 
-    @Autowired
-    private OrderRepository orderRepository;
+  @Autowired
+  private OrderRepository orderRepository;
 
-    @BeforeEach
-    void setUp() {
-        orderRepository.deleteAll();
-    }
+  @BeforeEach
+  void setUp() {
+    orderRepository.deleteAll();
+  }
 
-    @Test
-    void createOrder_Success() throws Exception {
-        // Given
-        String orderJson = """
-                {
-                  "userId": 1,
-                  "items": [
-                    {
-                      "productId": "PROD-001",
-                      "quantity": 2,
-                      "price": 99.99
-                    }
-                  ],
-                  "shippingAddress": {
-                    "street": "123 Main St",
-                    "city": "New York",
-                    "state": "NY",
-                    "zipCode": "10001",
-                    "country": "USA"
-                  },
-                  "paymentMethod": "CREDIT_CARD"
-                }
-                """;
+  @Test
+  void createOrder_Success() throws Exception {
+    // Given
+    UUID userId = UUID.randomUUID();
+    String orderJson = String.format(java.util.Locale.US, """
+        {
+          "userId": "%s",
+          "items": [
+            {
+              "productId": "PROD-001",
+              "quantity": 2,
+              "price": 99.99
+            }
+          ],
+          "shippingAddress": {
+            "street": "123 Main St",
+            "city": "New York",
+            "state": "NY",
+            "zipCode": "10001",
+            "country": "USA"
+          },
+          "paymentMethod": "CREDIT_CARD"
+        }
+        """, userId);
 
-        // When & Then
-        mockMvc.perform(post("/api/orders")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(orderJson))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.userId", is(1)))
-                .andExpect(jsonPath("$.data.status", is("PENDING")))
-                .andExpect(jsonPath("$.data.totalAmount", is(199.98)));
-    }
+    // When & Then
+    mockMvc.perform(post("/api/orders")
+        .contentType(MediaType.APPLICATION_JSON)
+        .content(orderJson))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.userId", is(userId.toString())))
+        .andExpect(jsonPath("$.data.status", is("PENDING")))
+        .andExpect(jsonPath("$.data.totalAmount", is(199.98)));
+  }
 
-    @Test
-    void getOrder_Success() throws Exception {
-        // Given - Create an order first
-        String orderJson = """
-                {
-                  "userId": 1,
-                  "items": [{
-                    "productId": "PROD-001",
-                    "quantity": 1,
-                    "price": 50.00
-                  }],
-                  "shippingAddress": {
-                    "street": "456 Elm St",
-                    "city": "Boston",
-                    "state": "MA",
-                    "zipCode": "02101",
-                    "country": "USA"
-                  },
-                  "paymentMethod": "CREDIT_CARD"
-                }
-                """;
+  @Test
+  void getOrder_Success() throws Exception {
+    // Given - Create an order first
+    UUID userId = UUID.randomUUID();
+    String orderJson = String.format(java.util.Locale.US, """
+        {
+          "userId": "%s",
+          "items": [{
+            "productId": "PROD-001",
+            "quantity": 1,
+            "price": 50.00
+          }],
+          "shippingAddress": {
+            "street": "456 Elm St",
+            "city": "Boston",
+            "state": "MA",
+            "zipCode": "02101",
+            "country": "USA"
+          },
+          "paymentMethod": "CREDIT_CARD"
+        }
+        """, userId);
 
-        String createResponse = mockMvc.perform(post("/api/orders")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(orderJson))
-                .andExpect(status().isOk())
-                .andReturn()
-                .getResponse()
-                .getContentAsString();
+    String createResponse = mockMvc.perform(post("/api/orders")
+        .contentType(MediaType.APPLICATION_JSON)
+        .content(orderJson))
+        .andExpect(status().isOk())
+        .andReturn()
+        .getResponse()
+        .getContentAsString();
 
-        // Extract order ID from response
-        Long orderId = 1L; // Simplified for example
+    // Extract order ID from response using JsonPath
+    String orderId = com.jayway.jsonpath.JsonPath.read(createResponse, "$.data.id");
 
-        // When & Then
-        mockMvc.perform(get("/api/orders/" + orderId))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.id", is(orderId.intValue())))
-                .andExpect(jsonPath("$.data.status", notNullValue()));
-    }
+    // When & Then
+    mockMvc.perform(get("/api/orders/" + orderId))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.id", is(orderId)))
+        .andExpect(jsonPath("$.data.status", notNullValue()));
+  }
 
-    @Test
-    void getOrder_NotFound() throws Exception {
-        // When & Then
-        mockMvc.perform(get("/api/orders/999"))
-                .andExpect(status().isNotFound());
-    }
+  @Test
+  void getOrder_NotFound() throws Exception {
+    // When & Then
+    mockMvc.perform(get("/api/orders/" + UUID.randomUUID()))
+        .andExpect(status().isNotFound());
+  }
 
-    @Test
-    void getUserOrders_ReturnsOrderList() throws Exception {
-        // Given - Create multiple orders for user 1
-        createTestOrder(1L, "PROD-001", 1, 100.00);
-        createTestOrder(1L, "PROD-002", 2, 50.00);
+  @Test
+  void getUserOrders_ReturnsOrderList() throws Exception {
+    // Given - Create multiple orders for user 1
+    UUID userId = UUID.randomUUID();
+    createTestOrder(userId, "PROD-001", 1, 100.00);
+    createTestOrder(userId, "PROD-002", 2, 50.00);
 
-        // When & Then
-        mockMvc.perform(get("/api/orders/user/1"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data", hasSize(greaterThanOrEqualTo(2))));
-    }
+    // When & Then
+    mockMvc.perform(get("/api/orders/user/" + userId))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data", hasSize(greaterThanOrEqualTo(2))));
+  }
 
-    private void createTestOrder(Long userId, String productId, int quantity, double price) throws Exception {
-        String orderJson = String.format("""
-                {
-                  "userId": %d,
-                  "items": [{
-                    "productId": "%s",
-                    "quantity": %d,
-                    "price": %.2f
-                  }],
-                  "shippingAddress": {
-                    "street": "123 Test St",
-                    "city": "Test City",
-                    "state": "TS",
-                    "zipCode": "12345",
-                    "country": "USA"
-                  },
-                  "paymentMethod": "CREDIT_CARD"
-                }
-                """, userId, productId, quantity, price);
+  private void createTestOrder(UUID userId, String productId, int quantity, double price) throws Exception {
+    String orderJson = String.format(java.util.Locale.US, """
+        {
+          "userId": "%s",
+          "items": [{
+            "productId": "%s",
+            "quantity": %d,
+            "price": %.2f
+          }],
+          "shippingAddress": {
+            "street": "123 Test St",
+            "city": "Test City",
+            "state": "TS",
+            "zipCode": "12345",
+            "country": "USA"
+          },
+          "paymentMethod": "CREDIT_CARD"
+        }
+        """, userId, productId, quantity, price);
 
-        mockMvc.perform(post("/api/orders")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(orderJson));
-    }
+    mockMvc.perform(post("/api/orders")
+        .contentType(MediaType.APPLICATION_JSON)
+        .content(orderJson));
+  }
 }

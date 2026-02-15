@@ -1,29 +1,29 @@
 package com.monat.ecommerce.inventory.application.service;
 
-import com.monat.ecommerce.inventory.application.dto.StockCheckResponse;
-import com.monat.ecommerce.inventory.application.dto.UpdateStockRequest;
-import com.monat.ecommerce.inventory.domain.model.InventoryItem;
+import com.monat.ecommerce.common.exception.ResourceNotFoundException;
+import com.monat.ecommerce.inventory.application.dto.InventoryResponse;
+import com.monat.ecommerce.inventory.application.dto.StockReservationRequest;
+import com.monat.ecommerce.inventory.domain.model.Inventory;
+import com.monat.ecommerce.inventory.domain.model.ReservationStatus;
+import com.monat.ecommerce.inventory.domain.model.StockReservation;
 import com.monat.ecommerce.inventory.domain.repository.InventoryRepository;
+import com.monat.ecommerce.inventory.domain.repository.StockReservationRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.cache.CacheManager;
-import org.springframework.cache.concurrent.ConcurrentMapCache;
 
+import java.time.LocalDateTime;
 import java.util.Optional;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
-/**
- * Unit tests for InventoryApplicationService
- */
 @ExtendWith(MockitoExtension.class)
 class InventoryApplicationServiceTest {
 
@@ -31,186 +31,127 @@ class InventoryApplicationServiceTest {
     private InventoryRepository inventoryRepository;
 
     @Mock
-    private CacheManager cacheManager;
+    private StockReservationRepository stockReservationRepository;
 
     @InjectMocks
     private InventoryApplicationService inventoryApplicationService;
 
-    private InventoryItem inventoryItem;
+    private Inventory inventory;
+    private StockReservationRequest reservationRequest;
+    private UUID inventoryId;
 
     @BeforeEach
     void setUp() {
-        inventoryItem = InventoryItem.builder()
-                .id(1L)
-                .productId("PROD-001")
-                .quantity(100)
+        inventoryId = UUID.randomUUID();
+        inventory = Inventory.builder()
+                .id(inventoryId)
+                .productId("PROD-123")
+                .totalQuantity(100)
+                .availableQuantity(100)
                 .reservedQuantity(0)
-                .version(0L)
                 .build();
 
-        // Mock cache
-        when(cacheManager.getCache("inventory"))
-                .thenReturn(new ConcurrentMapCache("inventory"));
-    }
-
-    @Test
-    void checkStock_Found() {
-        // Given
-        when(inventoryRepository.findByProductId("PROD-001"))
-                .thenReturn(Optional.of(inventoryItem));
-
-        // When
-        StockCheckResponse response = inventoryApplicationService.checkStock("PROD-001");
-
-        // Then
-        assertThat(response).isNotNull();
-        assertThat(response.getProductId()).isEqualTo("PROD-001");
-        assertThat(response.getQuantity()).isEqualTo(100);
-        assertThat(response.getAvailableQuantity()).isEqualTo(100);
-        verify(inventoryRepository, times(1)).findByProductId("PROD-001");
-    }
-
-    @Test
-    void checkStock_NotFound() {
-        // Given
-        when(inventoryRepository.findByProductId("INVALID"))
-                .thenReturn(Optional.empty());
-
-        // When & Then
-        assertThatThrownBy(() -> inventoryApplicationService.checkStock("INVALID"))
-                .isInstanceOf(ResourceNotFoundException.class)
-                .hasMessageContaining("Inventory not found");
-
-        verify(inventoryRepository, times(1)).findByProductId("INVALID");
-    }
-
-    @Test
-    void updateStock_Success() {
-        // Given
-        when(inventoryRepository.findByProductId("PROD-001"))
-                .thenReturn(Optional.of(inventoryItem));
-        when(inventoryRepository.save(any(InventoryItem.class)))
-                .thenReturn(inventoryItem);
-
-        UpdateStockRequest request = UpdateStockRequest.builder()
-                .productId("PROD-001")
-                .quantity(150)
+        reservationRequest = StockReservationRequest.builder()
+                .productId("PROD-123")
+                .quantity(10)
+                .orderId("ORDER-123")
                 .build();
+    }
 
-        // When
-        StockCheckResponse response = inventoryApplicationService.updateStock(request);
+    @Test
+    void checkStock_Available() {
+        when(inventoryRepository.hasAvailableStock("PROD-123", 10)).thenReturn(true);
 
-        // Then
-        assertThat(response).isNotNull();
-        verify(inventoryRepository, times(1)).save(any(InventoryItem.class));
+        boolean result = inventoryApplicationService.checkStock("PROD-123", 10);
+
+        assertThat(result).isTrue();
+        verify(inventoryRepository).hasAvailableStock("PROD-123", 10);
     }
 
     @Test
     void reserveStock_Success() {
-        // Given
-        when(inventoryRepository.findByProductIdWithLock("PROD-001"))
-                .thenReturn(Optional.of(inventoryItem));
-        when(inventoryRepository.save(any(InventoryItem.class)))
-                .thenReturn(inventoryItem);
+        when(inventoryRepository.findByProductId("PROD-123")).thenReturn(Optional.of(inventory));
+        when(stockReservationRepository.save(any(StockReservation.class))).thenAnswer(invocation -> {
+            StockReservation r = invocation.getArgument(0);
+            r.setId(UUID.randomUUID());
+            return r;
+        });
 
-        // When
-        boolean result = inventoryApplicationService.reserveStock("PROD-001", 10, "ORDER-123");
+        StockReservation result = inventoryApplicationService.reserveStock(reservationRequest);
 
-        // Then
-        assertThat(result).isTrue();
-        verify(inventoryRepository, times(1)).save(any(InventoryItem.class));
+        assertThat(result).isNotNull();
+        assertThat(result.getProductId()).isEqualTo("PROD-123");
+        assertThat(result.getQuantity()).isEqualTo(10);
+        assertThat(result.getOrderId()).isEqualTo("ORDER-123");
+        verify(inventoryRepository).findByProductId("PROD-123");
+        verify(stockReservationRepository).save(any(StockReservation.class));
     }
 
     @Test
     void reserveStock_InsufficientStock() {
-        // Given
-        when(inventoryRepository.findByProductIdWithLock("PROD-001"))
-                .thenReturn(Optional.of(inventoryItem));
+        // Mock inventory logic if necessary, here we rely on inventory object state
+        // But wait, inventory.isStockAvailable(quantity) uses internal logic.
+        // 100 > 10, so it should be fine.
+        // Let's force insufficient stock scenario by mocking repository to return low
+        // stock inventory
+        Inventory lowStockInventory = Inventory.builder()
+                .id(UUID.randomUUID())
+                .productId("PROD-123")
+                .totalQuantity(5)
+                .availableQuantity(5)
+                .reservedQuantity(0)
+                .build();
 
-        // When
-        boolean result = inventoryApplicationService.reserveStock("PROD-001", 200, "ORDER-123");
+        when(inventoryRepository.findByProductId("PROD-123")).thenReturn(Optional.of(lowStockInventory));
 
-        // Then
-        assertThat(result).isFalse();
-        verify(inventoryRepository, never()).save(any());
-    }
-
-    @Test
-    void releaseReservation_Success() {
-        // Given
-        inventoryItem.setReservedQuantity(10);
-        when(inventoryRepository.findByProductIdWithLock("PROD-001"))
-                .thenReturn(Optional.of(inventoryItem));
-        when(inventoryRepository.save(any(InventoryItem.class)))
-                .thenReturn(inventoryItem);
-
-        // When
-        inventoryApplicationService.releaseReservation("PROD-001", 10, "ORDER-123");
-
-        // Then
-        verify(inventoryRepository, times(1)).save(any(InventoryItem.class));
+        assertThatThrownBy(() -> inventoryApplicationService.reserveStock(reservationRequest))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("Insufficient stock");
     }
 
     @Test
     void confirmReservation_Success() {
-        // Given
-        inventoryItem.setReservedQuantity(10);
-        when(inventoryRepository.findByProductIdWithLock("PROD-001"))
-                .thenReturn(Optional.of(inventoryItem));
-        when(inventoryRepository.save(any(InventoryItem.class)))
-                .thenReturn(inventoryItem);
-
-        // When
-        inventoryApplicationService.confirmReservation("PROD-001", 10, "ORDER-123");
-
-        // Then
-        verify(inventoryRepository, times(1)).save(any(InventoryItem.class));
-    }
-
-    @Test
-    void createInventory_Success() {
-        // Given
-        when(inventoryRepository.existsByProductId("PROD-NEW")).thenReturn(false);
-        when(inventoryRepository.save(any(InventoryItem.class))).thenReturn(inventoryItem);
-
-        // When
-        StockCheckResponse response = inventoryApplicationService.createInventory("PROD-NEW", 50);
-
-        // Then
-        assertThat(response).isNotNull();
-        verify(inventoryRepository, times(1)).save(any(InventoryItem.class));
-    }
-
-    @Test
-    void createInventory_AlreadyExists() {
-        // Given
-        when(inventoryRepository.existsByProductId("PROD-001")).thenReturn(true);
-
-        // When & Then
-        assertThatThrownBy(() -> inventoryApplicationService.createInventory("PROD-001", 50))
-                .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("already exists");
-
-        verify(inventoryRepository, never()).save(any());
-    }
-
-    @Test
-    void cacheEviction_OnUpdate() {
-        // Given
-        when(inventoryRepository.findByProductId("PROD-001"))
-                .thenReturn(Optional.of(inventoryItem));
-        when(inventoryRepository.save(any(InventoryItem.class)))
-                .thenReturn(inventoryItem);
-
-        UpdateStockRequest request = UpdateStockRequest.builder()
-                .productId("PROD-001")
-                .quantity(150)
+        String reservationId = "RES-123";
+        StockReservation reservation = StockReservation.builder()
+                .reservationId(reservationId)
+                .productId("PROD-123")
+                .quantity(10)
+                .status(ReservationStatus.ACTIVE)
+                .expiresAt(LocalDateTime.now().plusMinutes(10))
                 .build();
 
-        // When
-        inventoryApplicationService.updateStock(request);
+        when(stockReservationRepository.findByReservationId(reservationId)).thenReturn(Optional.of(reservation));
+        when(inventoryRepository.findByProductId("PROD-123")).thenReturn(Optional.of(inventory));
 
-        // Then
-        verify(cacheManager, atLeastOnce()).getCache("inventory");
+        inventoryApplicationService.confirmReservation(reservationId);
+
+        verify(stockReservationRepository).save(reservation);
+        assertThat(reservation.getStatus()).isEqualTo(ReservationStatus.COMMITTED);
+    }
+
+    @Test
+    void addStock_NewProduct() {
+        when(inventoryRepository.findByProductId("PROD-456")).thenReturn(Optional.empty());
+        when(inventoryRepository.save(any(Inventory.class))).thenAnswer(invocation -> {
+            Inventory i = invocation.getArgument(0);
+            i.setProductId("PROD-456");
+            return i;
+        });
+
+        InventoryResponse response = inventoryApplicationService.addStock("PROD-456", 50);
+
+        assertThat(response.getProductId()).isEqualTo("PROD-456");
+        assertThat(response.getQuantity()).isEqualTo(50);
+        verify(inventoryRepository).save(any(Inventory.class));
+    }
+
+    @Test
+    void getInventory_Success() {
+        when(inventoryRepository.findByProductId("PROD-123")).thenReturn(Optional.of(inventory));
+
+        InventoryResponse response = inventoryApplicationService.getInventory("PROD-123");
+
+        assertThat(response.getProductId()).isEqualTo("PROD-123");
+        assertThat(response.getQuantity()).isEqualTo(100);
     }
 }

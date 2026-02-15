@@ -1,8 +1,11 @@
 package com.monat.ecommerce.payment.application.service;
 
-import com.monat.ecommerce.payment.application.dto.ProcessPaymentRequest;
+import com.monat.ecommerce.common.exception.ResourceNotFoundException;
 import com.monat.ecommerce.payment.application.dto.PaymentResponse;
+import com.monat.ecommerce.payment.application.dto.ProcessPaymentRequest;
+import com.monat.ecommerce.payment.application.mapper.PaymentDtoMapper;
 import com.monat.ecommerce.payment.domain.model.Payment;
+import com.monat.ecommerce.payment.domain.model.PaymentMethod;
 import com.monat.ecommerce.payment.domain.model.PaymentStatus;
 import com.monat.ecommerce.payment.domain.repository.PaymentRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -13,12 +16,14 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
+import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 /**
@@ -27,208 +32,241 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class PaymentApplicationServiceTest {
 
-    @Mock
-    private PaymentRepository paymentRepository;
+        @Mock
+        private PaymentRepository paymentRepository;
 
-    @InjectMocks
-    private PaymentApplicationService paymentApplicationService;
+        @Mock
+        private PaymentDtoMapper paymentMapper;
 
-    private ProcessPaymentRequest processPaymentRequest;
-    private Payment payment;
+        @InjectMocks
+        private PaymentApplicationService paymentApplicationService;
 
-    @BeforeEach
-    void setUp() {
-        processPaymentRequest = ProcessPaymentRequest.builder()
-                .orderId("ORDER-123")
-                .amount(BigDecimal.valueOf(199.99))
-                .paymentMethod("CREDIT_CARD")
-                .idempotencyKey("IDEM-123")
-                .build();
+        private ProcessPaymentRequest processPaymentRequest;
+        private Payment payment;
+        private PaymentResponse paymentResponse;
+        private UUID paymentId;
 
-        payment = Payment.builder()
-                .id(1L)
-                .orderId("ORDER-123")
-                .amount(BigDecimal.valueOf(199.99))
-                .paymentMethod("CREDIT_CARD")
-                .status(PaymentStatus.PENDING)
-                .idempotencyKey("IDEM-123")
-                .build();
-    }
+        @BeforeEach
+        void setUp() {
+                paymentId = UUID.randomUUID();
 
-    @Test
-    void processPayment_Success() {
-        // Given
-        when(paymentRepository.findByIdempotencyKey("IDEM-123")).thenReturn(Optional.empty());
-        when(paymentRepository.save(any(Payment.class))).thenReturn(payment);
+                processPaymentRequest = ProcessPaymentRequest.builder()
+                                .orderId("ORDER-123")
+                                .amount(BigDecimal.valueOf(199.99))
+                                .currency("USD")
+                                .paymentMethod("CARD")
+                                .idempotencyKey("IDEM-123")
+                                .build();
 
-        // When
-        PaymentResponse response = paymentApplicationService.processPayment(processPaymentRequest);
+                payment = Payment.builder()
+                                .id(paymentId)
+                                .orderId("ORDER-123")
+                                .amount(BigDecimal.valueOf(199.99))
+                                .currency("USD")
+                                .paymentMethod(PaymentMethod.CARD)
+                                .status(PaymentStatus.PENDING)
+                                .idempotencyKey("IDEM-123")
+                                .build();
 
-        // Then
-        assertThat(response).isNotNull();
-        assertThat(response.getOrderId()).isEqualTo("ORDER-123");
-        assertThat(response.getStatus()).isIn(PaymentStatus.COMPLETED.name(), PaymentStatus.FAILED.name());
-        verify(paymentRepository, times(1)).findByIdempotencyKey("IDEM-123");
-        verify(paymentRepository, times(1)).save(any(Payment.class));
-    }
+                paymentResponse = PaymentResponse.builder()
+                                .id(paymentId)
+                                .orderId("ORDER-123")
+                                .amount(BigDecimal.valueOf(199.99))
+                                .currency("USD")
+                                .paymentMethod("CARD")
+                                .status(PaymentStatus.PENDING.name())
+                                .build();
+        }
 
-    @Test
-    void processPayment_IdempotentRequest() {
-        // Given - Payment already exists with same idempotency key
-        Payment existingPayment = Payment.builder()
-                .id(1L)
-                .orderId("ORDER-123")
-                .amount(BigDecimal.valueOf(199.99))
-                .status(PaymentStatus.COMPLETED)
-                .idempotencyKey("IDEM-123")
-                .build();
+        @Test
+        void processPayment_Success() {
+                // Given
+                when(paymentRepository.findByIdempotencyKey("IDEM-123")).thenReturn(Optional.empty());
+                when(paymentRepository.save(any(Payment.class))).thenReturn(payment);
+                when(paymentMapper.toResponse(any(Payment.class))).thenReturn(paymentResponse);
 
-        when(paymentRepository.findByIdempotencyKey("IDEM-123"))
-                .thenReturn(Optional.of(existingPayment));
+                // When
+                PaymentResponse response = paymentApplicationService.processPayment(processPaymentRequest);
 
-        // When
-        PaymentResponse response = paymentApplicationService.processPayment(processPaymentRequest);
+                // Then
+                assertThat(response).isNotNull();
+                assertThat(response.getOrderId()).isEqualTo("ORDER-123");
+                verify(paymentRepository, times(1)).findByIdempotencyKey("IDEM-123");
+                verify(paymentRepository, times(1)).save(any(Payment.class));
+        }
 
-        // Then
-        assertThat(response).isNotNull();
-        assertThat(response.getStatus()).isEqualTo(PaymentStatus.COMPLETED.name());
-        verify(paymentRepository, times(1)).findByIdempotencyKey("IDEM-123");
-        verify(paymentRepository, never()).save(any(Payment.class)); // Should not save again
-    }
+        @Test
+        void processPayment_IdempotentRequest() {
+                // Given - Payment already exists with same idempotency key
+                Payment existingPayment = Payment.builder()
+                                .id(paymentId)
+                                .orderId("ORDER-123")
+                                .amount(BigDecimal.valueOf(199.99))
+                                .status(PaymentStatus.COMPLETED)
+                                .idempotencyKey("IDEM-123")
+                                .build();
 
-    @Test
-    void getPayment_Found() {
-        // Given
-        when(paymentRepository.findById(1L)).thenReturn(Optional.of(payment));
+                when(paymentRepository.findByIdempotencyKey("IDEM-123"))
+                                .thenReturn(Optional.of(existingPayment));
+                when(paymentMapper.toResponse(existingPayment)).thenReturn(paymentResponse);
 
-        // When
-        PaymentResponse response = paymentApplicationService.getPayment(1L);
+                // When
+                PaymentResponse response = paymentApplicationService.processPayment(processPaymentRequest);
 
-        // Then
-        assertThat(response).isNotNull();
-        assertThat(response.getId()).isEqualTo(1L);
-        assertThat(response.getOrderId()).isEqualTo("ORDER-123");
-        verify(paymentRepository, times(1)).findById(1L);
-    }
+                // Then
+                assertThat(response).isNotNull();
+                verify(paymentRepository, times(1)).findByIdempotencyKey("IDEM-123");
+                verify(paymentRepository, never()).save(any(Payment.class));
+        }
 
-    @Test
-    void getPayment_NotFound() {
-        // Given
-        when(paymentRepository.findById(999L)).thenReturn(Optional.empty());
+        @Test
+        void getPayment_Found() {
+                // Given
+                when(paymentRepository.findById(paymentId)).thenReturn(Optional.of(payment));
+                when(paymentMapper.toResponse(payment)).thenReturn(paymentResponse);
 
-        // When & Then
-        assertThatThrownBy(() -> paymentApplicationService.getPayment(999L))
-                .isInstanceOf(ResourceNotFoundException.class)
-                .hasMessageContaining("Payment not found");
+                // When
+                PaymentResponse response = paymentApplicationService.getPayment(paymentId);
 
-        verify(paymentRepository, times(1)).findById(999L);
-    }
+                // Then
+                assertThat(response).isNotNull();
+                assertThat(response.getOrderId()).isEqualTo("ORDER-123");
+                verify(paymentRepository, times(1)).findById(paymentId);
+        }
 
-    @Test
-    void getPaymentByOrderId_Found() {
-        // Given
-        when(paymentRepository.findByOrderId("ORDER-123")).thenReturn(Optional.of(payment));
+        @Test
+        void getPayment_NotFound() {
+                // Given
+                UUID randomId = UUID.randomUUID();
+                when(paymentRepository.findById(randomId)).thenReturn(Optional.empty());
 
-        // When
-        PaymentResponse response = paymentApplicationService.getPaymentByOrderId("ORDER-123");
+                // When & Then
+                assertThatThrownBy(() -> paymentApplicationService.getPayment(randomId))
+                                .isInstanceOf(ResourceNotFoundException.class)
+                                .hasMessageContaining("Payment not found");
 
-        // Then
-        assertThat(response).isNotNull();
-        assertThat(response.getOrderId()).isEqualTo("ORDER-123");
-        verify(paymentRepository, times(1)).findByOrderId("ORDER-123");
-    }
+                verify(paymentRepository, times(1)).findById(randomId);
+        }
 
-    @Test
-    void getPaymentByOrderId_NotFound() {
-        // Given
-        when(paymentRepository.findByOrderId("INVALID")).thenReturn(Optional.empty());
+        @Test
+        void getPaymentByOrderId_Found() {
+                // Given
+                when(paymentRepository.findByOrderId("ORDER-123")).thenReturn(List.of(payment));
+                when(paymentMapper.toResponse(payment)).thenReturn(paymentResponse);
 
-        // When & Then
-        assertThatThrownBy(() -> paymentApplicationService.getPaymentByOrderId("INVALID"))
-                .isInstanceOf(ResourceNotFoundException.class)
-                .hasMessageContaining("Payment not found for order");
+                // When
+                PaymentResponse response = paymentApplicationService.getPaymentByOrderId("ORDER-123");
 
-        verify(paymentRepository, times(1)).findByOrderId("INVALID");
-    }
+                // Then
+                assertThat(response).isNotNull();
+                assertThat(response.getOrderId()).isEqualTo("ORDER-123");
+                verify(paymentRepository, times(1)).findByOrderId("ORDER-123");
+        }
 
-    @Test
-    void refundPayment_Success() {
-        // Given
-        Payment completedPayment = Payment.builder()
-                .id(1L)
-                .orderId("ORDER-123")
-                .amount(BigDecimal.valueOf(199.99))
-                .status(PaymentStatus.COMPLETED)
-                .build();
+        @Test
+        void getPaymentByOrderId_NotFound() {
+                // Given
+                when(paymentRepository.findByOrderId("INVALID")).thenReturn(Collections.emptyList());
 
-        when(paymentRepository.findById(1L)).thenReturn(Optional.of(completedPayment));
-        when(paymentRepository.save(any(Payment.class))).thenReturn(completedPayment);
+                // When & Then
+                assertThatThrownBy(() -> paymentApplicationService.getPaymentByOrderId("INVALID"))
+                                .isInstanceOf(ResourceNotFoundException.class)
+                                .hasMessageContaining("Payment not found for order");
 
-        // When
-        PaymentResponse response = paymentApplicationService.refundPayment(1L);
+                verify(paymentRepository, times(1)).findByOrderId("INVALID");
+        }
 
-        // Then
-        assertThat(response).isNotNull();
-        assertThat(response.getStatus()).isEqualTo(PaymentStatus.REFUNDED.name());
-        verify(paymentRepository, times(1)).findById(1L);
-        verify(paymentRepository, times(1)).save(any(Payment.class));
-    }
+        @Test
+        void refundPayment_Success() {
+                // Given
+                Payment completedPayment = Payment.builder()
+                                .id(paymentId)
+                                .orderId("ORDER-123")
+                                .amount(BigDecimal.valueOf(199.99))
+                                .status(PaymentStatus.COMPLETED)
+                                .build();
 
-    @Test
-    void refundPayment_AlreadyRefunded() {
-        // Given
-        Payment refundedPayment = Payment.builder()
-                .id(1L)
-                .orderId("ORDER-123")
-                .amount(BigDecimal.valueOf(199.99))
-                .status(PaymentStatus.REFUNDED)
-                .build();
+                Payment refundedPayment = Payment.builder()
+                                .id(paymentId)
+                                .orderId("ORDER-123")
+                                .amount(BigDecimal.valueOf(199.99))
+                                .status(PaymentStatus.REFUNDED)
+                                .build();
 
-        when(paymentRepository.findById(1L)).thenReturn(Optional.of(refundedPayment));
+                PaymentResponse refundedResponse = PaymentResponse.builder()
+                                .orderId("ORDER-123")
+                                .status(PaymentStatus.REFUNDED.name())
+                                .build();
 
-        // When & Then
-        assertThatThrownBy(() -> paymentApplicationService.refundPayment(1L))
-                .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("already refunded");
+                when(paymentRepository.findById(paymentId)).thenReturn(Optional.of(completedPayment));
+                when(paymentRepository.save(any(Payment.class))).thenReturn(refundedPayment);
+                when(paymentMapper.toResponse(any(Payment.class))).thenReturn(refundedResponse);
 
-        verify(paymentRepository, never()).save(any());
-    }
+                // When
+                PaymentResponse response = paymentApplicationService.refundPayment(paymentId);
 
-    @Test
-    void refundPayment_NotCompleted() {
-        // Given
-        Payment pendingPayment = Payment.builder()
-                .id(1L)
-                .orderId("ORDER-123")
-                .amount(BigDecimal.valueOf(199.99))
-                .status(PaymentStatus.PENDING)
-                .build();
+                // Then
+                assertThat(response).isNotNull();
+                assertThat(response.getStatus()).isEqualTo(PaymentStatus.REFUNDED.name());
+                verify(paymentRepository, times(1)).findById(paymentId);
+                verify(paymentRepository, times(1)).save(any(Payment.class));
+        }
 
-        when(paymentRepository.findById(1L)).thenReturn(Optional.of(pendingPayment));
+        @Test
+        void refundPayment_AlreadyRefunded() {
+                // Given
+                Payment refundedPayment = Payment.builder()
+                                .id(paymentId)
+                                .orderId("ORDER-123")
+                                .amount(BigDecimal.valueOf(199.99))
+                                .status(PaymentStatus.REFUNDED)
+                                .build();
 
-        // When & Then
-        assertThatThrownBy(() -> paymentApplicationService.refundPayment(1L))
-                .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("cannot be refunded");
+                when(paymentRepository.findById(paymentId)).thenReturn(Optional.of(refundedPayment));
 
-        verify(paymentRepository, never()).save(any());
-    }
+                // When & Then
+                assertThatThrownBy(() -> paymentApplicationService.refundPayment(paymentId))
+                                .isInstanceOf(IllegalStateException.class)
+                                .hasMessageContaining("already refunded");
 
-    @Test
-    void processPayment_ValidatesAmount() {
-        // Given
-        ProcessPaymentRequest invalidRequest = ProcessPaymentRequest.builder()
-                .orderId("ORDER-123")
-                .amount(BigDecimal.ZERO) // Invalid amount
-                .paymentMethod("CREDIT_CARD")
-                .idempotencyKey("IDEM-456")
-                .build();
+                verify(paymentRepository, never()).save(any());
+        }
 
-        // When & Then
-        assertThatThrownBy(() -> paymentApplicationService.processPayment(invalidRequest))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("amount must be positive");
+        @Test
+        void refundPayment_NotCompleted() {
+                // Given
+                Payment pendingPayment = Payment.builder()
+                                .id(paymentId)
+                                .orderId("ORDER-123")
+                                .amount(BigDecimal.valueOf(199.99))
+                                .status(PaymentStatus.PENDING)
+                                .build();
 
-        verify(paymentRepository, never()).save(any());
-    }
+                when(paymentRepository.findById(paymentId)).thenReturn(Optional.of(pendingPayment));
+
+                // When & Then
+                assertThatThrownBy(() -> paymentApplicationService.refundPayment(paymentId))
+                                .isInstanceOf(IllegalStateException.class)
+                                .hasMessageContaining("cannot be refunded");
+
+                verify(paymentRepository, never()).save(any());
+        }
+
+        @Test
+        void processPayment_ValidatesAmount() {
+                // Given
+                ProcessPaymentRequest invalidRequest = ProcessPaymentRequest.builder()
+                                .orderId("ORDER-123")
+                                .amount(BigDecimal.ZERO) // Invalid amount
+                                .paymentMethod("CARD")
+                                .idempotencyKey("IDEM-456")
+                                .build();
+
+                // When & Then
+                assertThatThrownBy(() -> paymentApplicationService.processPayment(invalidRequest))
+                                .isInstanceOf(IllegalArgumentException.class)
+                                .hasMessageContaining("Payment amount must be positive");
+
+                verify(paymentRepository, never()).save(any());
+        }
 }

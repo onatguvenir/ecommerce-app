@@ -20,6 +20,25 @@ import java.util.UUID;
 /**
  * REST controller for user operations
  */
+/**
+ * User REST Controller.
+ * <p>
+ * This class exposes Key API endpoints for User management.
+ * </p>
+ * 
+ * @RestController combines @Controller and @ResponseBody. It indicates that
+ *                 this class is a web controller
+ *                 and the return value of methods should be bound to the web
+ *                 response body (Serialized to JSON usually).
+ * 
+ *                 @RequestMapping("/api/users") specifies the base URL path for
+ *                 all methods in this controller.
+ * 
+ * @RequiredArgsConstructor is a Lombok annotation that generates a constructor
+ *                          with required arguments (final fields).
+ *                          This is the preferred way to perform Constructor
+ *                          Injection in Spring.
+ */
 @RestController
 @RequestMapping("/api/users")
 @RequiredArgsConstructor
@@ -32,7 +51,7 @@ public class UserController {
     @Operation(summary = "Register a new user")
     public ResponseEntity<ApiResponse<UserResponse>> registerUser(
             @Valid @RequestBody UserRegistrationRequest request) {
-        
+
         UserResponse response = userApplicationService.registerUser(request);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success(response, "User registered successfully"));
@@ -40,14 +59,14 @@ public class UserController {
 
     @GetMapping("/{userId}")
     @Operation(summary = "Get user by ID")
-    public ResponseEntity<ApiResponse<UserResponse>> getUserById(@PathVariable UUID userId) {
+    public ResponseEntity<ApiResponse<UserResponse>> getUserById(@PathVariable("userId") UUID userId) {
         UserResponse response = userApplicationService.getUserById(userId);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
     @GetMapping("/email/{email}")
     @Operation(summary = "Get user by email")
-    public ResponseEntity<ApiResponse<UserResponse>> getUserByEmail(@PathVariable String email) {
+    public ResponseEntity<ApiResponse<UserResponse>> getUserByEmail(@PathVariable("email") String email) {
         UserResponse response = userApplicationService.getUserByEmail(email);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
@@ -55,9 +74,9 @@ public class UserController {
     @GetMapping
     @Operation(summary = "Get all users with pagination")
     public ResponseEntity<ApiResponse<PagedResponse<UserResponse>>> getAllUsers(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
-        
+            @RequestParam(name = "page", defaultValue = "0") int page,
+            @RequestParam(name = "size", defaultValue = "20") int size) {
+
         Pageable pageable = PageRequest.of(page, size);
         PagedResponse<UserResponse> response = userApplicationService.getAllUsers(pageable);
         return ResponseEntity.ok(ApiResponse.success(response));
@@ -66,9 +85,9 @@ public class UserController {
     @PostMapping("/{userId}/addresses")
     @Operation(summary = "Add address to user")
     public ResponseEntity<ApiResponse<AddressResponse>> addAddress(
-            @PathVariable UUID userId,
+            @PathVariable("userId") UUID userId,
             @Valid @RequestBody CreateAddressRequest request) {
-        
+
         AddressResponse response = userApplicationService.addAddress(userId, request);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success(response, "Address added successfully"));
@@ -77,15 +96,15 @@ public class UserController {
     @GetMapping("/{userId}/addresses")
     @Operation(summary = "Get user addresses")
     public ResponseEntity<ApiResponse<List<AddressResponse>>> getUserAddresses(
-            @PathVariable UUID userId) {
-        
+            @PathVariable("userId") UUID userId) {
+
         List<AddressResponse> response = userApplicationService.getUserAddresses(userId);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
     @GetMapping("/{userId}/validate")
     @Operation(summary = "Validate if user is active")
-    public ResponseEntity<ApiResponse<Boolean>> validateUser(@PathVariable UUID userId) {
+    public ResponseEntity<ApiResponse<Boolean>> validateUser(@PathVariable("userId") UUID userId) {
         boolean isValid = userApplicationService.validateUser(userId);
         return ResponseEntity.ok(ApiResponse.success(isValid));
     }

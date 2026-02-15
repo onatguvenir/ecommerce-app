@@ -26,6 +26,5 @@ public interface UserMapper {
     List<AddressResponse> toAddressResponseList(List<UserAddress> addresses);
 
     @Mapping(target = "id", ignore = true)
-    @Mapping(target = "user", ignore = true)
     UserAddress toUserAddress(CreateAddressRequest request);
 }
