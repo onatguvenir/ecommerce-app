@@ -1,6 +1,14 @@
 spring:
   application:
     name: inventory-service
+
+  # ---------------------------------------------------------------
+  # Virtual Threads (Project Loom) — JDK 21 + Spring Boot 3.2+
+  # PostgreSQL, Redis ve Kafka I/O işlemleri virtual thread üzerinde
+  # koşar; platform thread bloke olmaz, throughput artar.
+  threads:
+    virtual:
+      enabled: true
   
   datasource:
     url: jdbc:postgresql://localhost:5432/inventorydb
@@ -35,6 +43,34 @@ spring:
     type: redis
     redis:
       time-to-live: 3600000  # 1 hour
+  
+  # ---------------------------------------------------------------
+  # RabbitMQ (Spring Batch async data processing)
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: guest
+    password: guest
+    listener:
+      simple:
+        # Tüketim hızını sınırlar, DB'yi yormamak için concurrency ayarlanır
+        concurrency: 5
+        max-concurrency: 10
+        # Retry behavior (önemsiz geçici ağ hataları için, asıl DLQ aşağıda)
+        retry:
+          enabled: true
+          initial-interval: 1000ms
+          max-attempts: 3
+          multiplier: 2.0
+  
+  # ---------------------------------------------------------------
+  # Spring Batch
+  batch:
+    jdbc:
+      # Batch tablolarını DB'de otomatik olarak oluşturur (JobRepository, StepExecution vb)
+      initialize-schema: always
+    job:
+      enabled: false  # Otomatik çalışmasını engeller, API'den manuel tetikleriz
   
   kafka:
     bootstrap-servers: localhost:9092

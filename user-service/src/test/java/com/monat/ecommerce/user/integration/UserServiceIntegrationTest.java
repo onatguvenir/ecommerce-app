@@ -91,13 +91,14 @@ class UserServiceIntegrationTest {
     @DisplayName("Should register a new user successfully")
     void shouldRegisterUser() throws Exception {
         // Arrange
-        UserRegistrationRequest request = new UserRegistrationRequest();
-        request.setEmail("integration@example.com");
-        request.setUsername("integrationuser");
-        request.setPassword("Password123!");
-        request.setFirstName("Integration");
-        request.setLastName("Test");
-        request.setPhone("1234567890");
+        UserRegistrationRequest request = UserRegistrationRequest.builder()
+                .email("integration@example.com")
+                .username("integrationuser")
+                .password("Password123!")
+                .firstName("Integration")
+                .lastName("Test")
+                .phone("1234567890")
+                .build();
 
         // Act & Assert
         mockMvc.perform(post("/api/users/register")

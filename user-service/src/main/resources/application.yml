@@ -1,6 +1,17 @@
 spring:
   application:
     name: user-service
+
+  # ---------------------------------------------------------------
+  # Virtual Threads (Project Loom) — JDK 21 + Spring Boot 3.2+
+  # Bu ayar true yapıldığında Spring Boot, Tomcat worker thread pool'u
+  # yerine JVM tarafından yönetilen "platform thread"e bağlı olmayan
+  # hafif virtual thread'leri kullanır. Her HTTP isteği, her @Async
+  # metodu ve Tomcat'ın tüm I/O işlemleri virtual thread üzerinde koşar.
+  # I/O-bound işlemlerde (DB, HTTP client, Kafka) büyük throughput artışı sağlar.
+  threads:
+    virtual:
+      enabled: true
   
   datasource:
     url: jdbc:postgresql://localhost:5432/userdb
@@ -117,6 +128,14 @@ resilience4j:
     instances:
       userService:
         maxConcurrentCalls: 10
+        
+  ratelimiter:
+    instances:
+      user-api:
+        limitForPeriod: 100
+        limitRefreshPeriod: 1s
+        timeoutDuration: 500ms
+        registerHealthIndicator: true
 
     tags-sorter: alpha
     operations-sorter: alpha

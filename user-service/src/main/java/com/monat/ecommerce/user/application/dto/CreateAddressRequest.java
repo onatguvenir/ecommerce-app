@@ -10,26 +10,21 @@ import lombok.NoArgsConstructor;
 /**
  * DTO for creating address
  */
-@Data
 @Builder
-@NoArgsConstructor
-@AllArgsConstructor
-public class CreateAddressRequest {
-    
-    private AddressType addressType;
+public record CreateAddressRequest(
+    AddressType addressType,
     
     @NotBlank(message = "Street is required")
-    private String street;
+    String street,
     
     @NotBlank(message = "City is required")
-    private String city;
+    String city,
     
-    private String state;
-    
-    private String postalCode;
+    String state,
+    String postalCode,
     
     @NotBlank(message = "Country is required")
-    private String country;
+    String country,
     
-    private Boolean isDefault;
-}
+    Boolean isDefault
+) {}

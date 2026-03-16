@@ -1,18 +1,44 @@
 spring:
   application:
     name: product-service
-  
+
+  # ---------------------------------------------------------------
+  # Virtual Threads (Project Loom) — JDK 21 + Spring Boot 3.2+
+  # Tomcat'ın thread pool modelini devre dışı bırakır; her istek
+  # ve I/O operasyonu (MongoDB, Redis, Elasticsearch) için ayrı,
+  # hafif bir virtual thread oluşturulur.
+  threads:
+    virtual:
+      enabled: true
+
   data:
     mongodb:
       uri: mongodb://admin:admin@localhost:27017/productdb?authSource=admin
       database: productdb
-    
+
     elasticsearch:
       repositories:
         enabled: true
 
+    # Redis Cache konfigürasyonu
+    redis:
+      host: localhost
+      port: 6379
+      timeout: 2000ms
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 2
+
   elasticsearch:
     uris: http://localhost:9200
+
+  # Spring Cache: Redis backend kullanır (CacheConfig.java ile yapılandırılır)
+  cache:
+    type: redis
+    redis:
+      time-to-live: 600000  # 10 dakika (ms)
 
 # Server Configuration
 server:
@@ -24,7 +50,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics,prometheus
+        include: health,info,metrics,prometheus,circuitbreakers,caches
   endpoint:
     health:
       show-details: always
@@ -34,6 +60,8 @@ management:
     livenessState:
       enabled: true
     readinessState:
+      enabled: true
+    circuitbreakers:
       enabled: true
   prometheus:
     metrics:
@@ -49,10 +77,36 @@ management:
     tracing:
       endpoint: http://localhost:9411/api/v2/spans
 
+# Resilience4j Circuit Breaker konfigürasyonu
+resilience4j:
+  circuitbreaker:
+    instances:
+      # Elasticsearch circuit breaker
+      elasticsearchCB:
+        # CLOSED -> OPEN: 10 çağrıdan %50'si başarısız olursa
+        sliding-window-size: 10
+        failure-rate-threshold: 50
+        # OPEN -> HALF_OPEN: 10 saniye bekle
+        wait-duration-in-open-state: 10s
+        # HALF_OPEN'da 3 test isteği gönder
+        permitted-number-of-calls-in-half-open-state: 3
+        # Yavaş çağrı eşiği: 3 saniyeden uzun süren çağrılar "yavaş" sayılır
+        slow-call-duration-threshold: 3s
+        slow-call-rate-threshold: 80
+        # Hangi exception'lar circuit'i açar
+        record-exceptions:
+          - java.io.IOException
+          - java.net.ConnectException
+  timelimiter:
+    instances:
+      elasticsearchCB:
+        timeout-duration: 5s
+
 # Logging
 logging:
   level:
     root: INFO
     com.monat.ecommerce: DEBUG
     org.springframework.data.elasticsearch: DEBUG
-
+    io.github.resilience4j: DEBUG
+    org.springframework.cache: DEBUG

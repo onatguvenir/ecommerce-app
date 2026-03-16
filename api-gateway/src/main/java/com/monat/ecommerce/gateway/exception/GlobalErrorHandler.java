@@ -24,7 +24,8 @@ import java.nio.charset.StandardCharsets;
 public class GlobalErrorHandler implements ErrorWebExceptionHandler {
 
     @Override
-    public Mono<Void> handle(ServerWebExchange exchange, Throwable ex) {
+    @org.springframework.lang.NonNull
+    public Mono<Void> handle(@org.springframework.lang.NonNull ServerWebExchange exchange, @org.springframework.lang.NonNull Throwable ex) {
         ServerHttpResponse response = exchange.getResponse();
 
         if (response.isCommitted()) {
@@ -49,12 +50,13 @@ public class GlobalErrorHandler implements ErrorWebExceptionHandler {
 
         log.error("Gateway error: {}", ex.getMessage(), ex);
 
-        String errorJson = String.format(
-                "{\"error\":\"%s\",\"message\":\"%s\",\"status\":%d}",
-                status.getReasonPhrase(),
-                message,
-                status.value()
-        );
+        String errorJson = """
+                {
+                  "error": "%s",
+                  "message": "%s",
+                  "status": %d
+                }
+                """.formatted(status.getReasonPhrase(), message, status.value());
 
         DataBuffer buffer = response.bufferFactory()
                 .wrap(errorJson.getBytes(StandardCharsets.UTF_8));

@@ -40,194 +40,190 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class OrderApplicationServiceTest {
 
-        @Mock
-        private OrderRepository orderRepository;
+    @Mock
+    private OrderRepository orderRepository;
 
-        @Mock
-        private CartClient cartClient;
+    @Mock
+    private CartClient cartClient;
 
-        @Mock
-        private com.monat.ecommerce.order.application.dto.OrderMapper orderMapper;
+    @Mock
+    private OrderMapper orderMapper;
 
-        @Mock
-        private OrderSagaOrchestrator sagaOrchestrator;
+    @Mock
+    private OrderSagaOrchestrator sagaOrchestrator;
 
-        @InjectMocks
-        private OrderApplicationService orderApplicationService;
+    @InjectMocks
+    private OrderApplicationService orderApplicationService;
 
-        private CreateOrderRequest createOrderRequest;
-        private Order order;
-        private UUID orderId = UUID.randomUUID();
-        private UUID userId = UUID.randomUUID();
+    private CreateOrderRequest createOrderRequest;
+    private Order order;
+    private final UUID orderId = UUID.randomUUID();
+    private final UUID userId = UUID.randomUUID();
 
-        @BeforeEach
-        void setUp() {
-                createOrderRequest = CreateOrderRequest.builder()
-                                .userId(userId)
-                                .items(new ArrayList<>())
-                                .shippingAddress(AddressRequest.builder()
-                                                .street("123 Main St")
-                                                .city("New York")
-                                                .state("NY")
-                                                .postalCode("10001")
-                                                .country("USA")
-                                                .build())
-                                .build();
+    @BeforeEach
+    void setUp() {
+        createOrderRequest = CreateOrderRequest.builder()
+                .userId(userId)
+                .items(new ArrayList<>())
+                .shippingAddress(AddressRequest.builder()
+                        .street("123 Main St")
+                        .city("New York")
+                        .state("NY")
+                        .postalCode("10001")
+                        .country("USA")
+                        .build())
+                .build();
 
-                order = Order.builder()
-                                .id(orderId)
-                                .userId(userId)
-                                .status(OrderStatus.PENDING)
-                                .totalAmount(BigDecimal.valueOf(100.00))
-                                .items(new ArrayList<>())
-                                .build();
-        }
+        order = Order.builder()
+                .id(orderId)
+                .userId(userId)
+                .status(OrderStatus.PENDING)
+                .totalAmount(BigDecimal.valueOf(100.00))
+                .items(new ArrayList<>())
+                .build();
+    }
 
-        @Test
-        void createOrder_Success() {
-                // Given
-                createOrderRequest.setItems(List.of(OrderItemRequest.builder()
-                                .productId("PROD-1")
-                                .quantity(1)
-                                .unitPrice(BigDecimal.valueOf(100.00))
-                                .build()));
-                when(orderMapper.toOrderItem(any(OrderItemRequest.class)))
-                                .thenReturn(com.monat.ecommerce.order.domain.model.OrderItem.builder()
-                                                .productId("PROD-1")
-                                                .quantity(1)
-                                                .unitPrice(BigDecimal.valueOf(100.00))
-                                                .build());
-                when(orderMapper.toShippingAddress(any(AddressRequest.class)))
-                                .thenReturn(com.monat.ecommerce.order.domain.model.ShippingAddress.builder()
-                                                .street("123 Main St")
-                                                .city("New York")
-                                                .state("NY")
-                                                .postalCode("10001")
-                                                .country("USA")
-                                                .build());
-                when(orderMapper.toOrderResponse(any(Order.class))).thenReturn(OrderResponse.builder()
-                                .id(orderId)
-                                .userId(userId)
-                                .status(OrderStatus.PENDING.name())
-                                .build());
-                when(orderRepository.save(any(Order.class))).thenReturn(order);
+    @Test
+    void createOrder_Success() {
+        // Given
+        createOrderRequest = CreateOrderRequest.builder()
+                .userId(userId)
+                .items(List.of(OrderItemRequest.builder()
+                        .productId("PROD-1")
+                        .quantity(1)
+                        .unitPrice(BigDecimal.valueOf(100.00))
+                        .build()))
+                .shippingAddress(createOrderRequest.shippingAddress())
+                .build();
 
-                // sagaOrchestrator.executeOrderSaga is void, so we don't need to mock return
-                // but it's called in a thread.
-                // Since it's a separate thread we can't easily verify it without more complex
-                // setup, but it won't break the test.
+        when(orderMapper.toOrderItem(any(OrderItemRequest.class)))
+                .thenReturn(com.monat.ecommerce.order.domain.model.OrderItem.builder()
+                        .productId("PROD-1")
+                        .quantity(1)
+                        .unitPrice(BigDecimal.valueOf(100.00))
+                        .build());
 
-                // When
-                OrderResponse response = orderApplicationService.createOrder(createOrderRequest);
+        when(orderMapper.toOrder(any(CreateOrderRequest.class))).thenReturn(order);
+        
+        when(orderMapper.toOrderResponse(any(Order.class))).thenReturn(OrderResponse.builder()
+                .id(orderId)
+                .userId(userId)
+                .status(OrderStatus.PENDING.name())
+                .build());
+        when(orderRepository.save(any(Order.class))).thenReturn(order);
 
-                // Then
-                assertThat(response).isNotNull();
-                assertThat(response.getStatus()).isEqualTo(OrderStatus.PENDING.name());
-                verify(orderRepository, times(1)).save(any(Order.class));
-        }
+        // When
+        OrderResponse response = orderApplicationService.createOrder(createOrderRequest);
 
-        @Test
-        void createOrder_FromCart_Success() {
-                // Given
-                String cartId = "cart-123";
-                createOrderRequest.setCartId(cartId);
+        // Then
+        assertThat(response).isNotNull();
+        assertThat(response.status()).isEqualTo(OrderStatus.PENDING.name());
+        verify(orderRepository, times(1)).save(any(Order.class));
+    }
 
-                CartDto cartDto = CartDto.builder()
-                                .cartId(cartId)
-                                .items(List.of(CartItemDto.builder()
-                                                .productId("PROD-1")
-                                                .quantity(1)
-                                                .unitPrice(BigDecimal.valueOf(100.00))
-                                                .build()))
-                                .build();
+    @Test
+    void createOrder_FromCart_Success() {
+        // Given
+        String cartId = "cart-123";
+        createOrderRequest = CreateOrderRequest.builder()
+                .userId(userId)
+                .cartId(cartId)
+                .items(new ArrayList<>())
+                .shippingAddress(createOrderRequest.shippingAddress())
+                .build();
 
-                when(cartClient.getCart(cartId)).thenReturn(ApiResponse.success(cartDto));
-                when(orderMapper.toOrderItem(any(OrderItemRequest.class)))
-                                .thenReturn(com.monat.ecommerce.order.domain.model.OrderItem.builder()
-                                                .productId("PROD-1")
-                                                .quantity(1)
-                                                .unitPrice(BigDecimal.valueOf(100.00))
-                                                .build());
-                when(orderMapper.toShippingAddress(any(AddressRequest.class)))
-                                .thenReturn(com.monat.ecommerce.order.domain.model.ShippingAddress.builder()
-                                                .street("123 Main St")
-                                                .city("New York")
-                                                .state("NY")
-                                                .postalCode("10001")
-                                                .country("USA")
-                                                .build());
-                when(orderMapper.toOrderResponse(any(Order.class))).thenReturn(OrderResponse.builder()
-                                .id(orderId)
-                                .userId(userId)
-                                .status(OrderStatus.PENDING.name())
-                                .build());
-                when(orderRepository.save(any(Order.class))).thenReturn(order);
+        CartDto cartDto = CartDto.builder()
+                .cartId(cartId)
+                .items(List.of(CartItemDto.builder()
+                        .productId("PROD-1")
+                        .quantity(1)
+                        .unitPrice(BigDecimal.valueOf(100.00))
+                        .build()))
+                .build();
 
-                // When
-                OrderResponse response = orderApplicationService.createOrder(createOrderRequest);
+        when(cartClient.getCart(cartId)).thenReturn(ApiResponse.success(cartDto));
 
-                // Then
-                assertThat(response).isNotNull();
-                verify(cartClient, times(1)).getCart(cartId);
-                verify(cartClient, times(1)).deleteCart(cartId);
-                verify(orderRepository, times(1)).save(any(Order.class));
-        }
+        when(orderMapper.toOrderItem(any(OrderItemRequest.class)))
+                .thenReturn(com.monat.ecommerce.order.domain.model.OrderItem.builder()
+                        .productId("PROD-1")
+                        .quantity(1)
+                        .unitPrice(BigDecimal.valueOf(100.00))
+                        .build());
+        
+        when(orderMapper.toOrder(any(CreateOrderRequest.class))).thenReturn(order);
 
-        @Test
-        void getOrder_Found() {
-                // Given
-                when(orderRepository.findByIdWithItems(orderId)).thenReturn(Optional.of(order));
-                when(orderMapper.toOrderResponse(order)).thenReturn(OrderResponse.builder()
-                                .id(orderId)
-                                .userId(userId)
-                                .status(OrderStatus.PENDING.name())
-                                .build());
+        when(orderMapper.toOrderResponse(any(Order.class))).thenReturn(OrderResponse.builder()
+                .id(orderId)
+                .userId(userId)
+                .status(OrderStatus.PENDING.name())
+                .build());
+        when(orderRepository.save(any(Order.class))).thenReturn(order);
 
-                // When
-                OrderResponse response = orderApplicationService.getOrderById(orderId);
+        // When
+        OrderResponse response = orderApplicationService.createOrder(createOrderRequest);
 
-                // Then
-                assertThat(response).isNotNull();
-                assertThat(response.getId()).isEqualTo(orderId);
-                assertThat(response.getStatus()).isEqualTo(OrderStatus.PENDING.name());
-                verify(orderRepository, times(1)).findByIdWithItems(orderId);
-        }
+        // Then
+        assertThat(response).isNotNull();
+        verify(cartClient, times(1)).getCart(cartId);
+        verify(cartClient, times(1)).deleteCart(cartId);
+        verify(orderRepository, times(1)).save(any(Order.class));
+    }
 
-        @Test
-        void getOrder_NotFound() {
-                // Given
-                UUID randomId = UUID.randomUUID();
-                when(orderRepository.findByIdWithItems(randomId)).thenReturn(Optional.empty());
+    @Test
+    void getOrder_Found() {
+        // Given
+        when(orderRepository.findByIdWithItems(orderId)).thenReturn(Optional.of(order));
+        when(orderMapper.toOrderResponse(order)).thenReturn(OrderResponse.builder()
+                .id(orderId)
+                .userId(userId)
+                .status(OrderStatus.PENDING.name())
+                .build());
 
-                // When & Then
-                assertThatThrownBy(() -> orderApplicationService.getOrderById(randomId))
-                                .isInstanceOf(ResourceNotFoundException.class)
-                                .hasMessageContaining("Order", randomId.toString());
+        // When
+        OrderResponse response = orderApplicationService.getOrderById(orderId);
 
-                verify(orderRepository, times(1)).findByIdWithItems(randomId);
-        }
+        // Then
+        assertThat(response).isNotNull();
+        assertThat(response.id()).isEqualTo(orderId);
+        assertThat(response.status()).isEqualTo(OrderStatus.PENDING.name());
+        verify(orderRepository, times(1)).findByIdWithItems(orderId);
+    }
 
-        @Test
-        void getUserOrders_ReturnsOrderList() {
-                // Given
-                Pageable pageable = PageRequest.of(0, 10);
+    @Test
+    void getOrder_NotFound() {
+        // Given
+        UUID randomId = UUID.randomUUID();
+        when(orderRepository.findByIdWithItems(randomId)).thenReturn(Optional.empty());
 
-                when(orderRepository.findByUserId(userId, 0, 10)).thenReturn(List.of(order));
-                when(orderRepository.countByUserId(userId)).thenReturn(1L);
+        // When & Then
+        assertThatThrownBy(() -> orderApplicationService.getOrderById(randomId))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessageContaining("Order", randomId.toString());
 
-                when(orderMapper.toOrderResponseList(anyList())).thenReturn(List.of(OrderResponse.builder()
-                                .id(orderId)
-                                .userId(userId)
-                                .status(OrderStatus.PENDING.name())
-                                .build()));
+        verify(orderRepository, times(1)).findByIdWithItems(randomId);
+    }
 
-                // When
-                PagedResponse<OrderResponse> orders = orderApplicationService.getUserOrders(userId, pageable);
+    @Test
+    void getUserOrders_ReturnsOrderList() {
+        // Given
+        Pageable pageable = PageRequest.of(0, 10);
 
-                // Then
-                assertThat(orders).isNotNull();
-                assertThat(orders.getContent()).hasSize(1);
-                verify(orderRepository, times(1)).findByUserId(userId, 0, 10);
-                verify(orderRepository, times(1)).countByUserId(userId);
-        }
+        when(orderRepository.findByUserId(userId, 0, 10)).thenReturn(List.of(order));
+        when(orderRepository.countByUserId(userId)).thenReturn(1L);
+
+        when(orderMapper.toOrderResponseList(anyList())).thenReturn(List.of(OrderResponse.builder()
+                .id(orderId)
+                .userId(userId)
+                .status(OrderStatus.PENDING.name())
+                .build()));
+
+        // When
+        PagedResponse<OrderResponse> orders = orderApplicationService.getUserOrders(userId, pageable);
+
+        // Then
+        assertThat(orders).isNotNull();
+        assertThat(orders.getContent()).hasSize(1);
+        verify(orderRepository, times(1)).findByUserId(userId, 0, 10);
+        verify(orderRepository, times(1)).countByUserId(userId);
+    }
 }

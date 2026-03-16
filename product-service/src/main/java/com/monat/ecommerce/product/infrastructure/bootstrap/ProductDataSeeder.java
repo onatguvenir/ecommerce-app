@@ -37,49 +37,49 @@ public class ProductDataSeeder implements CommandLineRunner {
 
         // Electronics
         createProduct("PROD-001", "Smartphone X Pro", "High-end smartphone with advanced camera system.", "Electronics",
-                "TechBrand", new BigDecimal("999.99"));
+                "TechBrand", new BigDecimal("1000.00"));
         createProduct("PROD-002", "Laptop Ultra 15", "Ultra-thin laptop for professionals.", "Electronics", "ComputeCo",
-                new BigDecimal("1499.99"));
+                new BigDecimal("1500.00"));
         createProduct("PROD-003", "Wireless Earbuds", "Noise-cancelling wireless earbuds.", "Electronics", "AudioTech",
-                new BigDecimal("199.99"));
+                new BigDecimal("200.00"));
         createProduct("PROD-004", "Smart Watch Series 5", "Fitness tracker and smartwatch.", "Electronics", "TechBrand",
-                new BigDecimal("299.99"));
+                new BigDecimal("300.00"));
         createProduct("PROD-005", "4K Monitor 27\"", "High-resolution monitor for designers.", "Electronics",
-                "ViewMaster", new BigDecimal("449.99"));
+                "ViewMaster", new BigDecimal("450.00"));
 
         // Books
         createProduct("PROD-006", "The Great Novel", "Award-winning fiction novel.", "Books", "PublisherOne",
-                new BigDecimal("19.99"));
+                new BigDecimal("20.00"));
         createProduct("PROD-007", "Learn Java 21", "Comprehensive guide to Java programming.", "Books", "TechPress",
-                new BigDecimal("49.99"));
+                new BigDecimal("50.00"));
         createProduct("PROD-008", "Cooking Masterclass", "Recipes from top chefs.", "Books", "CulinaryPub",
-                new BigDecimal("29.99"));
+                new BigDecimal("30.00"));
         createProduct("PROD-009", "History of Art", "Illustrated history of art movements.", "Books", "ArtHouse",
-                new BigDecimal("59.99"));
+                new BigDecimal("60.00"));
         createProduct("PROD-010", "Sci-Fi Adventure", "Thrilling space opera.", "Books", "GalaxyPress",
-                new BigDecimal("14.99"));
+                new BigDecimal("15.00"));
 
         // Clothing
         createProduct("PROD-011", "Classic T-Shirt", "100% Cotton T-Shirt.", "Clothing", "FashionBasic",
-                new BigDecimal("24.99"));
+                new BigDecimal("25.00"));
         createProduct("PROD-012", "Denim Jeans", "Straight-fit denim jeans.", "Clothing", "BlueJeans",
-                new BigDecimal("79.99"));
+                new BigDecimal("80.00"));
         createProduct("PROD-013", "Running Shoes", "Lightweight running shoes.", "Clothing", "RunFast",
-                new BigDecimal("119.99"));
+                new BigDecimal("120.00"));
         createProduct("PROD-014", "Winter Jacket", "Insulated winter jacket.", "Clothing", "NorthWear",
-                new BigDecimal("199.99"));
+                new BigDecimal("200.00"));
         createProduct("PROD-015", "Summer Dress", "Floral print summer dress.", "Clothing", "StyleCo",
-                new BigDecimal("59.99"));
+                new BigDecimal("60.00"));
 
         // Home
         createProduct("PROD-016", "Coffee Maker", "Automatic drip coffee maker.", "Home", "BrewMaster",
-                new BigDecimal("89.99"));
+                new BigDecimal("90.00"));
         createProduct("PROD-017", "Blender", "High-speed blender for smoothies.", "Home", "KitchenPro",
-                new BigDecimal("129.99"));
-        createProduct("PROD-018", "Desk Lamp", "Adjustable LED desk lamp.", "Home", "LightUp", new BigDecimal("39.99"));
+                new BigDecimal("130.00"));
+        createProduct("PROD-018", "Desk Lamp", "Adjustable LED desk lamp.", "Home", "LightUp", new BigDecimal("40.00"));
         createProduct("PROD-019", "Throw Pillow", "Decorative throw pillow.", "Home", "DecoHome",
-                new BigDecimal("19.99"));
-        createProduct("PROD-020", "Plant Pot", "Ceramic plant pot.", "Home", "GardenLife", new BigDecimal("24.99"));
+                new BigDecimal("20.00"));
+        createProduct("PROD-020", "Plant Pot", "Ceramic plant pot.", "Home", "GardenLife", new BigDecimal("25.00"));
 
         log.info("Seeding products completed. Created {} products.", productRepository.count());
     }

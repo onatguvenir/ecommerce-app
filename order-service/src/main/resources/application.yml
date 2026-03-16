@@ -1,6 +1,14 @@
 spring:
   application:
     name: order-service
+
+  # ---------------------------------------------------------------
+  # Virtual Threads (Project Loom) — JDK 21 + Spring Boot 3.2+
+  # Her HTTP isteği, @KafkaListener ve gRPC client çağrısı
+  # virtual thread üzerinde koşar; Saga koordinasyonu için ideal.
+  threads:
+    virtual:
+      enabled: true
   
   datasource:
     url: jdbc:postgresql://localhost:5432/orderdb
@@ -120,6 +128,18 @@ resilience4j:
       paymentService:
         maxAttempts: 3
         waitDuration: 1000ms
+        
+  bulkhead:
+    instances:
+      inventory-service:
+        maxConcurrentCalls: 50
+        maxWaitDuration: 500ms
+      payment-service:
+        maxConcurrentCalls: 50
+        maxWaitDuration: 500ms
+      user-service:
+        maxConcurrentCalls: 100
+        maxWaitDuration: 500ms
 
 
 # Application specific

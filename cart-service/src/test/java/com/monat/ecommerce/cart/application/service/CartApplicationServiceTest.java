@@ -49,7 +49,7 @@ class CartApplicationServiceTest {
                 .productId("PROD-001")
                 .productName("Test Product")
                 .quantity(2)
-                .unitPrice(BigDecimal.valueOf(99.99))
+                .unitPrice(BigDecimal.valueOf(100.00))
                 .build();
     }
 
@@ -64,7 +64,7 @@ class CartApplicationServiceTest {
 
         // Then
         assertThat(response).isNotNull();
-        assertThat(response.getCartId()).isEqualTo("CART-123");
+        assertThat(response.cartId()).isEqualTo("CART-123");
         verify(cartRepository, times(1)).findById("CART-123");
         verify(cartRepository, times(1)).save(any(Cart.class));
     }
@@ -80,7 +80,7 @@ class CartApplicationServiceTest {
 
         // Then
         assertThat(response).isNotNull();
-        assertThat(response.getItems()).hasSize(1);
+        assertThat(response.items()).hasSize(1);
         verify(cartRepository, times(1)).findById("CART-123");
         verify(cartRepository, times(1)).save(any(Cart.class));
     }
@@ -92,7 +92,7 @@ class CartApplicationServiceTest {
                 .productId("PROD-001")
                 .productName("Test Product")
                 .quantity(1)
-                .unitPrice(BigDecimal.valueOf(99.99))
+                .unitPrice(BigDecimal.valueOf(100.00))
                 .build();
         cart.getItems().add(existingItem);
 
@@ -104,8 +104,8 @@ class CartApplicationServiceTest {
 
         // Then
         assertThat(response).isNotNull();
-        assertThat(response.getItems()).hasSize(1);
-        assertThat(response.getItems().get(0).getQuantity()).isEqualTo(3); // 1 + 2
+        assertThat(response.items()).hasSize(1);
+        assertThat(response.items().get(0).quantity()).isEqualTo(3); // 1 + 2
         verify(cartRepository, times(1)).save(any(Cart.class));
     }
 
@@ -145,7 +145,7 @@ class CartApplicationServiceTest {
 
         // Then
         assertThat(response).isNotNull();
-        assertThat(response.getCartId()).isEqualTo("CART-123");
+        assertThat(response.cartId()).isEqualTo("CART-123");
         verify(cartRepository, times(1)).findById("CART-123");
     }
 
@@ -159,8 +159,8 @@ class CartApplicationServiceTest {
 
         // Then
         assertThat(response).isNotNull();
-        assertThat(response.getCartId()).isEqualTo("CART-123");
-        assertThat(response.getItems()).isEmpty();
+        assertThat(response.cartId()).isEqualTo("CART-123");
+        assertThat(response.items()).isEmpty();
     }
 
     @Test
@@ -169,7 +169,7 @@ class CartApplicationServiceTest {
         CartItem item = CartItem.builder()
                 .productId("PROD-001")
                 .quantity(5)
-                .unitPrice(BigDecimal.valueOf(99.99))
+                .unitPrice(BigDecimal.valueOf(100.00))
                 .build();
         cart.getItems().add(item);
 
@@ -181,7 +181,7 @@ class CartApplicationServiceTest {
 
         // Then
         assertThat(response).isNotNull();
-        assertThat(response.getItems().get(0).getQuantity()).isEqualTo(10);
+        assertThat(response.items().get(0).quantity()).isEqualTo(10);
         verify(cartRepository, times(1)).save(any(Cart.class));
     }
 
@@ -191,7 +191,7 @@ class CartApplicationServiceTest {
         CartItem item = CartItem.builder()
                 .productId("PROD-001")
                 .quantity(2)
-                .unitPrice(BigDecimal.valueOf(99.99))
+                .unitPrice(BigDecimal.valueOf(100.00))
                 .build();
         cart.getItems().add(item);
 
@@ -203,7 +203,7 @@ class CartApplicationServiceTest {
 
         // Then
         assertThat(response).isNotNull();
-        assertThat(response.getItems()).isEmpty();
+        assertThat(response.items()).isEmpty();
         verify(cartRepository, times(1)).save(any(Cart.class));
     }
 
@@ -256,7 +256,7 @@ class CartApplicationServiceTest {
 
         // Then
         assertThat(response).isNotNull();
-        assertThat(response.getItems()).hasSize(1);
+        assertThat(response.items()).hasSize(1);
         verify(cartRepository, times(1)).save(any(Cart.class));
         verify(cartRepository, times(1)).delete("SOURCE-CART");
     }

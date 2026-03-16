@@ -1,20 +1,14 @@
 package com.monat.ecommerce.order.domain.model.dto;
 
-import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 
-@Data
 @Builder
-@NoArgsConstructor
-@AllArgsConstructor
-public class CartItemDto {
-    private String productId;
-    private String productName;
-    private Integer quantity;
-    private BigDecimal unitPrice;
-    private BigDecimal subTotal;
-}
+public record CartItemDto(
+    String productId,
+    String productName,
+    Integer quantity,
+    BigDecimal unitPrice,
+    BigDecimal subTotal
+) {}

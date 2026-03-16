@@ -1,22 +1,16 @@
 package com.monat.ecommerce.order.application.dto;
 
 import jakarta.validation.constraints.NotBlank;
-import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
 
-@Data
 @Builder
-@NoArgsConstructor
-@AllArgsConstructor
-public class AddressRequest {
+public record AddressRequest(
     @NotBlank
-    private String street;
+    String street,
     @NotBlank
-    private String city;
-    private String state;
-    private String postalCode;
+    String city,
+    String state,
+    String postalCode,
     @NotBlank
-    private String country;
-}
+    String country
+) {}

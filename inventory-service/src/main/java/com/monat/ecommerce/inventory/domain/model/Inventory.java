@@ -94,6 +94,14 @@ public class Inventory {
     }
 
     /**
+     * Overwrite stock to a specific available quantity
+     */
+    public void setStock(Integer quantity) {
+        this.availableQuantity = quantity;
+        this.totalQuantity = this.availableQuantity + this.reservedQuantity;
+    }
+
+    /**
      * Check if stock is available
      */
     public boolean isStockAvailable(Integer quantity) {

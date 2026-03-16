@@ -7,6 +7,7 @@ import com.monat.ecommerce.grpc.inventory.ReleaseStockResponse;
 import com.monat.ecommerce.grpc.inventory.InventoryServiceGrpc;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.annotation.Retry;
+import io.github.resilience4j.bulkhead.annotation.Bulkhead;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import lombok.extern.slf4j.Slf4j;
@@ -52,6 +53,7 @@ public class InventoryServiceClient {
 
     @CircuitBreaker(name = "inventory-service", fallbackMethod = "reserveStockFallback")
     @Retry(name = "inventory-service")
+    @Bulkhead(name = "inventory-service", type = Bulkhead.Type.THREADPOOL, fallbackMethod = "reserveStockFallback")
     public ReserveStockResponse reserveStock(String orderId, java.util.Map<String, Integer> productQuantities) {
         log.info("Reserving stock for order: {}", orderId);
 
@@ -75,6 +77,7 @@ public class InventoryServiceClient {
 
     @CircuitBreaker(name = "inventory-service", fallbackMethod = "releaseStockFallback")
     @Retry(name = "inventory-service")
+    @Bulkhead(name = "inventory-service", type = Bulkhead.Type.THREADPOOL, fallbackMethod = "releaseStockFallback")
     public ReleaseStockResponse releaseStock(String reservationId, String orderId, String reason) {
         log.info("Releasing stock reservation: {}, orderId={}", reservationId, orderId);
 

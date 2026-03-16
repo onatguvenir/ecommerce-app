@@ -54,7 +54,7 @@ public class OrderDataSeeder implements CommandLineRunner {
                 // Order 2: Processing
                 createOrder(userId, "ORD-2023-002", OrderStatus.CONFIRMED, new BigDecimal("149.99"),
                                 "PROD-011", "Classic T-Shirt", new BigDecimal("24.99"), 2,
-                                "PROD-012", "Denim Jeans", new BigDecimal("99.99"), 1);
+                                "PROD-012", "Denim Jeans", new BigDecimal("100.00"), 1);
 
                 // Order 3: Cancelled
                 createOrder(userId, "ORD-2023-003", OrderStatus.CANCELLED, new BigDecimal("449.99"),

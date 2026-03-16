@@ -16,11 +16,14 @@ import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
  * @EnableJpaAuditing enables automatic population of auditing fields
  *                    (created_at, updated_at).
  */
+import org.springframework.retry.annotation.EnableRetry;
+
 @SpringBootApplication(scanBasePackages = {
         "com.monat.ecommerce.payment",
         "com.monat.ecommerce.common"
 })
 @EnableJpaAuditing
+@EnableRetry
 public class PaymentServiceApplication {
 
     public static void main(String[] args) {

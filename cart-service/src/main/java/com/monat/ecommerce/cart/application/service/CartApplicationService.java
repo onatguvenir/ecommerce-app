@@ -1,8 +1,8 @@
 package com.monat.ecommerce.cart.application.service;
 
 import com.monat.ecommerce.cart.application.dto.AddToCartRequest;
-import com.monat.ecommerce.cart.application.dto.CartItemResponse;
 import com.monat.ecommerce.cart.application.dto.CartResponse;
+import com.monat.ecommerce.cart.application.mapper.CartMapper;
 import com.monat.ecommerce.cart.domain.model.Cart;
 import com.monat.ecommerce.cart.domain.model.CartItem;
 import com.monat.ecommerce.cart.domain.repository.CartRepository;
@@ -11,9 +11,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-import java.math.BigDecimal;
+
 import java.time.LocalDateTime;
-import java.util.stream.Collectors;
 
 /**
  * Cart application service
@@ -24,6 +23,7 @@ import java.util.stream.Collectors;
 public class CartApplicationService {
 
     private final CartRepository cartRepository;
+    private final CartMapper cartMapper;
 
     @Value("${application.cart.max-items:100}")
     private Integer maxItems;
@@ -37,14 +37,14 @@ public class CartApplicationService {
         Cart cart = cartRepository.findById(cartId)
                 .orElseGet(() -> createNewCart(cartId));
 
-        return mapToResponse(cart);
+        return cartMapper.toResponse(cart);
     }
 
     /**
      * Add item to cart
      */
     public CartResponse addToCart(String cartId, AddToCartRequest request) {
-        log.info("Adding item to cart: {} - Product: {}", cartId, request.getProductId());
+        log.info("Adding item to cart: {} - Product: {}", cartId, request.productId());
 
         Cart cart = cartRepository.findById(cartId)
                 .orElseGet(() -> createNewCart(cartId));
@@ -54,14 +54,8 @@ public class CartApplicationService {
             throw new IllegalStateException("Cart has reached maximum capacity of " + maxItems + " items");
         }
 
-        // Create cart item
-        CartItem item = CartItem.builder()
-                .productId(request.getProductId())
-                .productName(request.getProductName())
-                .unitPrice(request.getUnitPrice())
-                .quantity(request.getQuantity())
-                .imageUrl(request.getImageUrl())
-                .build();
+        // Create cart item using MapStruct
+        CartItem item = cartMapper.toItem(request);
         
         item.calculateSubtotal();
 
@@ -73,7 +67,7 @@ public class CartApplicationService {
 
         log.info("Item added to cart: {} - Total items: {}", cartId, cart.getTotalItems());
 
-        return mapToResponse(cart);
+        return cartMapper.toResponse(cart);
     }
 
     /**
@@ -93,7 +87,7 @@ public class CartApplicationService {
 
         cartRepository.save(cart);
 
-        return mapToResponse(cart);
+        return cartMapper.toResponse(cart);
     }
 
     /**
@@ -108,7 +102,7 @@ public class CartApplicationService {
         cart.removeItem(productId);
         cartRepository.save(cart);
 
-        return mapToResponse(cart);
+        return cartMapper.toResponse(cart);
     }
 
     /**
@@ -149,7 +143,7 @@ public class CartApplicationService {
             log.info("Carts merged successfully - Total items: {}", userCart.getTotalItems());
         }
 
-        return mapToResponse(userCart);
+        return cartMapper.toResponse(userCart);
     }
 
     private Cart createNewCart(String cartId) {
@@ -157,29 +151,6 @@ public class CartApplicationService {
                 .cartId(cartId)
                 .createdAt(LocalDateTime.now())
                 .updatedAt(LocalDateTime.now())
-                .build();
-    }
-
-    private CartResponse mapToResponse(Cart cart) {
-        return CartResponse.builder()
-                .cartId(cart.getCartId())
-                .userId(cart.getUserId())
-                .items(cart.getItems() != null 
-                        ? cart.getItems().stream().map(this::mapItemToResponse).collect(Collectors.toList())
-                        : null)
-                .totalAmount(cart.getTotalAmount())
-                .totalItems(cart.getTotalItems())
-                .build();
-    }
-
-    private CartItemResponse mapItemToResponse(CartItem item) {
-        return CartItemResponse.builder()
-                .productId(item.getProductId())
-                .productName(item.getProductName())
-                .unitPrice(item.getUnitPrice())
-                .quantity(item.getQuantity())
-                .subtotal(item.getSubtotal())
-                .imageUrl(item.getImageUrl())
                 .build();
     }
 }

@@ -75,29 +75,6 @@ docker-compose up -d elasticsearch logstash kibana filebeat
 
 **Detaylı kullanım için `ELK-SETUP-GUIDE.md` dosyasına bakın.**
 
-## Yöntem 4: Dozzle (Basit Web UI)
-
-En basit web tabanlı log görüntüleyici:
-
-```yaml
-  dozzle:
-    image: amir20/dozzle:latest
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-    ports:
-      - "8888:8080"
-    networks:
-      - ecommerce-network
-```
-
-Erişim: http://localhost:8888
-
-### Avantajları:
-- ✅ Kurulum gerektirmez
-- ✅ Hafif ve hızlı
-- ✅ Gerçek zamanlı log akışı
-- ✅ Multi-container desteği
-- ✅ Arama ve filtreleme
 
 ## Yöntem 5: Windows PowerShell ile Gelişmiş Filtreleme
 
@@ -125,32 +102,8 @@ docker-compose logs -f | grep -E "ERROR|WARN|Exception"
 
 ### Production için:
 1. **ELK Stack** (Güçlü arama, dashboard, alert)
-2. **Dozzle** (Basit, kurulum gerektirmez)
 
 **Detaylı ELK kullanımı için:** `ELK-SETUP-GUIDE.md`
-
-## Hızlı Başlangıç: Dozzle ile
-
-En hızlı çözüm için `docker-compose.yml`'e ekleyin:
-
-```yaml
-  dozzle:
-    container_name: dozzle
-    image: amir20/dozzle:latest
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-    ports:
-      - "8888:8080"
-    networks:
-      - ecommerce-network
-```
-
-Sonra:
-```bash
-docker-compose up -d dozzle
-```
-
-Tarayıcıda açın: http://localhost:8888
 
 ## Log Seviyeleri
 

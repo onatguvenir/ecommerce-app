@@ -181,15 +181,17 @@ class CartServiceIntegrationTest {
                 // For this test, we just verify the cart was created successfully
         }
 
+        private static final double DEFAULT_UNIT_PRICE = 100.00;
+
         private void addItemToCart(String cartId, String productId, int quantity) throws Exception {
-                String json = String.format("""
+                String json = """
                                 {
                                   "productId": "%s",
                                   "productName": "Product %s",
                                   "quantity": %d,
-                                  "unitPrice": 99.99
+                                  "unitPrice": %f
                                 }
-                                """, productId, productId, quantity);
+                                """.formatted(productId, productId, quantity, DEFAULT_UNIT_PRICE);
 
                 mockMvc.perform(post("/api/cart/" + cartId + "/items")
                                 .contentType(MediaType.APPLICATION_JSON)

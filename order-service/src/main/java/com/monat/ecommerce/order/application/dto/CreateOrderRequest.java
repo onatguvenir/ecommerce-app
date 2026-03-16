@@ -3,28 +3,21 @@ package com.monat.ecommerce.order.application.dto;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
-import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
 
 import java.util.List;
 import java.util.UUID;
 
-@Data
 @Builder
-@NoArgsConstructor
-@AllArgsConstructor
-public class CreateOrderRequest {
-
+public record CreateOrderRequest(
     @NotNull(message = "User ID is required")
-    private UUID userId;
+    UUID userId,
 
-    private String cartId;
-
-    @Valid
-    private List<OrderItemRequest> items;
+    String cartId,
 
     @Valid
-    private AddressRequest shippingAddress;
-}
+    List<OrderItemRequest> items,
+
+    @Valid
+    AddressRequest shippingAddress
+) {}

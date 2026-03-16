@@ -1,6 +1,39 @@
 spring:
   application:
     name: notification-service
+
+  # ---------------------------------------------------------------
+  # Virtual Threads (Project Loom) — JDK 21 + Spring Boot 3.2+
+  # @KafkaListener metodları ve SMTP/simülasyon çağrıları
+  # virtual thread üzerinde bloke olmaksızın çalışır.
+  threads:
+    virtual:
+      enabled: true
+
+  # ---------------------------------------------------------------
+  # PostgreSQL (Notification Idempotency tablosu için)
+  datasource:
+    url: jdbc:postgresql://localhost:5432/notificationdb
+    username: postgres
+    password: postgres
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 5
+      minimum-idle: 2
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: false
+
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    locations: classpath:db/migration
   
   kafka:
     bootstrap-servers: localhost:9092
@@ -69,11 +102,33 @@ logging:
 # Application specific
 application:
   notification:
-    # Simulate email sending (true = console log, false = actual SMTP)
     simulate-email: true
-    # Simulate SMS sending (always simulated)
     simulate-sms: true
-    # From email address
     from-email: noreply@monat-ecommerce.com
-    # Support email
     support-email: support@monat-ecommerce.com
+
+# gRPC Client (User Service)
+grpc:
+  client:
+    user-service:
+      host: localhost
+      port: 9081
+      negotiationType: plaintext
+
+# Resilience4j (gRPC çağrıları için CircuitBreaker ve Retry)
+resilience4j:
+  circuitbreaker:
+    instances:
+      user-service:
+        registerHealthIndicator: true
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        failureRateThreshold: 50
+        waitDurationInOpenState: 10s
+  retry:
+    instances:
+      user-service:
+        maxAttempts: 3
+        waitDuration: 1000ms
+        enableExponentialBackoff: true
+        exponentialBackoffMultiplier: 2

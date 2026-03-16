@@ -9,7 +9,6 @@ import jakarta.persistence.OptimisticLockException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.retry.annotation.Backoff;
@@ -53,7 +52,6 @@ public class InventoryDomainService {
             maxAttempts = 5,
             backoff = @Backoff(delay = 100, multiplier = 2.0, maxDelay = 2000)
     )
-    @CacheEvict(value = "inventory", key = "#productId")
     public String reserveStock(String orderId, String productId, Integer quantity) {
         log.info("Reserving stock - Order: {}, Product: {}, Qty: {}", orderId, productId, quantity);
 

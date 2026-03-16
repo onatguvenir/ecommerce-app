@@ -5,6 +5,7 @@ import com.monat.ecommerce.grpc.payment.ProcessPaymentResponse;
 import com.monat.ecommerce.grpc.payment.PaymentServiceGrpc;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.annotation.Retry;
+import io.github.resilience4j.bulkhead.annotation.Bulkhead;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import lombok.extern.slf4j.Slf4j;
@@ -51,6 +52,7 @@ public class PaymentServiceClient {
 
     @CircuitBreaker(name = "payment-service", fallbackMethod = "processPaymentFallback")
     @Retry(name = "payment-service")
+    @Bulkhead(name = "payment-service", type = Bulkhead.Type.THREADPOOL, fallbackMethod = "processPaymentFallback")
     public ProcessPaymentResponse processPayment(String orderId, String userId, BigDecimal amount,
             String currency, String paymentMethod, String idempotencyKey) {
         log.info("Calling Payment Service for order: {}", orderId);

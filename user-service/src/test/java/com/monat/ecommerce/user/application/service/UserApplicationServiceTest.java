@@ -43,12 +43,13 @@ class UserApplicationServiceTest {
     @DisplayName("Should register user successfully when email and username are unique")
     void shouldRegisterUserSuccessfully() {
         // Arrange
-        UserRegistrationRequest request = new UserRegistrationRequest();
-        request.setEmail("test@example.com");
-        request.setUsername("testuser");
-        request.setPassword("password123");
-        request.setFirstName("John");
-        request.setLastName("Doe");
+        UserRegistrationRequest request = UserRegistrationRequest.builder()
+                .email("test@example.com")
+                .username("testuser")
+                .password("password123")
+                .firstName("John")
+                .lastName("Doe")
+                .build();
 
         User user = User.builder()
                 .id(UUID.randomUUID())
@@ -57,10 +58,11 @@ class UserApplicationServiceTest {
                 .status(UserStatus.ACTIVE)
                 .build();
 
-        UserResponse expectedResponse = new UserResponse();
-        expectedResponse.setId(user.getId());
-        expectedResponse.setEmail(user.getEmail());
-        expectedResponse.setUsername(user.getUsername());
+        UserResponse expectedResponse = UserResponse.builder()
+                .id(user.getId())
+                .email(user.getEmail())
+                .username(user.getUsername())
+                .build();
 
         when(userRepository.existsByEmail(anyString())).thenReturn(false);
         when(userRepository.existsByUsername(anyString())).thenReturn(false);
@@ -73,11 +75,11 @@ class UserApplicationServiceTest {
 
         // Assert
         assertNotNull(actualResponse);
-        assertEquals(expectedResponse.getId(), actualResponse.getId());
-        assertEquals(expectedResponse.getEmail(), actualResponse.getEmail());
+        assertEquals(expectedResponse.id(), actualResponse.id());
+        assertEquals(expectedResponse.email(), actualResponse.email());
 
-        verify(userRepository).existsByEmail(request.getEmail());
-        verify(userRepository).existsByUsername(request.getUsername());
+        verify(userRepository).existsByEmail(request.email());
+        verify(userRepository).existsByUsername(request.username());
         verify(userRepository).save(any(User.class));
     }
 
@@ -85,11 +87,12 @@ class UserApplicationServiceTest {
     @DisplayName("Should throw BusinessException when email already exists")
     void shouldThrowExceptionWhenEmailExists() {
         // Arrange
-        UserRegistrationRequest request = new UserRegistrationRequest();
-        request.setEmail("existing@example.com");
-        request.setUsername("newuser");
+        UserRegistrationRequest request = UserRegistrationRequest.builder()
+                .email("existing@example.com")
+                .username("newuser")
+                .build();
 
-        when(userRepository.existsByEmail(request.getEmail())).thenReturn(true);
+        when(userRepository.existsByEmail(request.email())).thenReturn(true);
 
         // Act & Assert
         BusinessException exception = assertThrows(BusinessException.class,
@@ -105,8 +108,9 @@ class UserApplicationServiceTest {
         // Arrange
         UUID userId = UUID.randomUUID();
         User user = User.builder().id(userId).email("test@example.com").build();
-        UserResponse response = new UserResponse();
-        response.setId(userId);
+        UserResponse response = UserResponse.builder()
+                .id(userId)
+                .build();
 
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
         when(userMapper.toUserResponse(user)).thenReturn(response);
@@ -116,7 +120,7 @@ class UserApplicationServiceTest {
 
         // Assert
         assertNotNull(result);
-        assertEquals(userId, result.getId());
+        assertEquals(userId, result.id());
         verify(userRepository).findById(userId);
     }
 

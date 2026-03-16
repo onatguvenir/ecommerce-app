@@ -1,6 +1,14 @@
 spring:
   application:
     name: cart-service
+
+  # ---------------------------------------------------------------
+  # Virtual Threads (Project Loom) — JDK 21 + Spring Boot 3.2+
+  # Redis cart operasyonları ve HTTP endpoint handler'ları
+  # virtual thread üzerinde çalışır; yüksek eşzamanlılıkta verimli.
+  threads:
+    virtual:
+      enabled: true
   
   data:
     redis:

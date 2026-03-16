@@ -1,5 +1,6 @@
 package com.monat.ecommerce.notification.domain.service;
 
+import com.monat.ecommerce.events.notification.NotificationType;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
@@ -14,11 +15,15 @@ public class SmsService {
      * Send SMS notification (simulated)
      */
     public void sendSms(String phoneNumber, String message) {
-        log.info("=".repeat(80));
-        log.info("📱 SMS NOTIFICATION");
-        log.info("To: {}", phoneNumber);
-        log.info("Message: {}", message);
-        log.info("=".repeat(80));
+        String logMessage = String.format(
+                "%n%s%n📱 %s NOTIFICATION%nTo: %s%nMessage: %s%n%s",
+                "=".repeat(80),
+                NotificationType.SMS,
+                phoneNumber,
+                message,
+                "=".repeat(80)
+        );
+        log.info(logMessage);
     }
 
     /**

@@ -1,8 +1,10 @@
 package com.monat.ecommerce.notification.domain.service;
 
+import com.monat.ecommerce.events.notification.NotificationType;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
@@ -26,8 +28,13 @@ public class EmailService {
     private String fromEmail;
 
     /**
-     * Send email notification
+     * Send email notification.
+     *
+     * @Async: Bu metot çağrıldığında AsyncConfig'te tanımlı VirtualThread
+     * executor'ı üzerinde ayrı bir thread'de çalışır. Böylece KafkaListener
+     * thread'i bloke olmaz ve consumer throughput artar.
      */
+    @Async("taskExecutor")
     public void sendEmail(String to, String subject, String templateName, Map<String, Object> variables) {
         try {
             // Render email template
@@ -37,14 +44,18 @@ public class EmailService {
 
             if (simulateEmail) {
                 // Simulate email sending (log to console)
-                log.info("=".repeat(80));
-                log.info("📧 EMAIL NOTIFICATION");
-                log.info("From: {}", fromEmail);
-                log.info("To: {}", to);
-                log.info("Subject: {}", subject);
-                log.info("-".repeat(80));
-                log.info("Body:\n{}", htmlContent);
-                log.info("=".repeat(80));
+                String logMessage = String.format(
+                        "%n%s%n📧 %s NOTIFICATION%nFrom: %s%nTo: %s%nSubject: %s%n%s%nBody:%n%s%n%s",
+                        "=".repeat(80),
+                        NotificationType.EMAIL,
+                        fromEmail,
+                        to,
+                        subject,
+                        "-".repeat(80),
+                        htmlContent,
+                        "=".repeat(80)
+                );
+                log.info(logMessage);
             } else {
                 // Actual SMTP sending would go here
                 log.info("Sending email to: {} - Subject: {}", to, subject);
@@ -56,9 +67,8 @@ public class EmailService {
         }
     }
 
-    /**
-     * Send order confirmation email
-     */
+    /** Sipariş onay e-postası — Async, VirtualThread üzerinde çalışır */
+    @Async("taskExecutor")
     public void sendOrderConfirmation(String email, String orderNumber, String customerName, String totalAmount) {
         Map<String, Object> variables = Map.of(
                 "customerName", customerName,
@@ -69,9 +79,8 @@ public class EmailService {
         sendEmail(email, "Order Confirmation - " + orderNumber, "order-confirmation", variables);
     }
 
-    /**
-     * Send order completed email
-     */
+    /** Sipariş tamamlandı e-postası */
+    @Async("taskExecutor")
     public void sendOrderCompleted(String email, String orderNumber, String customerName) {
         Map<String, Object> variables = Map.of(
                 "customerName", customerName,
@@ -81,9 +90,8 @@ public class EmailService {
         sendEmail(email, "Order Completed - " + orderNumber, "order-completed", variables);
     }
 
-    /**
-     * Send order cancelled email
-     */
+    /** Sipariş iptal e-postası */
+    @Async("taskExecutor")
     public void sendOrderCancelled(String email, String orderNumber, String customerName, String reason) {
         Map<String, Object> variables = Map.of(
                 "customerName", customerName,
@@ -94,9 +102,8 @@ public class EmailService {
         sendEmail(email, "Order Cancelled - " + orderNumber, "order-cancelled", variables);
     }
 
-    /**
-     * Send payment confirmation email
-     */
+    /** Ödeme onay e-postası */
+    @Async("taskExecutor")
     public void sendPaymentConfirmation(String email, String orderNumber, String paymentReference, String amount) {
         Map<String, Object> variables = Map.of(
                 "orderNumber", orderNumber,

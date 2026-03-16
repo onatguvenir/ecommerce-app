@@ -4,6 +4,7 @@ import com.monat.ecommerce.events.BaseEvent;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 
 import java.util.Map;
@@ -13,6 +14,7 @@ import java.util.Map;
  */
 @Data
 @Builder
+@EqualsAndHashCode(callSuper = true)
 @NoArgsConstructor
 @AllArgsConstructor
 public class NotificationEvent extends BaseEvent {
@@ -22,10 +24,4 @@ public class NotificationEvent extends BaseEvent {
     private String subject;
     private String body;
     private Map<String, Object> templateVariables;
-
-    public enum NotificationType {
-        EMAIL,
-        SMS,
-        PUSH
-    }
 }

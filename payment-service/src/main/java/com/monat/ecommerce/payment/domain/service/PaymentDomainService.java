@@ -4,12 +4,20 @@ import com.monat.ecommerce.payment.domain.model.Payment;
 import com.monat.ecommerce.payment.domain.model.PaymentMethod;
 import com.monat.ecommerce.payment.domain.model.PaymentStatus;
 import com.monat.ecommerce.payment.domain.repository.PaymentRepository;
+import com.monat.ecommerce.payment.domain.model.PaymentOutboxEvent;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import java.time.LocalDateTime;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.retry.annotation.Retryable;
+import org.springframework.retry.annotation.Backoff;
+import org.springframework.dao.CannotAcquireLockException;
+import org.springframework.dao.DeadlockLoserDataAccessException;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 
 import java.math.BigDecimal;
 import java.util.Optional;
@@ -25,7 +33,7 @@ import java.util.UUID;
 public class PaymentDomainService {
 
     private final PaymentRepository paymentRepository;
-    private final KafkaTemplate<String, Object> kafkaTemplate;
+    private final ObjectMapper objectMapper;
     private final Random random = new Random();
 
     @Value("${application.payment.failure-rate:0.30}")
@@ -38,7 +46,12 @@ public class PaymentDomainService {
      * Process payment with idempotency support
      * If the idempotency key already exists, return the existing payment
      */
-    @Transactional
+    @Transactional(isolation = Isolation.SERIALIZABLE)
+    @Retryable(
+        retryFor = {DeadlockLoserDataAccessException.class, CannotAcquireLockException.class, ObjectOptimisticLockingFailureException.class},
+        maxAttempts = 3,
+        backoff = @Backoff(delay = 500, multiplier = 2)
+    )
     public Payment processPayment(
             String idempotencyKey,
             String orderId,
@@ -50,8 +63,8 @@ public class PaymentDomainService {
         log.info("Processing payment - Idempotency Key: {}, Order: {}, Amount: {}",
                 idempotencyKey, orderId, amount);
 
-        // Check idempotency
-        Optional<Payment> existingPayment = paymentRepository.findByIdempotencyKey(idempotencyKey);
+        // Check idempotency with PESSIMISTIC_WRITE lock
+        Optional<Payment> existingPayment = paymentRepository.findByIdempotencyKeyWithLock(idempotencyKey);
         if (existingPayment.isPresent()) {
             log.info("Payment already processed (idempotent) - Returning existing payment: {}",
                     existingPayment.get().getId());
@@ -110,7 +123,12 @@ public class PaymentDomainService {
     /**
      * Refund payment (compensation)
      */
-    @Transactional
+    @Transactional(isolation = Isolation.SERIALIZABLE)
+    @Retryable(
+        retryFor = {DeadlockLoserDataAccessException.class, CannotAcquireLockException.class, ObjectOptimisticLockingFailureException.class},
+        maxAttempts = 3,
+        backoff = @Backoff(delay = 500, multiplier = 2)
+    )
     public Payment refundPayment(String paymentId, String orderId, BigDecimal amount, String reason) {
         log.info("Refunding payment - Payment ID: {}, Amount: {}", paymentId, amount);
 
@@ -118,15 +136,18 @@ public class PaymentDomainService {
         Payment payment;
         try {
             UUID uuid = UUID.fromString(paymentId);
-            payment = paymentRepository.findById(uuid)
+            payment = paymentRepository.findByIdWithLock(uuid)
                     .orElseThrow(() -> new IllegalArgumentException("Payment not found: " + paymentId));
         } catch (IllegalArgumentException e) {
-            // Try finding by order ID
+        // Try finding by order ID since refund via orderId is needed
             payment = paymentRepository.findByOrderId(orderId).stream()
                     .filter(Payment::canBeRefunded)
                     .findFirst()
-                    .orElseThrow(
-                            () -> new IllegalArgumentException("No refundable payment found for order: " + orderId));
+                    .orElseThrow(() -> new IllegalArgumentException("No refundable payment found for order: " + orderId));
+            
+            // Acquire lock since we have the ID now
+            payment = paymentRepository.findByIdWithLock(payment.getId())
+                    .orElseThrow(() -> new IllegalArgumentException("Payment lock failed"));
         }
 
         if (!payment.canBeRefunded()) {
@@ -183,7 +204,7 @@ public class PaymentDomainService {
                     .paymentMethod(payment.getPaymentMethod().name())
                     .build();
 
-            kafkaTemplate.send("payment.completed", payment.getOrderId(), event);
+            saveOutboxEvent("PaymentCompleted", payment.getOrderId(), event);
             log.info("Published PaymentCompletedEvent for order: {}", payment.getOrderId());
 
         } catch (Exception e) {
@@ -202,11 +223,33 @@ public class PaymentDomainService {
                     .failureReason(payment.getFailureReason())
                     .build();
 
-            kafkaTemplate.send("payment.failed", payment.getOrderId(), event);
+            saveOutboxEvent("PaymentFailed", payment.getOrderId(), event);
             log.info("Published PaymentFailedEvent for order: {}", payment.getOrderId());
 
         } catch (Exception e) {
             log.error("Failed to publish PaymentFailedEvent", e);
+        }
+    }
+
+    private void saveOutboxEvent(String eventType, String aggregateId, Object payload) {
+        try {
+            String payloadJson = objectMapper.writeValueAsString(payload);
+            
+            PaymentOutboxEvent outboxEvent = PaymentOutboxEvent.builder()
+                    .id(UUID.randomUUID())
+                    .aggregateType("Payment")
+                    .aggregateId(aggregateId)
+                    .eventType(eventType)
+                    .payload(payloadJson)
+                    .processed(false)
+                    .retryCount(0)
+                    .createdAt(LocalDateTime.now())
+                    .build();
+                    
+            paymentRepository.saveOutboxEvent(outboxEvent);
+        } catch (Exception e) {
+            log.error("Failed to serialize and save outbox event for aggregate: " + aggregateId, e);
+            throw new RuntimeException("Could not save outbox event", e);
         }
     }
 }

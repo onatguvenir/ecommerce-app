@@ -44,17 +44,19 @@ class UserControllerTest {
     @WithMockUser // Helper to bypass security for non-protected endpoints or mock user
     void shouldRegisterUserSuccessfully() throws Exception {
         // Arrange
-        UserRegistrationRequest request = new UserRegistrationRequest();
-        request.setEmail("test@example.com");
-        request.setUsername("testuser");
-        request.setPassword("password123");
-        request.setFirstName("John");
-        request.setLastName("Doe");
+        UserRegistrationRequest request = UserRegistrationRequest.builder()
+                .email("test@example.com")
+                .username("testuser")
+                .password("password123")
+                .firstName("John")
+                .lastName("Doe")
+                .build();
 
-        UserResponse response = new UserResponse();
-        response.setId(UUID.randomUUID());
-        response.setEmail(request.getEmail());
-        response.setUsername(request.getUsername());
+        UserResponse response = UserResponse.builder()
+                .id(UUID.randomUUID())
+                .email(request.email())
+                .username(request.username())
+                .build();
 
         when(userApplicationService.registerUser(any(UserRegistrationRequest.class))).thenReturn(response);
 
@@ -65,7 +67,7 @@ class UserControllerTest {
                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.data.email").value(request.getEmail()));
+                .andExpect(jsonPath("$.data.email").value(request.email()));
     }
 
     @Test
@@ -74,9 +76,10 @@ class UserControllerTest {
     void shouldGetUserByIdSuccessfully() throws Exception {
         // Arrange
         UUID userId = UUID.randomUUID();
-        UserResponse response = new UserResponse();
-        response.setId(userId);
-        response.setEmail("test@example.com");
+        UserResponse response = UserResponse.builder()
+                .id(userId)
+                .email("test@example.com")
+                .build();
 
         when(userApplicationService.getUserById(userId)).thenReturn(response);
 

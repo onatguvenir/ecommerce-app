@@ -1,0 +1,15 @@
+{
+  "name": "product-connector",
+  "config": {
+    "connector.class": "io.debezium.connector.mongodb.MongoDbConnector",
+    "tasks.max": "1",
+    "mongodb.connection.string": "mongodb://mongodb:27017/?replicaSet=rs0",
+    "database.include.list": "productdb",
+    "collection.include.list": "productdb.products",
+    "topic.prefix": "cdc",
+    "key.converter": "org.apache.kafka.connect.json.JsonConverter",
+    "key.converter.schemas.enable": "false",
+    "value.converter": "org.apache.kafka.connect.json.JsonConverter",
+    "value.converter.schemas.enable": "false"
+  }
+}

@@ -7,6 +7,8 @@ import com.monat.ecommerce.user.application.service.UserApplicationService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
+import io.github.resilience4j.ratelimiter.RequestNotPermitted;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -49,6 +51,7 @@ public class UserController {
 
     @PostMapping("/register")
     @Operation(summary = "Register a new user")
+    @RateLimiter(name = "user-api", fallbackMethod = "registerUserFallback")
     public ResponseEntity<ApiResponse<UserResponse>> registerUser(
             @Valid @RequestBody UserRegistrationRequest request) {
 
@@ -107,5 +110,11 @@ public class UserController {
     public ResponseEntity<ApiResponse<Boolean>> validateUser(@PathVariable("userId") UUID userId) {
         boolean isValid = userApplicationService.validateUser(userId);
         return ResponseEntity.ok(ApiResponse.success(isValid));
+    }
+
+    // Fallbacks
+    public ResponseEntity<ApiResponse<UserResponse>> registerUserFallback(UserRegistrationRequest request, RequestNotPermitted ex) {
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .body(ApiResponse.error("Too many registration requests. Please try again later."));
     }
 }

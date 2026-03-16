@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8" />
+    <title>Ödeme Başarısız</title>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background-color: #e53935; color: white; padding: 20px; text-align: center; }
+        .content { padding: 20px; background-color: #f9f9f9; }
+        .alert-box { background-color: #fff3f3; border-left: 4px solid #e53935; padding: 12px 16px; margin: 16px 0; }
+        .footer { text-align: center; padding: 20px; font-size: 12px; color: #777; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h1>❌ Ödeme Başarısız</h1>
+    </div>
+    <div class="content">
+        <p>Merhaba <strong th:text="${customerName}">Müşteri</strong>,</p>
+        <p>Maalesef <strong th:text="${orderId}">#ORDER-001</strong> numaralı siparişinizin ödemesi gerçekleştirilemedi.</p>
+
+        <div class="alert-box">
+            <p><strong>Hata Nedeni:</strong> <span th:text="${reason}">Bilinmeyen hata</span></p>
+        </div>
+
+        <p>Lütfen ödeme bilgilerinizi kontrol ederek tekrar deneyiniz. Sorun devam ederse destek ekibimizle iletişime geçiniz.</p>
+        <p>İyi günler dileriz.</p>
+        <p>Monat E-Commerce Ekibi</p>
+    </div>
+    <div class="footer">
+        <p>© 2026 Monat E-Commerce. Tüm hakları saklıdır.</p>
+        <p>Sorularınız için: support@monat-ecommerce.com</p>
+    </div>
+</div>
+</body>
+</html>

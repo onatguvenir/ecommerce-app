@@ -49,28 +49,21 @@ public class UserApplicationService {
 
     @Transactional
     public UserResponse registerUser(UserRegistrationRequest request) {
-        log.info("Registering new user with email: {}", request.getEmail());
+        log.info("Registering new user with email: {}", request.email());
 
         // Check if email already exists
-        if (userRepository.existsByEmail(request.getEmail())) {
+        if (userRepository.existsByEmail(request.email())) {
             throw new BusinessException("Email already registered", "EMAIL_EXISTS", 409);
         }
 
         // Check if username already exists
-        if (userRepository.existsByUsername(request.getUsername())) {
+        if (userRepository.existsByUsername(request.username())) {
             throw new BusinessException("Username already taken", "USERNAME_EXISTS", 409);
         }
 
-        // Create user
-        User user = User.builder()
-                .email(request.getEmail())
-                .username(request.getUsername())
-                .passwordHash(passwordEncoder.encode(request.getPassword()))
-                .firstName(request.getFirstName())
-                .lastName(request.getLastName())
-                .phone(request.getPhone())
-                .status(UserStatus.ACTIVE)
-                .build();
+        // Create user using MapStruct
+        User user = userMapper.toUser(request);
+        user.setPasswordHash(passwordEncoder.encode(request.password()));
 
         User savedUser = userRepository.save(user);
         log.info("User registered successfully with ID: {}", savedUser.getId());
@@ -126,9 +119,9 @@ public class UserApplicationService {
         user.addAddress(address);
 
         // If this is the first address or marked as default, set it as default
-        if (user.getAddresses().size() == 1 || Boolean.TRUE.equals(request.getIsDefault())) {
+        if (user.getAddresses().size() == 1 || Boolean.TRUE.equals(request.isDefault())) {
             // Unset other defaults if this is marked as default
-            if (Boolean.TRUE.equals(request.getIsDefault())) {
+            if (Boolean.TRUE.equals(request.isDefault())) {
                 user.getAddresses().forEach(addr -> {
                     if (!addr.equals(address)) {
                         addr.setIsDefault(false);

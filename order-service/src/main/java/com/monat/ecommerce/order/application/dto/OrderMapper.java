@@ -5,10 +5,23 @@ import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingConstants;
 
+import org.mapstruct.ReportingPolicy;
+
 import java.util.List;
 
-@Mapper(componentModel = MappingConstants.ComponentModel.SPRING)
+@Mapper(componentModel = "spring", unmappedTargetPolicy = ReportingPolicy.IGNORE)
 public interface OrderMapper {
+
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "items", ignore = true)
+    @Mapping(target = "status", constant = "PENDING")
+    @Mapping(target = "totalAmount", ignore = true)
+    @Mapping(target = "currency", constant = "USD")
+    @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "updatedAt", ignore = true)
+    @Mapping(target = "version", ignore = true)
+    @Mapping(target = "shippingAddress", source = "shippingAddress")
+    Order toOrder(CreateOrderRequest request);
 
     @Mapping(target = "status", expression = "java(order.getStatus().name())")
     OrderResponse toOrderResponse(Order order);

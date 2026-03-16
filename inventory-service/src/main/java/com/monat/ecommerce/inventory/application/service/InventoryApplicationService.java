@@ -1,6 +1,7 @@
 package com.monat.ecommerce.inventory.application.service;
 
 import com.monat.ecommerce.common.exception.ResourceNotFoundException;
+import com.monat.ecommerce.inventory.application.dto.InventoryMapper;
 import com.monat.ecommerce.inventory.application.dto.InventoryResponse;
 import com.monat.ecommerce.inventory.application.dto.StockReservationRequest;
 import com.monat.ecommerce.inventory.domain.model.Inventory;
@@ -37,6 +38,7 @@ public class InventoryApplicationService {
 
     private final InventoryRepository inventoryRepository;
     private final StockReservationRepository stockReservationRepository;
+    private final InventoryMapper inventoryMapper;
 
     @Transactional(readOnly = true)
     public boolean checkStock(String productId, Integer quantity) {
@@ -52,15 +54,11 @@ public class InventoryApplicationService {
             throw new IllegalStateException("Insufficient stock for product: " + request.getProductId());
         }
 
-        // Create reservation
-        StockReservation reservation = StockReservation.builder()
-                .reservationId(UUID.randomUUID().toString())
-                .orderId(request.getOrderId())
-                .productId(request.getProductId())
-                .quantity(request.getQuantity())
-                .createdAt(LocalDateTime.now())
-                .expiresAt(LocalDateTime.now().plusMinutes(15)) // 15 mins expiry
-                .build();
+        // Create reservation using MapStruct
+        StockReservation reservation = inventoryMapper.toReservation(request);
+        reservation.setReservationId(UUID.randomUUID().toString());
+        reservation.setCreatedAt(LocalDateTime.now());
+        reservation.setExpiresAt(LocalDateTime.now().plusMinutes(15));
 
         // Reserve logic in domain? Inventory model should handle stock deduction?
         // Let's assume Inventory has logic to reserve.
@@ -115,11 +113,7 @@ public class InventoryApplicationService {
         inventory.addStock(quantity);
         Inventory saved = inventoryRepository.save(inventory);
 
-        return InventoryResponse.builder()
-                .productId(saved.getProductId())
-                .quantity(saved.getTotalQuantity())
-                .availableQuantity(saved.getAvailableQuantity())
-                .build();
+        return inventoryMapper.toResponse(saved);
     }
 
     @Transactional(readOnly = true)
@@ -127,10 +121,6 @@ public class InventoryApplicationService {
         Inventory inventory = inventoryRepository.findByProductId(productId)
                 .orElseThrow(() -> new ResourceNotFoundException("Product not found: " + productId));
 
-        return InventoryResponse.builder()
-                .productId(inventory.getProductId())
-                .quantity(inventory.getTotalQuantity())
-                .availableQuantity(inventory.getAvailableQuantity())
-                .build();
+        return inventoryMapper.toResponse(inventory);
     }
 }

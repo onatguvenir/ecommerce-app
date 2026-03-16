@@ -2,6 +2,7 @@ package com.monat.ecommerce.payment.domain.repository;
 
 import com.monat.ecommerce.payment.domain.model.Payment;
 import com.monat.ecommerce.payment.domain.model.PaymentStatus;
+import com.monat.ecommerce.payment.domain.model.PaymentOutboxEvent;
 
 import java.util.List;
 import java.util.Optional;
@@ -13,7 +14,11 @@ public interface PaymentRepository {
 
     Optional<Payment> findById(UUID id);
 
+    Optional<Payment> findByIdWithLock(UUID id);
+
     Optional<Payment> findByIdempotencyKey(String idempotencyKey);
+
+    Optional<Payment> findByIdempotencyKeyWithLock(String idempotencyKey);
 
     Optional<Payment> findByPaymentReference(String paymentReference);
 
@@ -26,4 +31,6 @@ public interface PaymentRepository {
     boolean existsByIdempotencyKey(String idempotencyKey);
 
     long count();
+
+    PaymentOutboxEvent saveOutboxEvent(PaymentOutboxEvent event);
 }

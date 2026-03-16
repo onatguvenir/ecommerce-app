@@ -8,10 +8,18 @@ import com.monat.ecommerce.payment.domain.model.Payment;
 import com.monat.ecommerce.payment.domain.model.PaymentMethod;
 import com.monat.ecommerce.payment.domain.model.PaymentStatus;
 import com.monat.ecommerce.payment.domain.repository.PaymentRepository;
+import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
+import io.github.resilience4j.ratelimiter.RequestNotPermitted;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.retry.annotation.Retryable;
+import org.springframework.retry.annotation.Backoff;
+import org.springframework.dao.CannotAcquireLockException;
+import org.springframework.dao.DeadlockLoserDataAccessException;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 
 import java.time.LocalDateTime;
 import java.util.Optional;
@@ -37,7 +45,13 @@ public class PaymentApplicationService {
     private final PaymentRepository paymentRepository;
     private final PaymentDtoMapper paymentMapper;
 
-    @Transactional
+    @Transactional(isolation = Isolation.SERIALIZABLE)
+    @Retryable(
+        retryFor = {DeadlockLoserDataAccessException.class, CannotAcquireLockException.class, ObjectOptimisticLockingFailureException.class},
+        maxAttempts = 3,
+        backoff = @Backoff(delay = 500, multiplier = 2)
+    )
+    @RateLimiter(name = "payment-api", fallbackMethod = "processPaymentRateLimitFallback")
     public PaymentResponse processPayment(ProcessPaymentRequest request) {
         if (request.getAmount().signum() <= 0) {
             throw new IllegalArgumentException("Payment amount must be positive");
@@ -49,17 +63,11 @@ public class PaymentApplicationService {
             return paymentMapper.toResponse(existingPayment.get());
         }
 
-        Payment payment = Payment.builder()
-                .id(UUID.randomUUID())
-                .orderId(request.getOrderId())
-                .amount(request.getAmount())
-                .currency(request.getCurrency())
-                .paymentMethod(PaymentMethod.valueOf(request.getPaymentMethod()))
-                .status(PaymentStatus.PENDING)
-                .idempotencyKey(request.getIdempotencyKey())
-                .createdAt(LocalDateTime.now())
-                .updatedAt(LocalDateTime.now())
-                .build();
+        // Create payment using MapStruct
+        Payment payment = paymentMapper.toPayment(request);
+        payment.setId(UUID.randomUUID());
+        payment.setCreatedAt(LocalDateTime.now());
+        payment.setUpdatedAt(LocalDateTime.now());
 
         // Simulate payment processing logic (e.g., call external gateway)
         // For now, simple logic: succeed.
@@ -84,9 +92,15 @@ public class PaymentApplicationService {
                 .orElseThrow(() -> new ResourceNotFoundException("Payment not found for order id: " + orderId));
     }
 
-    @Transactional
+    @Transactional(isolation = Isolation.SERIALIZABLE)
+    @Retryable(
+        retryFor = {DeadlockLoserDataAccessException.class, CannotAcquireLockException.class, ObjectOptimisticLockingFailureException.class},
+        maxAttempts = 3,
+        backoff = @Backoff(delay = 500, multiplier = 2)
+    )
+    @RateLimiter(name = "payment-api", fallbackMethod = "refundPaymentRateLimitFallback")
     public PaymentResponse refundPayment(UUID id) {
-        Payment payment = paymentRepository.findById(id)
+        Payment payment = paymentRepository.findByIdWithLock(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Payment not found with id: " + id));
 
         if (payment.getStatus() == PaymentStatus.REFUNDED) {
@@ -102,5 +116,16 @@ public class PaymentApplicationService {
 
         Payment savedPayment = paymentRepository.save(payment);
         return paymentMapper.toResponse(savedPayment);
+    }
+    
+    // Fallback methods for RateLimiter
+    private PaymentResponse processPaymentRateLimitFallback(ProcessPaymentRequest request, RequestNotPermitted ex) {
+        log.warn("Rate limit exceeded for processPayment: orderId={}", request.getOrderId());
+        throw new IllegalStateException("Too many requests to payment service, please try again later.");
+    }
+
+    private PaymentResponse refundPaymentRateLimitFallback(UUID id, RequestNotPermitted ex) {
+        log.warn("Rate limit exceeded for refundPayment: paymentId={}", id);
+        throw new IllegalStateException("Too many requests to payment service, please try again later.");
     }
 }

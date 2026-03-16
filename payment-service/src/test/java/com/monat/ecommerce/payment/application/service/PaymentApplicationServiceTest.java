@@ -198,7 +198,7 @@ class PaymentApplicationServiceTest {
                                 .status(PaymentStatus.REFUNDED.name())
                                 .build();
 
-                when(paymentRepository.findById(paymentId)).thenReturn(Optional.of(completedPayment));
+                when(paymentRepository.findByIdWithLock(paymentId)).thenReturn(Optional.of(completedPayment));
                 when(paymentRepository.save(any(Payment.class))).thenReturn(refundedPayment);
                 when(paymentMapper.toResponse(any(Payment.class))).thenReturn(refundedResponse);
 
@@ -208,7 +208,7 @@ class PaymentApplicationServiceTest {
                 // Then
                 assertThat(response).isNotNull();
                 assertThat(response.getStatus()).isEqualTo(PaymentStatus.REFUNDED.name());
-                verify(paymentRepository, times(1)).findById(paymentId);
+                verify(paymentRepository, times(1)).findByIdWithLock(paymentId);
                 verify(paymentRepository, times(1)).save(any(Payment.class));
         }
 
@@ -222,7 +222,7 @@ class PaymentApplicationServiceTest {
                                 .status(PaymentStatus.REFUNDED)
                                 .build();
 
-                when(paymentRepository.findById(paymentId)).thenReturn(Optional.of(refundedPayment));
+                when(paymentRepository.findByIdWithLock(paymentId)).thenReturn(Optional.of(refundedPayment));
 
                 // When & Then
                 assertThatThrownBy(() -> paymentApplicationService.refundPayment(paymentId))
@@ -242,7 +242,7 @@ class PaymentApplicationServiceTest {
                                 .status(PaymentStatus.PENDING)
                                 .build();
 
-                when(paymentRepository.findById(paymentId)).thenReturn(Optional.of(pendingPayment));
+                when(paymentRepository.findByIdWithLock(paymentId)).thenReturn(Optional.of(pendingPayment));
 
                 // When & Then
                 assertThatThrownBy(() -> paymentApplicationService.refundPayment(paymentId))

@@ -1,10 +1,12 @@
 package com.monat.ecommerce.order.application.service;
 
+import com.monat.ecommerce.common.dto.ApiResponse;
 import com.monat.ecommerce.common.dto.PagedResponse;
 import com.monat.ecommerce.common.exception.ResourceNotFoundException;
 import com.monat.ecommerce.order.application.dto.*;
 import com.monat.ecommerce.order.domain.model.Order;
 import com.monat.ecommerce.order.domain.model.OrderItem;
+import com.monat.ecommerce.order.domain.model.dto.CartDto;
 import com.monat.ecommerce.order.domain.repository.OrderRepository;
 import com.monat.ecommerce.order.domain.service.OrderSagaOrchestrator;
 import lombok.RequiredArgsConstructor;
@@ -16,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
+import com.monat.ecommerce.order.infrastructure.client.CartClient;
 
 /**
  * Order Application Service.
@@ -39,26 +42,25 @@ public class OrderApplicationService {
     private final OrderRepository orderRepository;
     private final OrderMapper orderMapper;
     private final OrderSagaOrchestrator sagaOrchestrator;
-    private final com.monat.ecommerce.order.infrastructure.client.CartClient cartClient;
+    private final CartClient cartClient;
 
     @Transactional
     public OrderResponse createOrder(CreateOrderRequest request) {
-        log.info("Creating order for user: {}", request.getUserId());
+        log.info("Creating order for user: {}", request.userId());
 
-        List<OrderItemRequest> orderItems = request.getItems();
+        List<OrderItemRequest> orderItems = request.items();
 
         // If cartId is present, fetch items from cart
-        if (request.getCartId() != null && !request.getCartId().isBlank()) {
-            log.info("Fetching items from cart: {}", request.getCartId());
-            com.monat.ecommerce.common.dto.ApiResponse<com.monat.ecommerce.order.domain.model.dto.CartDto> cartResponse = cartClient
-                    .getCart(request.getCartId());
+        if (request.cartId() != null && !request.cartId().isBlank()) {
+            log.info("Fetching items from cart: {}", request.cartId());
+            ApiResponse<CartDto> cartResponse = cartClient.getCart(request.cartId());
 
             if (cartResponse != null && cartResponse.getData() != null) {
-                orderItems = cartResponse.getData().getItems().stream()
+                orderItems = cartResponse.getData().items().stream()
                         .map(item -> OrderItemRequest.builder()
-                                .productId(item.getProductId())
-                                .quantity(item.getQuantity())
-                                .unitPrice(item.getUnitPrice())
+                                .productId(item.productId())
+                                .quantity(item.quantity())
+                                .unitPrice(item.unitPrice())
                                 .build())
                         .toList();
             }
@@ -73,17 +75,13 @@ public class OrderApplicationService {
 
         // Calculate total amount
         BigDecimal totalAmount = orderItems.stream()
-                .map(item -> item.getUnitPrice().multiply(BigDecimal.valueOf(item.getQuantity())))
+                .map(item -> item.unitPrice().multiply(BigDecimal.valueOf(item.quantity())))
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        // Build order
-        Order order = Order.builder()
-                .orderNumber(orderNumber)
-                .userId(request.getUserId())
-                .totalAmount(totalAmount)
-                .currency("USD")
-                .shippingAddress(orderMapper.toShippingAddress(request.getShippingAddress()))
-                .build();
+        // Build order using MapStruct
+        Order order = orderMapper.toOrder(request);
+        order.setOrderNumber(orderNumber);
+        order.setTotalAmount(totalAmount);
 
         // Add items
         for (OrderItemRequest itemReq : orderItems) {
@@ -97,12 +95,12 @@ public class OrderApplicationService {
         log.info("Order created with ID: {} and number: {}", order.getId(), order.getOrderNumber());
 
         // Delete cart if used
-        if (request.getCartId() != null && !request.getCartId().isBlank()) {
+        if (request.cartId() != null && !request.cartId().isBlank()) {
             try {
-                cartClient.deleteCart(request.getCartId());
-                log.info("Cart deleted: {}", request.getCartId());
+                cartClient.deleteCart(request.cartId());
+                log.info("Cart deleted: {}", request.cartId());
             } catch (Exception e) {
-                log.warn("Failed to delete cart: {}", request.getCartId(), e);
+                log.warn("Failed to delete cart: {}", request.cartId(), e);
                 // Don't fail order creation if cart deletion fails
             }
         }

@@ -9,6 +9,7 @@ services:
   postgres:
     image: postgres:16-alpine
     container_name: monat-postgres
+    command: ["postgres", "-c", "wal_level=logical"]
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
@@ -29,6 +30,7 @@ services:
   mongodb:
     image: mongo:7
     container_name: monat-mongodb
+    command: ["mongod", "--replSet", "rs0", "--bind_ip_all"]
     ports:
       - "27017:27017"
     volumes:
@@ -99,17 +101,57 @@ services:
       timeout: 10s
       retries: 5
 
-  # Kafdrop - Kafka UI
-  kafdrop:
-    image: obsidiandynamics/kafdrop:latest
-    container_name: monat-kafdrop
+  # AKHQ - Kafka UI
+  akhq:
+    image: tchiotludo/akhq:latest
+    container_name: monat-akhq
     depends_on:
       kafka:
         condition: service_healthy
     ports:
       - "9000:9000"
     environment:
-      KAFKA_BROKERCONNECT: kafka:29092
+      MICRONAUT_SERVER_PORT: 9000
+      AKHQ_CONFIGURATION: |
+        akhq:
+          connections:
+            monat-kafka:
+              properties:
+                bootstrap.servers: "kafka:29092"
+    networks:
+      - monat-network
+
+  # Debezium Connect - Change Data Capture (CDC)
+  debezium-connect:
+    image: debezium/connect:2.4
+    container_name: monat-debezium-connect
+    ports:
+      - "8089:8083"
+    environment:
+      BOOTSTRAP_SERVERS: kafka:29092
+      GROUP_ID: 1
+      CONFIG_STORAGE_TOPIC: my_connect_configs
+      OFFSET_STORAGE_TOPIC: my_connect_offsets
+      STATUS_STORAGE_TOPIC: my_connect_statuses
+    depends_on:
+      kafka:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    networks:
+      - monat-network
+
+  # RedisInsight - Redis UI
+  redisinsight:
+    image: redis/redisinsight:latest
+    container_name: monat-redisinsight
+    depends_on:
+      redis:
+        condition: service_healthy
+    ports:
+      - "8001:8001"
+    environment:
+      RIPORT: 8001
     networks:
       - monat-network
 
