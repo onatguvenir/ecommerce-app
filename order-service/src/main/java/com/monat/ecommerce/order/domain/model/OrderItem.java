@@ -1,32 +1,27 @@
 package com.monat.ecommerce.order.domain.model;
 
+import com.monat.ecommerce.common.model.AbstractOrderItem;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
 
-import java.math.BigDecimal;
 import java.util.UUID;
 
 /**
  * Order item value object/entity in domain
  */
 @Data
-@Builder
+@EqualsAndHashCode(callSuper = true)
+@SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor
-public class OrderItem {
+public class OrderItem extends AbstractOrderItem {
 
     private UUID id;
-    private String productId;
-    private String productName;
-    private Integer quantity;
-    private BigDecimal unitPrice;
-    private BigDecimal subtotal;
 
     public void calculateSubtotal() {
-        if (this.unitPrice != null && this.quantity != null) {
-            this.subtotal = this.unitPrice.multiply(BigDecimal.valueOf(this.quantity));
-        }
+        super.calculateSubtotal();
     }
 }

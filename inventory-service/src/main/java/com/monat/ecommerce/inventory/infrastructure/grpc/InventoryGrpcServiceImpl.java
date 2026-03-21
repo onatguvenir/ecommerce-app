@@ -13,17 +13,12 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * gRPC Server implementation for Inventory Service.
- * <p>
- * This class handles inter-service communication using gRPC (Google Remote
- * Procedure Call).
- * It implements the generated `InventoryServiceImplBase` from the `.proto`
- * definition.
- * </p>
+ * gRPC Service Implementation for Inventory.
  * 
- * @GrpcService marks this class as a gRPC service bean, automatically
- *              registering it with the gRPC server.
- *              This is the gRPC equivalent of @RestController.
+ * Educational Note:
+ * gRPC is used here for high-performance, low-latency inter-service 
+ * communication (e.g., Order Service checking stock). 
+ * It uses Protocol Buffers (protobuf) for binary serialization.
  */
 @Slf4j
 @GrpcService

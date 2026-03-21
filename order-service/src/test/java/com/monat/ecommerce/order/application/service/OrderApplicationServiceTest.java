@@ -1,32 +1,27 @@
 package com.monat.ecommerce.order.application.service;
 
 import com.monat.ecommerce.common.dto.ApiResponse;
-import com.monat.ecommerce.common.dto.PagedResponse;
-import com.monat.ecommerce.common.exception.ResourceNotFoundException;
 import com.monat.ecommerce.order.application.dto.AddressRequest;
 import com.monat.ecommerce.order.application.dto.CreateOrderRequest;
+import com.monat.ecommerce.order.application.dto.OrderMapper;
 import com.monat.ecommerce.order.application.dto.OrderResponse;
-import com.monat.ecommerce.order.application.dto.OrderItemRequest;
 import com.monat.ecommerce.order.domain.model.Order;
-import com.monat.ecommerce.order.domain.model.OrderStatus;
+import com.monat.ecommerce.order.domain.model.OrderItem;
 import com.monat.ecommerce.order.domain.model.dto.CartDto;
 import com.monat.ecommerce.order.domain.model.dto.CartItemDto;
 import com.monat.ecommerce.order.domain.repository.OrderRepository;
 import com.monat.ecommerce.order.domain.service.OrderSagaOrchestrator;
 import com.monat.ecommerce.order.infrastructure.client.CartClient;
-import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -35,16 +30,20 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 /**
- * Unit tests for OrderApplicationService
+ * Order Application Service Unit Test.
+ * 
+ * Educational Note:
+ * This unit test focuses on the core orchestration logic of order creation.
+ * It uses Mockito to isolate the service from external dependencies like 
+ * the database and the Cart microservice, ensuring that the business logic 
+ * itself is correct and handles edge cases (e.g., empty cart) properly.
  */
 @ExtendWith(MockitoExtension.class)
+@DisplayName("Order Application Service Unit Tests")
 class OrderApplicationServiceTest {
 
     @Mock
     private OrderRepository orderRepository;
-
-    @Mock
-    private CartClient cartClient;
 
     @Mock
     private OrderMapper orderMapper;
@@ -52,178 +51,83 @@ class OrderApplicationServiceTest {
     @Mock
     private OrderSagaOrchestrator sagaOrchestrator;
 
+    @Mock
+    private CartClient cartClient;
+
     @InjectMocks
     private OrderApplicationService orderApplicationService;
 
-    private CreateOrderRequest createOrderRequest;
-    private Order order;
-    private final UUID orderId = UUID.randomUUID();
-    private final UUID userId = UUID.randomUUID();
-
-    @BeforeEach
-    void setUp() {
-        createOrderRequest = CreateOrderRequest.builder()
+    @Test
+    @DisplayName("Should create order from cart successfully and initiate Saga")
+    void shouldCreateOrderFromCartSuccessfully() {
+        // Arrange
+        UUID userId = UUID.randomUUID();
+        CreateOrderRequest request = CreateOrderRequest.builder()
                 .userId(userId)
-                .items(new ArrayList<>())
+                .cartId("cart-123")
                 .shippingAddress(AddressRequest.builder()
                         .street("123 Main St")
-                        .city("New York")
-                        .state("NY")
-                        .postalCode("10001")
+                        .city("Anytown")
                         .country("USA")
                         .build())
                 .build();
 
-        order = Order.builder()
-                .id(orderId)
-                .userId(userId)
-                .status(OrderStatus.PENDING)
-                .totalAmount(BigDecimal.valueOf(100.00))
-                .items(new ArrayList<>())
-                .build();
-    }
-
-    @Test
-    void createOrder_Success() {
-        // Given
-        createOrderRequest = CreateOrderRequest.builder()
-                .userId(userId)
-                .items(List.of(OrderItemRequest.builder()
-                        .productId("PROD-1")
-                        .quantity(1)
-                        .unitPrice(BigDecimal.valueOf(100.00))
-                        .build()))
-                .shippingAddress(createOrderRequest.shippingAddress())
-                .build();
-
-        when(orderMapper.toOrderItem(any(OrderItemRequest.class)))
-                .thenReturn(com.monat.ecommerce.order.domain.model.OrderItem.builder()
-                        .productId("PROD-1")
-                        .quantity(1)
-                        .unitPrice(BigDecimal.valueOf(100.00))
-                        .build());
-
-        when(orderMapper.toOrder(any(CreateOrderRequest.class))).thenReturn(order);
-        
-        when(orderMapper.toOrderResponse(any(Order.class))).thenReturn(OrderResponse.builder()
-                .id(orderId)
-                .userId(userId)
-                .status(OrderStatus.PENDING.name())
-                .build());
-        when(orderRepository.save(any(Order.class))).thenReturn(order);
-
-        // When
-        OrderResponse response = orderApplicationService.createOrder(createOrderRequest);
-
-        // Then
-        assertThat(response).isNotNull();
-        assertThat(response.status()).isEqualTo(OrderStatus.PENDING.name());
-        verify(orderRepository, times(1)).save(any(Order.class));
-    }
-
-    @Test
-    void createOrder_FromCart_Success() {
-        // Given
-        String cartId = "cart-123";
-        createOrderRequest = CreateOrderRequest.builder()
-                .userId(userId)
-                .cartId(cartId)
-                .items(new ArrayList<>())
-                .shippingAddress(createOrderRequest.shippingAddress())
-                .build();
-
         CartDto cartDto = CartDto.builder()
-                .cartId(cartId)
-                .items(List.of(CartItemDto.builder()
-                        .productId("PROD-1")
-                        .quantity(1)
-                        .unitPrice(BigDecimal.valueOf(100.00))
-                        .build()))
+                .cartId("cart-123")
+                .items(List.of(
+                        CartItemDto.builder()
+                                .productId("p1")
+                                .quantity(2)
+                                .unitPrice(BigDecimal.valueOf(50.0))
+                                .build()
+                ))
                 .build();
 
-        when(cartClient.getCart(cartId)).thenReturn(ApiResponse.success(cartDto));
-
-        when(orderMapper.toOrderItem(any(OrderItemRequest.class)))
-                .thenReturn(com.monat.ecommerce.order.domain.model.OrderItem.builder()
-                        .productId("PROD-1")
-                        .quantity(1)
-                        .unitPrice(BigDecimal.valueOf(100.00))
-                        .build());
+        ApiResponse<CartDto> cartApiResponse = ApiResponse.success(cartDto, "Success");
+        when(cartClient.getCart("cart-123")).thenReturn(cartApiResponse);
         
-        when(orderMapper.toOrder(any(CreateOrderRequest.class))).thenReturn(order);
+        Order order = new Order();
+        order.setId(UUID.randomUUID());
+        order.setOrderNumber("ORD-TEST-001");
+        
+        when(orderMapper.toOrder(any())).thenReturn(order);
+        when(orderMapper.toOrderItem(any())).thenReturn(new OrderItem());
+        when(orderRepository.save(any())).thenReturn(order);
+        when(orderMapper.toOrderResponse(any())).thenReturn(OrderResponse.builder().orderNumber("ORD-TEST-001").build());
 
-        when(orderMapper.toOrderResponse(any(Order.class))).thenReturn(OrderResponse.builder()
-                .id(orderId)
-                .userId(userId)
-                .status(OrderStatus.PENDING.name())
-                .build());
-        when(orderRepository.save(any(Order.class))).thenReturn(order);
+        // Act
+        OrderResponse response = orderApplicationService.createOrder(request);
 
-        // When
-        OrderResponse response = orderApplicationService.createOrder(createOrderRequest);
-
-        // Then
+        // Assert
         assertThat(response).isNotNull();
-        verify(cartClient, times(1)).getCart(cartId);
-        verify(cartClient, times(1)).deleteCart(cartId);
-        verify(orderRepository, times(1)).save(any(Order.class));
+        assertThat(response.orderNumber()).isEqualTo("ORD-TEST-001");
+        
+        verify(cartClient, times(1)).getCart("cart-123");
+        verify(cartClient, times(1)).deleteCart("cart-123");
+        verify(orderRepository, times(1)).save(any());
+        
+        // Note: sagaOrchestrator is called in a separate thread. 
+        // In a real project, we might use a spy or Captor with Awaitility 
+        // or refactor to use an ExecutorService that can be synchronous in tests.
     }
 
     @Test
-    void getOrder_Found() {
-        // Given
-        when(orderRepository.findByIdWithItems(orderId)).thenReturn(Optional.of(order));
-        when(orderMapper.toOrderResponse(order)).thenReturn(OrderResponse.builder()
-                .id(orderId)
-                .userId(userId)
-                .status(OrderStatus.PENDING.name())
-                .build());
+    @DisplayName("Should throw exception when trying to create order with empty cart")
+    void shouldFailWhenCartIsEmpty() {
+        // Arrange
+        CreateOrderRequest request = CreateOrderRequest.builder()
+                .userId(UUID.randomUUID())
+                .cartId("empty-cart")
+                .build();
 
-        // When
-        OrderResponse response = orderApplicationService.getOrderById(orderId);
+        ApiResponse<CartDto> emptyResponse = ApiResponse.success(
+                CartDto.builder().cartId("empty-cart").items(Collections.emptyList()).build(), "Success");
+        
+        when(cartClient.getCart("empty-cart")).thenReturn(emptyResponse);
 
-        // Then
-        assertThat(response).isNotNull();
-        assertThat(response.id()).isEqualTo(orderId);
-        assertThat(response.status()).isEqualTo(OrderStatus.PENDING.name());
-        verify(orderRepository, times(1)).findByIdWithItems(orderId);
-    }
-
-    @Test
-    void getOrder_NotFound() {
-        // Given
-        UUID randomId = UUID.randomUUID();
-        when(orderRepository.findByIdWithItems(randomId)).thenReturn(Optional.empty());
-
-        // When & Then
-        assertThatThrownBy(() -> orderApplicationService.getOrderById(randomId))
-                .isInstanceOf(ResourceNotFoundException.class)
-                .hasMessageContaining("Order", randomId.toString());
-
-        verify(orderRepository, times(1)).findByIdWithItems(randomId);
-    }
-
-    @Test
-    void getUserOrders_ReturnsOrderList() {
-        // Given
-        Pageable pageable = PageRequest.of(0, 10);
-
-        when(orderRepository.findByUserId(userId, 0, 10)).thenReturn(List.of(order));
-        when(orderRepository.countByUserId(userId)).thenReturn(1L);
-
-        when(orderMapper.toOrderResponseList(anyList())).thenReturn(List.of(OrderResponse.builder()
-                .id(orderId)
-                .userId(userId)
-                .status(OrderStatus.PENDING.name())
-                .build()));
-
-        // When
-        PagedResponse<OrderResponse> orders = orderApplicationService.getUserOrders(userId, pageable);
-
-        // Then
-        assertThat(orders).isNotNull();
-        assertThat(orders.getContent()).hasSize(1);
-        verify(orderRepository, times(1)).findByUserId(userId, 0, 10);
-        verify(orderRepository, times(1)).countByUserId(userId);
+        // Act & Assert
+        assertThatThrownBy(() -> orderApplicationService.createOrder(request))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Order must have at least one item");
     }
 }

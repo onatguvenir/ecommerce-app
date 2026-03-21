@@ -18,25 +18,14 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * Global exception handler for all REST controllers
- */
-/**
- * Global exception handler for the application.
- * <p>
- * This class acts as a centralized exception handling mechanism across the
- * application.
- * It intercepts exceptions thrown by Controllers and converts them into
- * standard API responses.
- * </p>
- *
- * @RestControllerAdvice is a specialized @Component that allows handling
- *                       exceptions across the whole application
- *                       in one global handling component. It can be viewed as
- *                       an interceptor of exceptions thrown by methods
- *                       annotated with @RequestMapping and similar.
- *
- * @Slf4j is a Lombok annotation that automatically generates a logger field for
- *        the class.
+ * Centralized exception handling across all microservices.
+ * 
+ * Educational Note:
+ * - @RestControllerAdvice: Intercepts exceptions thrown by any @RequestMapping method.
+ * - This handler ensures that the UI/Client receives a consistent ErrorResponse 
+ *   regardless of which service or layer threw the error.
+ * - TraceId: Included in the response to help developers find the exact logs 
+ *   in Kibana/Jaeger.
  */
 @Slf4j
 @RestControllerAdvice

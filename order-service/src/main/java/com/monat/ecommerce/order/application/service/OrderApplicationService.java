@@ -27,12 +27,15 @@ import com.monat.ecommerce.order.infrastructure.client.CartClient;
  * It uses the Saga pattern (via orchestration) to manage distributed
  * transactions across microservices.
  * </p>
- * 
- * @Service indicates that this class is a "Service" component containing
- *          business logic.
- * 
- * @Transactional ensures that local database operations (saving the order) are
- *                atomic.
+ *
+ * Coordinator for Order-related business logic.
+ *
+ * Architecture Note: Transactional Outbox Pattern
+ * To ensure 'Exactly-once' processing and avoid dual-write problems:
+ * 1. The order is saved to the 'orders' table.
+ * 2. An event record is saved to the 'outbox_events' table.
+ * Both steps happen in the SAME database transaction.
+ * A separate poller then reads from 'outbox_events' and sends to Kafka.
  */
 @Slf4j
 @Service
@@ -55,8 +58,8 @@ public class OrderApplicationService {
             log.info("Fetching items from cart: {}", request.cartId());
             ApiResponse<CartDto> cartResponse = cartClient.getCart(request.cartId());
 
-            if (cartResponse != null && cartResponse.getData() != null) {
-                orderItems = cartResponse.getData().items().stream()
+            if (cartResponse != null && cartResponse.data() != null) {
+                orderItems = cartResponse.data().items().stream()
                         .map(item -> OrderItemRequest.builder()
                                 .productId(item.productId())
                                 .quantity(item.quantity())

@@ -7,26 +7,26 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 /**
- * Web Configuration Class.
- * <p>
- * This class is used to configure Spring MVC settings.
- * </p>
+ * Global Web Configuration for microservices.
  * 
- * @Configuration indicates that this class declares one or more @Bean methods
- *                and may be processed by the Spring container
- *                to generate bean definitions and service requests for those
- *                beans at runtime.
+ * Educational Note:
+ * This class registers cross-cutting concerns like CorrelationIdFilter 
+ * which ensures logs can be traced across service boundaries using a unique ID.
  */
 @Configuration
 public class WebConfig implements WebMvcConfigurer {
 
+    /**
+     * Registers the CorrelationIdFilter to the servlet container.
+     * We use FilterRegistrationBean instead of @WebFilter for programmatic control of order.
+     */
     @Bean
     public FilterRegistrationBean<CorrelationIdFilter> correlationIdFilterRegistrationBean(
             CorrelationIdFilter correlationIdFilter) {
         FilterRegistrationBean<CorrelationIdFilter> registrationBean = new FilterRegistrationBean<>();
         registrationBean.setFilter(correlationIdFilter);
         registrationBean.addUrlPatterns("/*");
-        registrationBean.setOrder(1); // Set order to ensure it runs early
+        registrationBean.setOrder(1); // Ensure it runs before security/other filters to capture ID early
         return registrationBean;
     }
 }

@@ -53,8 +53,8 @@ class UserApplicationServiceTest {
 
         User user = User.builder()
                 .id(UUID.randomUUID())
-                .email(request.getEmail())
-                .username(request.getUsername())
+                .email(request.email())
+                .username(request.username())
                 .status(UserStatus.ACTIVE)
                 .build();
 
@@ -66,6 +66,7 @@ class UserApplicationServiceTest {
 
         when(userRepository.existsByEmail(anyString())).thenReturn(false);
         when(userRepository.existsByUsername(anyString())).thenReturn(false);
+        when(userMapper.toUser(any(UserRegistrationRequest.class))).thenReturn(user);
         when(passwordEncoder.encode(anyString())).thenReturn("encodedPassword");
         when(userRepository.save(any(User.class))).thenReturn(user);
         when(userMapper.toUserResponse(any(User.class))).thenReturn(expectedResponse);

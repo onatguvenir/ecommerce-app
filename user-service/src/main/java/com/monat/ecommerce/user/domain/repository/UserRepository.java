@@ -9,7 +9,11 @@ import java.util.Optional;
 import java.util.UUID;
 
 /**
- * Repository for User domain model
+ * Domain Repository Interface for User entity.
+ * 
+ * Architecture Note:
+ * This interface belongs to the 'Domain' layer. The actual implementation 
+ * resides in the 'Infrastructure' layer, following the Dependency Inversion Principle.
  */
 public interface UserRepository {
 

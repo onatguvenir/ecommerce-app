@@ -13,7 +13,12 @@ import reactor.core.publisher.Mono;
 import java.util.UUID;
 
 /**
- * Global logging filter for all requests
+ * Global filter for request/response logging.
+ * 
+ * Educational Note:
+ * - GlobalFilter: Applied to ALL routes by default.
+ * - .then(): Used for post-processing logic AFTER the downstream service responds.
+ * - Correlation ID: Ensures we can link the Gateway request with downstream logs.
  */
 @Slf4j
 @Component

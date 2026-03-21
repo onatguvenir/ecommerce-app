@@ -13,17 +13,24 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.io.File;
 import java.io.IOException;
 
 /**
- * Spring Batch operasyonlarını tetikleyen REST Controller.
+ * REST Controller for Batch Inventory Operations.
+ *
+ * Educational Note:
+ * This controller triggers Spring Batch Jobs for bulk operations such as
+ * importing stock from CSV files. It decouples the REST request from
+ * the long-running background process.
  */
 @Slf4j
 @RestController
-@RequestMapping("/api/v1/inventory/batch")
+@RequestMapping("/api/inventory/batch")
 @RequiredArgsConstructor
+@Tag(name = "Inventory Batch", description = "Operations for bulk inventory updates")
 public class InventoryBatchController {
 
     private final JobLauncher jobLauncher;

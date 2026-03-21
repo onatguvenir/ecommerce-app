@@ -142,7 +142,6 @@ monat-ecommerce/
 ├── common-lib/          ← Shared utilities
 ├── event-models/        ← Kafka events
 ├── grpc-proto/          ← gRPC definitions
-├── k8s/                 ← Kubernetes manifests
 ├── docker-compose.yml   ← Full stack deployment
 └── walkthrough.md       ← Complete documentation
 ```
@@ -153,7 +152,7 @@ monat-ecommerce/
 **Databases:** PostgreSQL, MongoDB, Redis, Elasticsearch  
 **Messaging:** Apache Kafka  
 **Communication:** REST, gRPC, Kafka Events  
-**Containerization:** Docker Compose + Kubernetes  
+**Containerization:** Docker Compose
 **Monitoring:** Prometheus, Grafana, Jaeger  
 **Architecture:** Microservices, Event-Driven, Saga Pattern  
 
@@ -167,7 +166,6 @@ monat-ecommerce/
 ✅ **Redis Caching** for performance  
 ✅ **Event-Driven** architecture with Kafka  
 ✅ **Docker Compose** full-stack deployment  
-✅ **Kubernetes-ready** with manifests + HPA  
 ✅ **Observability** (tracing, metrics, monitoring)  
 
 ## Stop Services
@@ -180,12 +178,9 @@ docker-compose down
 docker-compose down -v
 ```
 
-## Next Steps
-
 1. **Explore the Code:** Each service has clean DDD-style architecture
 2. **Read Documentation:** Check `walkthrough.md` for detailed features
-3. **Kubernetes:** Deploy to K8s (see `K8S-DEPLOYMENT.md`)
-4. **Extend:** Add tests, CI/CD, service mesh, etc.
+3. **Extend:** Add tests, CI/CD, service mesh, etc.
 
 ## Documentation
 
@@ -195,7 +190,6 @@ docker-compose down -v
 | `QUICKSTART.md` | Getting started guide |
 | `walkthrough.md` | Complete feature documentation |
 | `DOCKER-COMPOSE-GUIDE.md` | Docker deployment details |
-| `K8S-DEPLOYMENT.md` | Kubernetes deployment |
 | `DOCKER-BUILD.md` | Docker build instructions |
 
 ## Troubleshooting

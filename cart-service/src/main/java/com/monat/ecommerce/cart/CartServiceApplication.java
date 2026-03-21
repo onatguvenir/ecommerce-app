@@ -3,6 +3,13 @@ package com.monat.ecommerce.cart;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
+/**
+ * Cart Service Main Application.
+ * 
+ * Educational Note:
+ * This service handles transient shopping carts. It relies heavily on Redis 
+ * for performance and automatic expiration (TTL) of abandoned carts.
+ */
 @SpringBootApplication(scanBasePackages = {
         "com.monat.ecommerce.cart",
         "com.monat.ecommerce.common"

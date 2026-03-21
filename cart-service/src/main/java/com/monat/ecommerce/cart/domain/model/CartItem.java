@@ -1,32 +1,31 @@
 package com.monat.ecommerce.cart.domain.model;
 
+import com.monat.ecommerce.common.model.AbstractOrderItem;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
 
 import java.io.Serializable;
-import java.math.BigDecimal;
 
 /**
- * Cart item model
+ * Cart item model stored in Redis.
+ * Extends AbstractOrderItem to share common structure with OrderItem.
  */
 @Data
-@Builder
+@EqualsAndHashCode(callSuper = true)
+@SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor
-public class CartItem implements Serializable {
+public class CartItem extends com.monat.ecommerce.common.model.AbstractOrderItem implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
-    private String productId;
-    private String productName;
-    private BigDecimal unitPrice;
-    private Integer quantity;
-    private BigDecimal subtotal;
     private String imageUrl;
 
+    @Override
     public void calculateSubtotal() {
-        this.subtotal = this.unitPrice.multiply(BigDecimal.valueOf(this.quantity));
+        super.calculateSubtotal();
     }
 }

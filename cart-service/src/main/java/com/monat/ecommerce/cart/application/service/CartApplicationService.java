@@ -15,7 +15,12 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 
 /**
- * Cart application service
+ * Coordinator for Shopping Cart operations.
+ * 
+ * Educational Note:
+ * This service uses Redis to store active cart data. 
+ * High-speed caching is essential here as users interact with their carts 
+ * frequently during a single session.
  */
 @Slf4j
 @Service

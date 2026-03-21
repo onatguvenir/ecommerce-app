@@ -45,7 +45,7 @@ Write-Host "All services built successfully!" -ForegroundColor Green
 
 ### Full Stack (Infrastructure + Services)
 ```yaml
-# Coming soon: Updated docker-compose.yml with all services
+# The root docker-compose.yml contains all 8 services and infrastructure.
 ```
 
 ### Run Infrastructure Only (Current)
@@ -97,11 +97,9 @@ docker run -e SPRING_PROFILES_ACTIVE=docker \
 
 ## Next Steps
 
-1. Update docker-compose.yml to include all 8 services
-2. Add service dependencies and health checks
-3. Configure environment variables
-4. Set up service discovery (optional)
-5. Deploy to Kubernetes
+1. Add service dependencies and health checks
+2. Configure environment variables
+3. Set up service discovery (optional)
 
 ## Image Sizes (Approximate)
 

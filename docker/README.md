@@ -109,7 +109,7 @@ Persistent storage:
 ## Production Considerations
 
 For production deployments:
-1. Use Kubernetes Secrets instead of environment variables
+1. Use external secrets management instead of environment variables
 2. Implement proper log aggregation (ELK, Loki)
 3. Use external configuration management (Consul, etcd)
 4. Enable TLS/SSL for all inter-service communication

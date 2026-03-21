@@ -5,34 +5,16 @@ import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
-import org.springframework.data.annotation.CreatedDate;
-import org.springframework.data.annotation.LastModifiedDate;
+import lombok.experimental.SuperBuilder;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
-import java.math.BigDecimal;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 
 /**
  * Order JPA Entity.
- * 
- * @Entity marks this class as a JPA entity.
- * 
- * @Table specifies the table name and indexes.
- * 
- * @Embedded (used on fields) or @Embeddable (on class) allows embedding value
- *           objects (like Address) into the same table.
- * 
- * @OneToMany establishes a one-to-many relationship with OrderItemEntity.
- *            'cascade = CascadeType.ALL' means operations on Order cascade to
- *            Items.
- *            'orphanRemoval = true' means removing an item from the list
- *            deletes it from the database.
- * 
- * @Version handles Optimistic Locking.
  */
 @Entity
 @Table(name = "orders", indexes = {
@@ -42,32 +24,19 @@ import java.util.UUID;
 })
 @EntityListeners(AuditingEntityListener.class)
 @Data
-@Builder
+@EqualsAndHashCode(callSuper = true)
+@SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor
-public class OrderEntity {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    private UUID id;
+public class OrderEntity extends AbstractOrderEntity {
 
     @Column(name = "order_number", unique = true, nullable = false, length = 50)
     private String orderNumber;
-
-    @Column(name = "user_id", nullable = false)
-    private UUID userId;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 50)
     @Builder.Default
     private OrderStatus status = OrderStatus.PENDING;
-
-    @Column(name = "total_amount", nullable = false, precision = 15, scale = 2)
-    private BigDecimal totalAmount;
-
-    @Column(length = 3)
-    @Builder.Default
-    private String currency = "USD";
 
     @Embedded
     private ShippingAddressEmbeddable shippingAddress;
@@ -82,25 +51,19 @@ public class OrderEntity {
     @Column(name = "cancellation_reason", length = 500)
     private String cancellationReason;
 
-    @CreatedDate
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private LocalDateTime createdAt;
-
-    @LastModifiedDate
-    @Column(name = "updated_at")
-    private LocalDateTime updatedAt;
-
-    @Version
-    private Long version;
-
     // Helper methods for bidirectional relationship
     public void addItem(OrderItemEntity item) {
+        if (items == null) {
+            items = new ArrayList<>();
+        }
         items.add(item);
         item.setOrder(this);
     }
 
     public void removeItem(OrderItemEntity item) {
-        items.remove(item);
-        item.setOrder(null);
+        if (items != null) {
+            items.remove(item);
+            item.setOrder(null);
+        }
     }
 }

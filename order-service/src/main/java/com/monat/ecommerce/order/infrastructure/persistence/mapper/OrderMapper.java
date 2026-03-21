@@ -10,6 +10,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Component
@@ -23,7 +24,7 @@ public class OrderMapper {
         Order order = Order.builder()
                 .id(entity.getId())
                 .orderNumber(entity.getOrderNumber())
-                .userId(entity.getUserId())
+                .userId(entity.getUserId() != null ? entity.getUserId().toString() : null)
                 .status(entity.getStatus())
                 .totalAmount(entity.getTotalAmount())
                 .currency(entity.getCurrency())
@@ -56,7 +57,7 @@ public class OrderMapper {
         OrderEntity entity = OrderEntity.builder()
                 .id(domain.getId())
                 .orderNumber(domain.getOrderNumber())
-                .userId(domain.getUserId())
+                .userId(domain.getUserId() != null ? UUID.fromString(domain.getUserId()) : null)
                 .status(domain.getStatus())
                 .totalAmount(domain.getTotalAmount())
                 .currency(domain.getCurrency())

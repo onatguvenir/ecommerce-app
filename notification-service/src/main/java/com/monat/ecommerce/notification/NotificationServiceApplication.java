@@ -4,6 +4,14 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.kafka.annotation.EnableKafka;
 
+/**
+ * Notification Service Main Application.
+ * 
+ * Educational Note:
+ * This service acts as a pure event consumer (Kafka). It doesn't 
+ * expose public REST APIs but instead listens for domain events 
+ * (Orders, Payments) and triggers notifications.
+ */
 @SpringBootApplication(scanBasePackages = {
         "com.monat.ecommerce.notification",
         "com.monat.ecommerce.common"

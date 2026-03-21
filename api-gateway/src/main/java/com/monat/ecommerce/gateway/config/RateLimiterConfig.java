@@ -12,7 +12,12 @@ import reactor.core.publisher.Mono;
 public class RateLimiterConfig {
 
     /**
-     * Key resolver for rate limiting based on IP address
+     * Key resolver for rate limiting.
+     * 
+     * Educational Note:
+     * This defines the 'tenant' for rate limits. By using the Remote Address (IP), 
+     * we ensure that one client cannot overwhelm the system. 
+     * In production, this might be a 'User ID' from a JWT to provide per-user limits.
      */
     @Bean
     public KeyResolver ipKeyResolver() {

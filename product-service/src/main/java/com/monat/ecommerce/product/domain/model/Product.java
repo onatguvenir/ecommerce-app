@@ -11,8 +11,13 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Product domain model - Pure POJO
- * Removed MongoDB annotations.
+ * Product Domain Model.
+ * 
+ * Educational Note:
+ * In this system, 'id' is the persistence identifier (MongoDB ObjectId string), 
+ * while 'productId' is the business identifier (e.g., SKU or human-readable ID).
+ * This separation allows us to change database providers without affecting 
+ * business logic that relies on 'productId'.
  */
 @Data
 @Builder

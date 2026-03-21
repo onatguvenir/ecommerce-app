@@ -2,13 +2,22 @@ spring:
   application:
     name: user-service
 
-  # ---------------------------------------------------------------
+# N+1 Detection Configuration
+nplus1:
+  enabled: true
+  threshold: 5
+  log-interval: 1
+  error-level: LOG
+  ignore-packages:
+    - com.google.
+    - org.hibernate.
+    - org.springframework.
+
   # Virtual Threads (Project Loom) — JDK 21 + Spring Boot 3.2+
-  # Bu ayar true yapıldığında Spring Boot, Tomcat worker thread pool'u
-  # yerine JVM tarafından yönetilen "platform thread"e bağlı olmayan
-  # hafif virtual thread'leri kullanır. Her HTTP isteği, her @Async
-  # metodu ve Tomcat'ın tüm I/O işlemleri virtual thread üzerinde koşar.
-  # I/O-bound işlemlerde (DB, HTTP client, Kafka) büyük throughput artışı sağlar.
+  # Educational Note:
+  # When enabled, Spring Boot uses lightweight virtual threads for HTTP requests, 
+  # @Async methods, and I/O. This significantly increases throughput for 
+  # I/O-bound operations (DB, Kafka, External APIs) by avoiding thread blocking.
   threads:
     virtual:
       enabled: true
@@ -75,19 +84,27 @@ management:
       enabled: true
     readinessState:
       enabled: true
-  prometheus:
-    metrics:
-      export:
-        enabled: true
   metrics:
+    export:
+      prometheus:
+        enabled: false
+      otlp:
+        enabled: true
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
     tags:
       application: ${spring.application.name}
+  otlp:
+    metrics:
+      export:
+        url: http://otel-collector:4318/v1/metrics
+        step: 1m
+    tracing:
+      endpoint: http://otel-collector:4318/v1/traces
   tracing:
     sampling:
-      probability: 1.0  # Sample 100% of requests (reduce in production)
-  zipkin:
-    tracing:
-      endpoint: http://localhost:9411/api/v2/spans
+      probability: 1.0
 
 # Application Configuration
 application:
@@ -105,6 +122,10 @@ logging:
     file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] [%X{traceId:-},%X{spanId:-}] %-5level %logger{36} - %msg%n"
 
 # Resilience4j Configuration
+# Educational Note:
+# - Circuit Breaker: Prevents cascading failures by 'opening' when a service fails.
+# - Retry: Automatically retries failed operations (transient errors).
+# - Rate Limiter: Protects the service from being overwhelmed by too many requests.
 resilience4j:
   circuitbreaker:
     instances:

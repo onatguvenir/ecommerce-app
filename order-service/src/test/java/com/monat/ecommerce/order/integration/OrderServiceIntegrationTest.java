@@ -73,7 +73,7 @@ class OrderServiceIntegrationTest {
             {
               "productId": "PROD-001",
               "quantity": 2,
-              "price": 99.99
+              "unitPrice": 99.99
             }
           ],
           "shippingAddress": {
@@ -107,7 +107,7 @@ class OrderServiceIntegrationTest {
           "items": [{
             "productId": "PROD-001",
             "quantity": 1,
-            "price": 50.00
+            "unitPrice": 50.00
           }],
           "shippingAddress": {
             "street": "456 Elm St",
@@ -165,7 +165,7 @@ class OrderServiceIntegrationTest {
           "items": [{
             "productId": "%s",
             "quantity": %d,
-            "price": %.2f
+            "unitPrice": %.2f
           }],
           "shippingAddress": {
             "street": "123 Test St",

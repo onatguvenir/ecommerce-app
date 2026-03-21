@@ -66,7 +66,22 @@
         <lombok.version>1.18.32</lombok.version>
         <lombok-mapstruct-binding.version>0.2.0</lombok-mapstruct-binding.version>
         <commons-lang3.version>3.14.0</commons-lang3.version>
-    </properties>
+ 
+         <!-- Security Scanning -->
+         <dependency-check.version>9.0.9</dependency-check.version>
+         <snyk.version>2.0.0</snyk.version>
+         <ossindex.version>3.2.0</ossindex.version>
+ 
+         <!-- Nplus1-Hunter -->
+         <nplus1-hunter.version>main-SNAPSHOT</nplus1-hunter.version>
+     </properties>
+ 
+     <repositories>
+         <repository>
+             <id>jitpack.io</id>
+             <url>https://jitpack.io</url>
+         </repository>
+     </repositories>
 
     <dependencyManagement>
         <dependencies>
@@ -194,6 +209,13 @@
                 <artifactId>commons-lang3</artifactId>
                 <version>${commons-lang3.version}</version>
             </dependency>
+
+            <!-- Nplus1-Hunter -->
+            <dependency>
+                <groupId>com.github.yunusbaydarr</groupId>
+                <artifactId>Nplus1-Hunter</artifactId>
+                <version>${nplus1-hunter.version}</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 
@@ -250,9 +272,58 @@
                             <version>${mapstruct.version}</version>
                         </path>
                     </annotationProcessorPaths>
-                </configuration>
-            </plugin>
-        </plugins>
+                 </configuration>
+             </plugin>
+ 
+             <!-- Security Scanning Plugins -->
+             <plugin>
+                 <groupId>org.owasp</groupId>
+                 <artifactId>dependency-check-maven</artifactId>
+                 <version>${dependency-check.version}</version>
+                 <configuration>
+                     <failBuildOnCVSS>7</failBuildOnCVSS>
+                     <format>ALL</format>
+                     <skipProvidedScope>true</skipProvidedScope>
+                     <skipRuntimeScope>false</skipRuntimeScope>
+                 </configuration>
+                 <executions>
+                     <execution>
+                         <goals>
+                             <goal>check</goal>
+                         </goals>
+                     </execution>
+                 </executions>
+             </plugin>
+ 
+             <plugin>
+                 <groupId>io.snyk</groupId>
+                 <artifactId>snyk-maven-plugin</artifactId>
+                 <version>${snyk.version}</version>
+                 <executions>
+                     <execution>
+                         <id>snyk-test</id>
+                         <goals>
+                             <goal>test</goal>
+                         </goals>
+                     </execution>
+                 </executions>
+             </plugin>
+ 
+             <plugin>
+                 <groupId>org.sonatype.ossindex.maven</groupId>
+                 <artifactId>ossindex-maven-plugin</artifactId>
+                 <version>${ossindex.version}</version>
+                 <executions>
+                     <execution>
+                         <id>audit-dependencies</id>
+                         <phase>validate</phase>
+                         <goals>
+                             <goal>audit</goal>
+                         </goals>
+                     </execution>
+                 </executions>
+             </plugin>
+         </plugins>
 
         <pluginManagement>
             <plugins>

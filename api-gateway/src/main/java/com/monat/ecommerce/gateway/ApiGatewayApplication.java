@@ -4,17 +4,14 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 /**
- * API Gateway Application.
- * <p>
- * This is the entry point for all external traffic.
- * It routes requests to appropriate microservices (User, Product, Order, etc.).
- * It handles cross-cutting concerns like authentication, rate limiting, and
- * logging.
- * </p>
+ * API Gateway Entry Point.
  * 
- * @SpringBootApplication acts as the main configuration class.
- *                        Spring Cloud Gateway is likely configured via
- *                        application.yml.
+ * Architecture Note:
+ * The Gateway serves as the single entry point (BFF - Backend for Frontend pattern) 
+ * for all external requests. It provides:
+ * 1. Dynamic Routing: Forwards requests to microservices based on URL path.
+ * 2. Cross-cutting Concerns: Authentication, Rate Limiting, and Tracing/Logging.
+ * 3. Security: Shielding internal microservices from direct public access.
  */
 @SpringBootApplication
 public class ApiGatewayApplication {

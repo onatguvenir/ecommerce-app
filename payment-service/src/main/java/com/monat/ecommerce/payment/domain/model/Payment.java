@@ -10,7 +10,12 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 /**
- * Payment domain model - Pure POJO
+ * Payment Domain Model.
+ * 
+ * Educational Note:
+ * This POJO tracks the lifecycle of a payment.
+ * - idempotencyKey: Unique key provided by the client to prevent duplicate payments.
+ * - version: Used for optimistic locking to handle concurrent updates.
  */
 @Data
 @Builder

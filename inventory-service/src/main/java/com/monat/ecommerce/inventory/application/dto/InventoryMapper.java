@@ -10,6 +10,8 @@ import org.mapstruct.ReportingPolicy;
 public interface InventoryMapper {
 
     @Mapping(target = "quantity", source = "totalQuantity")
+    @Mapping(target = "availableQuantity", source = "availableQuantity")
+    @Mapping(target = "reservedQuantity", source = "reservedQuantity")
     InventoryResponse toResponse(Inventory inventory);
 
     @Mapping(target = "id", ignore = true)

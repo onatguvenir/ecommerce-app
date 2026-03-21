@@ -6,6 +6,14 @@ import org.springframework.data.elasticsearch.repository.config.EnableElasticsea
 import org.springframework.data.mongodb.config.EnableMongoAuditing;
 import org.springframework.data.mongodb.repository.config.EnableMongoRepositories;
 
+/**
+ * Product Service Main Application.
+ * 
+ * Educational Note:
+ * This service uses a Polyglot Persistence approach:
+ * 1. MongoDB: Used as the primary source of truth for product data (Document Store).
+ * 2. Elasticsearch: Used for high-performance full-text search and filtering.
+ */
 @SpringBootApplication(scanBasePackages = {
         "com.monat.ecommerce.product",
         "com.monat.ecommerce.common"

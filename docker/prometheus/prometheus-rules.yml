@@ -1,0 +1,73 @@
+groups:
+  - name: MonatECommerceAlerts
+    rules:
+      # --- Service Availability ---
+      - alert: ServiceDown
+        expr: up == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Service {{ $labels.instance }} is down"
+          description: "Service {{ $labels.instance }} of job {{ $labels.job }} has been down for more than 1 minute."
+
+      # --- Performance & Latency ---
+      - alert: HighLatency
+        expr: histogram_quantile(0.95, sum(rate(http_server_requests_seconds_bucket[5m])) by (le, service)) > 1
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High Latency on {{ $labels.service }}"
+          description: "95th percentile of request latency is above 1s for service {{ $labels.service }}."
+
+      # --- Error Rates ---
+      - alert: ErrorRateSpike
+        expr: |
+          sum(rate(http_server_requests_seconds_count{status=~"5.."}[5m])) by (service) 
+          / 
+          sum(rate(http_server_requests_seconds_count[5m])) by (service) > 0.02
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "High Error Rate on {{ $labels.service }}"
+          description: "Error rate (5xx) is above 2% for service {{ $labels.service }}."
+
+      # --- Resource Saturation ---
+      - alert: JVMHeapExhaustion
+        expr: jvm_memory_used_bytes{area="heap"} / jvm_memory_max_bytes{area="heap"} > 0.85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "JVM Heap usage high on {{ $labels.instance }}"
+          description: "JVM Heap usage is above 85% for more than 5 minutes on {{ $labels.instance }}."
+
+      # --- OTEL Collector Pipeline Health ---
+      - alert: OTELDroppedSpans
+        expr: rate(otelcol_processor_dropped_spans_total[5m]) > 0
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "OTEL Collector is dropping spans"
+          description: "The OTEL Collector processor is dropping spans due to high load or misconfiguration."
+
+      - alert: OTELRefusedSpans
+        expr: rate(otelcol_receiver_refused_spans_total[5m]) > 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "OTEL Collector is refusing spans"
+          description: "The OTEL Collector receiver is refusing spans. The pipeline might be completely blocked."
+
+      - alert: OTELExporterQueueFull
+        expr: otelcol_exporter_queue_size / otelcol_exporter_queue_capacity > 0.8
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "OTEL Collector exporter queue is almost full"
+          description: "Exporter queue size is above 80% capacity. Data loss might occur soon."

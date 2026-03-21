@@ -1,4 +1,5 @@
-version: '3.8'
+# Monat E-Commerce Infrastructure & Monitoring
+# Removed deprecated version: '3.8' for Compose V2 compatibility
 
 services:
   # ============================================
@@ -38,10 +39,44 @@ services:
     networks:
       - monat-network
     healthcheck:
-      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
+      test: ["CMD", "mongosh", "--eval", "db.runCommand('hello').isWritablePrimary"]
       interval: 10s
       timeout: 5s
       retries: 5
+
+  # MongoDB Init - Initiates the replica set (Required for MongoDB 7+ with replSet)
+  mongodb-init:
+    image: mongo:7
+    container_name: monat-mongodb-init
+    depends_on:
+      mongodb:
+        condition: service_started
+    entrypoint: 
+      - "mongosh"
+      - "--host"
+      - "mongodb"
+      - "--eval"
+      - |
+        while (true) {
+          try {
+            if (db.runCommand('ping').ok === 1) break;
+          } catch (e) {}
+          print('Waiting for MongoDB...');
+          sleep(2000);
+        }
+        try {
+          rs.initiate({ _id: 'rs0', members: [ { _id: 0, host: 'mongodb:27017' } ] });
+          print('Replica set initiated');
+        } catch (e) {
+          if (e.message.includes('already initialized')) {
+            print('Replica set already initialized');
+          } else {
+            print('Error during initiation: ' + e);
+          }
+        }
+        quit(0);
+    networks:
+      - monat-network
 
   # Redis - Caching and cart storage
   redis:
@@ -155,6 +190,72 @@ services:
     networks:
       - monat-network
 
+  # MailDev - SMTP Server for local testing (Web UI: 1080, SMTP: 1025)
+  maildev:
+    image: maildev/maildev
+    container_name: monat-maildev
+    ports:
+      - "1080:1080"
+      - "1025:1025"
+    networks:
+      - monat-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:1080/"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # ============================================
+  # SECURITY & QUALITY TOOLS
+  # ============================================
+
+  # SonarQube DB - Dedicated DB for SonarQube
+  sonar-db:
+    image: postgres:16-alpine
+    container_name: monat-sonar-db
+    environment:
+      POSTGRES_USER: sonar
+      POSTGRES_PASSWORD: sonar
+      POSTGRES_DB: sonarqube
+    volumes:
+      - sonar_db_data:/var/lib/postgresql/data
+    networks:
+      - monat-network
+
+  # SonarQube - Code quality and security engine (Port 9005)
+  sonarqube:
+    image: sonarqube:community
+    container_name: monat-sonarqube
+    depends_on:
+      - sonar-db
+    ports:
+      - "9005:9000"
+    environment:
+      - SONAR_JDBC_URL=jdbc:postgresql://sonar-db:5432/sonarqube
+      - SONAR_JDBC_USERNAME=sonar
+      - SONAR_JDBC_PASSWORD=sonar
+    volumes:
+      - sonarqube_data:/opt/sonarqube/data
+      - sonarqube_extensions:/opt/sonarqube/extensions
+      - sonarqube_logs:/opt/sonarqube/logs
+    networks:
+      - monat-network
+
+  # OpenTelemetry Collector - Unified metrics and traces processor
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:latest
+    container_name: monat-otel-collector
+    command: ["--config=/etc/otel-collector-config.yaml"]
+    volumes:
+      - ./docker/otel-collector-config.yaml:/etc/otel-collector-config.yaml
+    ports:
+      - "4317:4317" # OTLP gRPC
+      - "4318:4318" # OTLP HTTP
+      - "8889:8889" # Prometheus exporter
+      - "13133:13133" # OTEL health check
+    networks:
+      - monat-network
+
   # Prometheus - Metrics collection
   prometheus:
     image: prom/prometheus:latest
@@ -169,7 +270,6 @@ services:
       - '--storage.tsdb.path=/prometheus'
     networks:
       - monat-network
-
   # Grafana - Monitoring dashboards
   grafana:
     image: grafana/grafana:latest
@@ -195,6 +295,49 @@ services:
       - "6831:6831/udp"  # Compact thrift
     environment:
       - COLLECTOR_ZIPKIN_HOST_PORT=:9411
+    networks:
+      - monat-network
+
+  # Skywalking OAP - Backend for Skywalking APM
+  skywalking-oap:
+    image: apache/skywalking-oap-server:10.0.0
+    container_name: monat-skywalking-oap
+    environment:
+      SW_STORAGE: elasticsearch
+      SW_STORAGE_ES_CLUSTER_NODES: elasticsearch:9200
+      JAVA_OPTS: "-Xms512m -Xmx512m"
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    networks:
+      - monat-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:12800/graphql || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # Skywalking UI - Dashboard for monitoring
+  skywalking-ui:
+    image: apache/skywalking-ui:10.0.0
+    container_name: monat-skywalking-ui
+    depends_on:
+      skywalking-oap:
+        condition: service_healthy
+    ports:
+      - "8088:8080"
+    environment:
+      SW_OAP_ADDRESS: http://skywalking-oap:12800
+    networks:
+      - monat-network
+
+  # Skywalking Agent Init - Provides the agent jar to services
+  skywalking-agent-init:
+    image: apache/skywalking-java-agent:9.2.0-java21
+    container_name: monat-skywalking-agent-init
+    volumes:
+      - skywalking_agent:/agent_share
+    command: cp -rf /skywalking/agent/. /agent_share/
     networks:
       - monat-network
 
@@ -296,12 +439,19 @@ services:
     depends_on:
       redis:
         condition: service_healthy
+      skywalking-agent-init:
+        condition: service_completed_successfully
     ports:
       - "8080:8080"
     environment:
       - SPRING_PROFILES_ACTIVE=docker
       - SPRING_DATA_REDIS_HOST=redis
       - SPRING_DATA_REDIS_PORT=6379
+      - JAVA_TOOL_OPTIONS=-javaagent:/skywalking/agent/skywalking-agent.jar
+      - SW_AGENT_NAME=api-gateway
+      - SW_AGENT_COLLECTOR_BACKEND_SERVICES=skywalking-oap:11800
+    volumes:
+      - skywalking_agent:/skywalking/agent
     networks:
       - monat-network
     healthcheck:
@@ -320,6 +470,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      skywalking-agent-init:
+        condition: service_completed_successfully
     ports:
       - "8081:8081"
       - "9081:9081"
@@ -328,6 +480,11 @@ services:
       - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/userdb
       - SPRING_DATASOURCE_USERNAME=postgres
       - SPRING_DATASOURCE_PASSWORD=postgres
+      - JAVA_TOOL_OPTIONS=-javaagent:/skywalking/agent/skywalking-agent.jar
+      - SW_AGENT_NAME=user-service
+      - SW_AGENT_COLLECTOR_BACKEND_SERVICES=skywalking-oap:11800
+    volumes:
+      - skywalking_agent:/skywalking/agent
     networks:
       - monat-network
     healthcheck:
@@ -346,14 +503,23 @@ services:
     depends_on:
       mongodb:
         condition: service_healthy
+      mongodb-init:
+        condition: service_completed_successfully
       elasticsearch:
         condition: service_healthy
+      skywalking-agent-init:
+        condition: service_completed_successfully
     ports:
       - "8082:8082"
     environment:
       - SPRING_PROFILES_ACTIVE=docker
-      - SPRING_DATA_MONGODB_URI=mongodb://mongodb:27017/productdb
+      - SPRING_DATA_MONGODB_URI=mongodb://mongodb:27017/productdb?replicaSet=rs0&directConnection=true
       - SPRING_ELASTICSEARCH_URIS=http://elasticsearch:9200
+      - JAVA_TOOL_OPTIONS=-javaagent:/skywalking/agent/skywalking-agent.jar
+      - SW_AGENT_NAME=product-service
+      - SW_AGENT_COLLECTOR_BACKEND_SERVICES=skywalking-oap:11800
+    volumes:
+      - skywalking_agent:/skywalking/agent
     networks:
       - monat-network
     healthcheck:
@@ -374,6 +540,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      skywalking-agent-init:
+        condition: service_completed_successfully
     ports:
       - "8083:8083"
       - "9083:9083"
@@ -384,6 +552,11 @@ services:
       - SPRING_DATASOURCE_PASSWORD=postgres
       - SPRING_DATA_REDIS_HOST=redis
       - SPRING_DATA_REDIS_PORT=6379
+      - JAVA_TOOL_OPTIONS=-javaagent:/skywalking/agent/skywalking-agent.jar
+      - SW_AGENT_NAME=inventory-service
+      - SW_AGENT_COLLECTOR_BACKEND_SERVICES=skywalking-oap:11800
+    volumes:
+      - skywalking_agent:/skywalking/agent
     networks:
       - monat-network
     healthcheck:
@@ -402,12 +575,19 @@ services:
     depends_on:
       redis:
         condition: service_healthy
+      skywalking-agent-init:
+        condition: service_completed_successfully
     ports:
       - "8084:8084"
     environment:
       - SPRING_PROFILES_ACTIVE=docker
       - SPRING_DATA_REDIS_HOST=redis
       - SPRING_DATA_REDIS_PORT=6379
+      - JAVA_TOOL_OPTIONS=-javaagent:/skywalking/agent/skywalking-agent.jar
+      - SW_AGENT_NAME=cart-service
+      - SW_AGENT_COLLECTOR_BACKEND_SERVICES=skywalking-oap:11800
+    volumes:
+      - skywalking_agent:/skywalking/agent
     networks:
       - monat-network
     healthcheck:
@@ -434,6 +614,8 @@ services:
         condition: service_healthy
       payment-service:
         condition: service_healthy
+      skywalking-agent-init:
+        condition: service_completed_successfully
     ports:
       - "8085:8085"
     environment:
@@ -445,6 +627,11 @@ services:
       - GRPC_CLIENT_USER_SERVICE_ADDRESS=static://user-service:9081
       - GRPC_CLIENT_INVENTORY_SERVICE_ADDRESS=static://inventory-service:9083
       - GRPC_CLIENT_PAYMENT_SERVICE_ADDRESS=static://payment-service:9086
+      - JAVA_TOOL_OPTIONS=-javaagent:/skywalking/agent/skywalking-agent.jar
+      - SW_AGENT_NAME=order-service
+      - SW_AGENT_COLLECTOR_BACKEND_SERVICES=skywalking-oap:11800
+    volumes:
+      - skywalking_agent:/skywalking/agent
     networks:
       - monat-network
     healthcheck:
@@ -465,6 +652,8 @@ services:
         condition: service_healthy
       kafka:
         condition: service_healthy
+      skywalking-agent-init:
+        condition: service_completed_successfully
     ports:
       - "8086:8086"
       - "9086:9086"
@@ -474,6 +663,11 @@ services:
       - SPRING_DATASOURCE_USERNAME=postgres
       - SPRING_DATASOURCE_PASSWORD=postgres
       - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:29092
+      - JAVA_TOOL_OPTIONS=-javaagent:/skywalking/agent/skywalking-agent.jar
+      - SW_AGENT_NAME=payment-service
+      - SW_AGENT_COLLECTOR_BACKEND_SERVICES=skywalking-oap:11800
+    volumes:
+      - skywalking_agent:/skywalking/agent
     networks:
       - monat-network
     healthcheck:
@@ -492,11 +686,20 @@ services:
     depends_on:
       kafka:
         condition: service_healthy
+      skywalking-agent-init:
+        condition: service_completed_successfully
     ports:
       - "8087:8087"
     environment:
       - SPRING_PROFILES_ACTIVE=docker
       - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:29092
+      - SPRING_MAIL_HOST=maildev
+      - SPRING_MAIL_PORT=1025
+      - JAVA_TOOL_OPTIONS=-javaagent:/skywalking/agent/skywalking-agent.jar
+      - SW_AGENT_NAME=notification-service
+      - SW_AGENT_COLLECTOR_BACKEND_SERVICES=skywalking-oap:11800
+    volumes:
+      - skywalking_agent:/skywalking/agent
     networks:
       - monat-network
     healthcheck:
@@ -518,4 +721,9 @@ volumes:
   prometheus_data:
   grafana_data:
   filebeat_data:
+  sonar_db_data:
+  sonarqube_data:
+  sonarqube_extensions:
+  sonarqube_logs:
+  skywalking_agent:
 

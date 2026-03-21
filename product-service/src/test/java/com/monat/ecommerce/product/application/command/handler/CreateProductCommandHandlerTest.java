@@ -84,10 +84,10 @@ class CreateProductCommandHandlerTest {
 
         // Then — response doğrulama
         assertThat(response).isNotNull();
-        assertThat(response.getProductId()).isEqualTo("PROD-001");
-        assertThat(response.getName()).isEqualTo("Test Product");
-        assertThat(response.getPrice()).isEqualByComparingTo(BigDecimal.valueOf(99.99));
-        assertThat(response.getStatus()).isEqualTo("ACTIVE");
+        assertThat(response.productId()).isEqualTo("PROD-001");
+        assertThat(response.name()).isEqualTo("Test Product");
+        assertThat(response.price()).isEqualByComparingTo(BigDecimal.valueOf(99.99));
+        assertThat(response.status()).isEqualTo("ACTIVE");
 
         // Then — MongoDB'ye kayıt doğrulama
         verify(productRepository).existsByProductId("PROD-001");

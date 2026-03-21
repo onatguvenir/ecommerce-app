@@ -11,7 +11,12 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * User domain model - Pure POJO
+ * User Domain Model.
+ * 
+ * Educational Note:
+ * This is a 'Pure' domain model (POJO). In Domain-Driven Design (DDD), 
+ * the domain model should be free from infrastructure concerns (like JPA annotations) 
+ * as much as possible to preserve its business meaning.
  */
 @Data
 @Builder

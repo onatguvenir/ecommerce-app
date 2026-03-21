@@ -26,16 +26,13 @@ import java.util.Optional;
 import java.util.UUID;
 
 /**
- * Payment Application Service.
- * <p>
- * This class orchestrates payment processing, idempotency checks, and gateway
- * interactions.
- * </p>
+ * Coordinator for Payment-related business logic.
  * 
- * @Service indicates that this class is a "Service" component containing
- *          business logic.
- * 
- * @Transactional ensures that payment state changes are atomic.
+ * Educational Note:
+ * - Isolation.SERIALIZABLE: Used to prevent any concurrency anomalies during 
+ *   payment processing (e.g., Phantom reads, Non-repeatable reads).
+ * - RateLimiter: Protects the service from burst traffic.
+ * - Idempotency: Ensures that the same payment request isn't processed twice.
  */
 @Slf4j
 @Service
@@ -53,13 +50,13 @@ public class PaymentApplicationService {
     )
     @RateLimiter(name = "payment-api", fallbackMethod = "processPaymentRateLimitFallback")
     public PaymentResponse processPayment(ProcessPaymentRequest request) {
-        if (request.getAmount().signum() <= 0) {
+        if (request.amount().signum() <= 0) {
             throw new IllegalArgumentException("Payment amount must be positive");
         }
 
-        Optional<Payment> existingPayment = paymentRepository.findByIdempotencyKey(request.getIdempotencyKey());
+        Optional<Payment> existingPayment = paymentRepository.findByIdempotencyKey(request.idempotencyKey());
         if (existingPayment.isPresent()) {
-            log.info("Payment with idempotency key {} already processed", request.getIdempotencyKey());
+            log.info("Payment with idempotency key {} already processed", request.idempotencyKey());
             return paymentMapper.toResponse(existingPayment.get());
         }
 
@@ -120,7 +117,7 @@ public class PaymentApplicationService {
     
     // Fallback methods for RateLimiter
     private PaymentResponse processPaymentRateLimitFallback(ProcessPaymentRequest request, RequestNotPermitted ex) {
-        log.warn("Rate limit exceeded for processPayment: orderId={}", request.getOrderId());
+        log.warn("Rate limit exceeded for processPayment: orderId={}", request.orderId());
         throw new IllegalStateException("Too many requests to payment service, please try again later.");
     }
 

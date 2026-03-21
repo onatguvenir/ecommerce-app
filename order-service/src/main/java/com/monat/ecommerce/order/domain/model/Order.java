@@ -1,47 +1,36 @@
 package com.monat.ecommerce.order.domain.model;
 
+import com.monat.ecommerce.common.model.AbstractOrder;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
 
-import java.math.BigDecimal;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.List;
 import java.util.UUID;
 
 /**
  * Order aggregate root - Pure Domain Object
  */
 @Data
-@Builder
+@EqualsAndHashCode(callSuper = true)
+@SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor
-public class Order {
+public class Order extends AbstractOrder<OrderItem> {
 
     private UUID id;
     private String orderNumber;
-    private UUID userId;
 
     @Builder.Default
     private OrderStatus status = OrderStatus.PENDING;
 
-    private BigDecimal totalAmount;
-
-    @Builder.Default
-    private String currency = "USD";
-
     private ShippingAddress shippingAddress;
-
-    @Builder.Default
-    private List<OrderItem> items = new ArrayList<>();
 
     private String paymentReference;
     private String cancellationReason;
-
-    private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
 
     // For Optimistic Locking
     private Long version;

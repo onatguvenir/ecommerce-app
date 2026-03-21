@@ -7,22 +7,11 @@ import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
 /**
- * Inventory Service Application.
- * <p>
- * This service manages product inventory levels.
- * It primarily communicates via gRPC for high performance.
- * </p>
+ * Inventory Service Main Application.
  * 
- * @SpringBootApplication acts as the main configuration class.
- * 
- * @EnableJpaAuditing enables automatic population of auditing fields
- *                    (created_at, updated_at).
- * 
- * @EnableCaching enables Spring's caching infrastructure (e.g., using Redis or
- *                Caffeine).
- * 
- * @EnableScheduling enables Spring's scheduled task execution (e.g., for
- *                   background jobs).
+ * Educational Note:
+ * - @EnableCaching: Enables Redis-based caching to speed up common stock checks.
+ * - @EnableScheduling: Used for stock-related house-keeping tasks (e.g., expiring old reservations).
  */
 @SpringBootApplication(scanBasePackages = {
         "com.monat.ecommerce.inventory",

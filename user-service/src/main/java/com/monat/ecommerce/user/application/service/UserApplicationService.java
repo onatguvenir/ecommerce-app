@@ -20,25 +20,15 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * Application service for user management
+ * Coordinator of User-related business logic.
+ * 
+ * Educational Note:
+ * - @Transactional: Orchestrates database transactions. If any unchecked 
+ *   exception is thrown, changes are rolled back automatically.
+ * - readOnly = true: Optimizes Hibernate performance by skipping dirty checking 
+ *   and reducing lock contention for read-only operations.
  */
 @Slf4j
-/**
- * User Application Service.
- * <p>
- * This class contains the business logic for the User Service.
- * It orchestrates the flow of data between the Controller (API layer) and the
- * Repository (Data layer).
- * </p>
- * 
- * @Service indicates that this class is a "Service", which is a
- *          specialized @Component for holding business logic.
- * 
- * @Transactional ensures that methods are executed within a database
- *                transaction.
- *                If a method fails (throws an unchecked exception), the
- *                transaction is rolled back.
- */
 @Service
 @RequiredArgsConstructor
 public class UserApplicationService {

@@ -7,19 +7,12 @@ import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
 /**
- * Order Service Application.
- * <p>
- * This service manages customer orders.
- * It exposes REST APIs for clients and uses gRPC/Feign for inter-service
- * communication.
- * </p>
+ * Order Service Main Application.
  * 
- * @SpringBootApplication acts as the main configuration class.
- * 
- * @EnableFeignClients enables declarative REST clients (Feign) to call other
- *                     services (legacy/REST fallback).
- * 
- * @EnableJpaAuditing enables automatic population of auditing fields.
+ * Educational Note:
+ * - @EnableScheduling: Required for the Transactional Outbox Pattern. 
+ *   It enables the scheduled poller that sends events from the DB to Kafka.
+ * - @EnableFeignClients: Allows declarative REST communication with other services.
  */
 @SpringBootApplication(scanBasePackages = {
         "com.monat.ecommerce.order",

@@ -114,8 +114,8 @@ class SearchProductsQueryHandlerTest {
         assertThat(result).isNotNull();
         assertThat(result.getTotalElements()).isEqualTo(1);
         assertThat(result.getContent()).hasSize(1);
-        assertThat(result.getContent().get(0).getProductId()).isEqualTo("PROD-001");
-        assertThat(result.getContent().get(0).getName()).isEqualTo("Test Product");
+        assertThat(result.getContent().get(0).productId()).isEqualTo("PROD-001");
+        assertThat(result.getContent().get(0).name()).isEqualTo("Test Product");
 
         verify(elasticsearchOperations).search(any(Query.class), eq(ProductSearchDocument.class));
         verifyNoInteractions(productRepository); // Fallback devreye girmemeli
@@ -138,7 +138,7 @@ class SearchProductsQueryHandlerTest {
         // Then
         assertThat(result).isNotNull();
         assertThat(result.getContent()).hasSize(1);
-        assertThat(result.getContent().get(0).getCategory()).isEqualTo("Electronics");
+        assertThat(result.getContent().get(0).category()).isEqualTo("Electronics");
 
         verify(productRepository).findByCategory("Electronics", pageable);
         verify(productRepository, never()).findByNameContainingIgnoreCase(any(), any());

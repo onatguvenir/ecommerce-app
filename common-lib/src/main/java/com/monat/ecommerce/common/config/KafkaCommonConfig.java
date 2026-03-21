@@ -14,7 +14,12 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Common Kafka configuration for producers and consumers
+ * Common Kafka configuration providing base templates for producers.
+ * 
+ * Educational Note:
+ * - Idempotence: ensures that messages are delivered exactly once, avoiding duplicates if retries occur.
+ * - Acks 'all': guarantees that the leader and all followers have received the message (highest durability).
+ * - virtual threads: this configuration works seamlessly with Loom as Kafka clients are I/O bound.
  */
 @Slf4j
 @Configuration
@@ -29,9 +34,13 @@ public class KafkaCommonConfig {
         config.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
         config.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
         config.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JsonSerializer.class);
-        config.put(ProducerConfig.ACKS_CONFIG, "all");
+        
+        // Reliability settings
+        config.put(ProducerConfig.ACKS_CONFIG, "all"); // Require all replicas to acknowledge
         config.put(ProducerConfig.RETRIES_CONFIG, 3);
-        config.put(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, true);
+        config.put(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, true); // Atomic producer retries
+        
+        // Disable type info in headers if we want to support non-Spring consumers easily
         config.put(JsonSerializer.ADD_TYPE_INFO_HEADERS, false);
 
         return new DefaultKafkaProducerFactory<>(config);

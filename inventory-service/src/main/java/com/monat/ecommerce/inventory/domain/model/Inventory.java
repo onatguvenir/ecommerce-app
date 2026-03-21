@@ -9,10 +9,12 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 /**
- * Inventory aggregate root - Pure Domain Object
+ * Inventory Aggregate Root.
  * 
- * This implementation uses a version field to support optimistic locking
- * in the persistence layer, but the domain model itself is agnostic of JPA.
+ * Educational Note:
+ * This POJO handles core stock logic while being framework-agnostic.
+ * - Optimistic Locking (version): Prevents lost updates when multiple threads 
+ *   attempt to update stock for the same product simultaneously.
  */
 @Data
 @Builder

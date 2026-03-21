@@ -18,20 +18,17 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.Optional;
 
 /**
- * Sipariş event'lerini tüketen Kafka Consumer.
+ * Kafka Consumer for Order-related events.
  *
- * Production-Grade özellikler:
+ * Educational Note:
+ * 1. Idempotency: Every event is checked against the ProcessedEvent table before 
+ *    dispatching a notification to prevent duplicates (exactly-once processing).
  *
- * 1. Idempotency — Her event işlenmeden önce ProcessedEvent tablosunda
- *    varlığı kontrol edilir. Aynı mesaj iki kez gelse bile ikinci seferinde
- *    işlem atlanır.
+ * 2. gRPC Integration: Uses UserServiceClient (gRPC with CircuitBreaker) 
+ *    to fetch user details for e-mail delivery.
  *
- * 2. gRPC User Service Entegrasyonu — Event içindeki userId ile gerçek
- *    müşteri bilgisi (e-posta, isim) çekilir; CircuitBreaker korumalıdır.
- *
- * 3. DLQ (Dead Letter Queue) — Exception'lar catch bloğu yerine dışarı
- *    fırlatılır. KafkaConsumerConfig içindeki DefaultErrorHandler gerekli
- *    retry'ları yapar ve başarısız mesajı <topic>.DLT'ye taşır.
+ * 3. DLQ (Dead Letter Queue): Unhandled exceptions are allowed to bubble up, 
+ *    triggering Kafka retries and eventually moving the message to a DLT topic.
  */
 @Slf4j
 @Component

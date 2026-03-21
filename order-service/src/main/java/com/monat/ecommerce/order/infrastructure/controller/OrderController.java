@@ -18,15 +18,12 @@ import org.springframework.web.bind.annotation.*;
 import java.util.UUID;
 
 /**
- * Order REST Controller.
- * <p>
- * This class exposes Key API endpoints for Order management.
- * </p>
+ * REST Controller for Order Management.
  * 
- * @RestController combines @Controller and @ResponseBody.
- * 
- * @Tag is part of OpenAPI (Swagger) documentation. It groups operations under
- *      "Order Management".
+ * Educational Note:
+ * This controller serves as the entry point for order creation and 
+ * tracking. All order creation flows go through the OrderApplicationService 
+ * to ensure consistency via the Outbox Pattern.
  */
 @RestController
 @RequestMapping("/api/orders")

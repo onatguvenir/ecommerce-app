@@ -12,7 +12,11 @@ import java.nio.charset.StandardCharsets;
 import java.util.Date;
 
 /**
- * JWT utility for validating tokens in API Gateway
+ * JWT utility for token validation at the Gateway level.
+ * 
+ * Design Note:
+ * Validating tokens at the Gateway minimizes unauthorized traffic reaching 
+ * down-stream microservices. This utility uses 'jjwt' for signature verification.
  */
 @Slf4j
 @Component

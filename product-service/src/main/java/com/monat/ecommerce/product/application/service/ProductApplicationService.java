@@ -18,13 +18,6 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 
 /**
- * Product Application Service — CQRS Facade (Backward Compatibility Layer).
- * <p>
- * Bu sınıf artık iş mantığı içermez. Sadece:
- * 1. Eski DTO'ları (CreateProductRequest) yeni Command/Query nesnelerine
- * dönüştürür.
- * 2. ProductCommandService (write) ve ProductQueryService (read) arasında köprü
- * kurar.
  * <p>
  * Neden korunuyor?
  * - Geriye dönük uyumluluk: Mevcut controller bu servisi kullanıyor.

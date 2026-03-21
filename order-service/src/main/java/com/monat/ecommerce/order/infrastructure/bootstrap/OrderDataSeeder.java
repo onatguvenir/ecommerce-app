@@ -70,7 +70,7 @@ public class OrderDataSeeder implements CommandLineRunner {
 
                 Order order = Order.builder()
                                 .orderNumber(orderNumber)
-                                .userId(userId)
+                                .userId(userId.toString())
                                 .status(status)
                                 .totalAmount(total)
                                 .currency("USD")

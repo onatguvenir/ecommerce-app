@@ -2,10 +2,10 @@ spring:
   application:
     name: cart-service
 
-  # ---------------------------------------------------------------
   # Virtual Threads (Project Loom) — JDK 21 + Spring Boot 3.2+
-  # Redis cart operasyonları ve HTTP endpoint handler'ları
-  # virtual thread üzerinde çalışır; yüksek eşzamanlılıkta verimli.
+  # Educational Note:
+  # Redis I/O operations and HTTP handlers run on virtual threads,
+  # allowing the service to handle massive concurrent traffic efficiently.
   threads:
     virtual:
       enabled: true
@@ -15,6 +15,10 @@ spring:
       host: localhost
       port: 6379
       password: 
+      # Educational Note:
+      # Data TTL ensures that the cart data is automatically cleaned 
+      # from Redis after a period of inactivity (e.g., 24 hours).
+      time-to-live: 86400s
       timeout: 2000ms
       lettuce:
         pool:
@@ -46,15 +50,24 @@ management:
   metrics:
     export:
       prometheus:
+        enabled: false
+      otlp:
         enabled: true
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
     tags:
       application: ${spring.application.name}
+  otlp:
+    metrics:
+      export:
+        url: http://otel-collector:4318/v1/metrics
+        step: 1m
+    tracing:
+      endpoint: http://otel-collector:4318/v1/traces
   tracing:
     sampling:
       probability: 1.0
-  zipkin:
-    tracing:
-      endpoint: http://localhost:9411/api/v2/spans
 
 # Logging
 logging:

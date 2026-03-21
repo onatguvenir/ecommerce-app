@@ -90,7 +90,7 @@ class PaymentApplicationServiceTest {
 
                 // Then
                 assertThat(response).isNotNull();
-                assertThat(response.getOrderId()).isEqualTo("ORDER-123");
+                assertThat(response.orderId()).isEqualTo("ORDER-123");
                 verify(paymentRepository, times(1)).findByIdempotencyKey("IDEM-123");
                 verify(paymentRepository, times(1)).save(any(Payment.class));
         }
@@ -130,7 +130,7 @@ class PaymentApplicationServiceTest {
 
                 // Then
                 assertThat(response).isNotNull();
-                assertThat(response.getOrderId()).isEqualTo("ORDER-123");
+                assertThat(response.orderId()).isEqualTo("ORDER-123");
                 verify(paymentRepository, times(1)).findById(paymentId);
         }
 
@@ -159,7 +159,7 @@ class PaymentApplicationServiceTest {
 
                 // Then
                 assertThat(response).isNotNull();
-                assertThat(response.getOrderId()).isEqualTo("ORDER-123");
+                assertThat(response.orderId()).isEqualTo("ORDER-123");
                 verify(paymentRepository, times(1)).findByOrderId("ORDER-123");
         }
 
@@ -207,7 +207,7 @@ class PaymentApplicationServiceTest {
 
                 // Then
                 assertThat(response).isNotNull();
-                assertThat(response.getStatus()).isEqualTo(PaymentStatus.REFUNDED.name());
+                assertThat(response.status()).isEqualTo(PaymentStatus.REFUNDED.name());
                 verify(paymentRepository, times(1)).findByIdWithLock(paymentId);
                 verify(paymentRepository, times(1)).save(any(Payment.class));
         }

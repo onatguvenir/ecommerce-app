@@ -5,13 +5,12 @@ Production-ready e-commerce platform built with microservices architecture, even
 ## 🏗️ Architecture Overview
 
 ### Technology Stack
-- **Language:** Java 17+
-- **Framework:** Spring Boot 3.2, Spring Cloud 2023.0
+- **Language:** Java 21 (Virtual Threads enabled)
+- **Framework:** Spring Boot 3.2.2, Spring Cloud 2023.0
 - **Databases:** PostgreSQL 16, MongoDB 7, Redis 7, Elasticsearch 8
 - **Messaging:** Apache Kafka 3.6
 - **Communication:** REST (external), gRPC (internal)
-- **Containerization:** Docker, Kubernetes, Helm
-- **Service Mesh:** Istio
+- **Containerization:** Docker, Docker Compose
 - **Observability:** ELK Stack, Prometheus, Grafana, OpenTelemetry
 - **Security:** OAuth2/OIDC, JWT, Keycloak
 
@@ -31,10 +30,9 @@ Production-ready e-commerce platform built with microservices architecture, even
 ## 🚀 Quick Start
 
 ### Prerequisites
-- Java 17+
+- Java 21
 - Maven 3.8+
 - Docker & Docker Compose
-- (Optional) Kubernetes cluster (Minikube/Kind)
 
 ### Local Development with Docker Compose
 
@@ -133,6 +131,35 @@ mvn verify
 
 Integration tests use Testcontainers for PostgreSQL, MongoDB, Redis, and Kafka.
 
+## 🛡️ Security Scanning
+
+The project includes several tools to scan for vulnerabilities in dependencies:
+
+### 1. OWASP Dependency-Check
+Scans all dependencies for known CVEs.
+```bash
+mvn dependency-check:check
+```
+Reports are generated in `target/dependency-check-report.html`.
+
+### 2. Snyk
+Modern vulnerability scanner (requires Snyk API key).
+```bash
+mvn snyk:test
+```
+
+### 3. Sonatype OSS Index
+Fast audit against Sonatype's vulnerability database.
+```bash
+mvn ossindex:audit
+```
+
+### 4. Dependency Analysis
+Analyze used/unused dependencies to reduce attack surface.
+```bash
+mvn dependency:analyze
+```
+
 ## 📦 Deployment
 
 ### Docker Build
@@ -141,24 +168,6 @@ Integration tests use Testcontainers for PostgreSQL, MongoDB, Redis, and Kafka.
 docker build -t monat-ecommerce/user-service:latest ./user-service
 docker build -t monat-ecommerce/product-service:latest ./product-service
 # ... etc
-```
-
-### Kubernetes Deployment
-```bash
-# Apply Kubernetes manifests
-kubectl apply -f kubernetes/
-
-# Or use Helm
-helm install user-service ./helm-charts/user-service-chart
-```
-
-### Istio Service Mesh
-```bash
-# Label namespace for Istio injection
-kubectl label namespace default istio-injection=enabled
-
-# Apply Istio configurations
-kubectl apply -f kubernetes/istio/
 ```
 
 ## 🔄 Saga Flow Example
@@ -204,9 +213,8 @@ monat-ecommerce/
 ├── order-service/           # Order processing & Saga
 ├── payment-service/         # Payment processing
 ├── notification-service/    # Notifications
-├── docker-compose.yml       # Local development setup
-├── kubernetes/              # K8s manifests
-└── helm-charts/             # Helm charts for deployment
+ ├── docker-compose.yml       # Local development setup
+ └── docker/                  # Docker configuration files
 ```
 
 ### Adding a New Service
@@ -218,8 +226,7 @@ monat-ecommerce/
 6. Add database migrations (Flyway/Liquibase)
 7. Configure application.yml
 8. Add Dockerfile
-9. Create Helm chart
-10. Write tests
+9. Write tests
 
 ## 🤝 Contributing
 

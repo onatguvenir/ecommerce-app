@@ -15,10 +15,17 @@ import org.springframework.web.bind.annotation.*;
 import java.time.LocalDateTime;
 
 @Slf4j
+/**
+ * REST Controller for Shopping Cart.
+ * 
+ * Educational Note:
+ * This controller allows users to manage items in their baskets. 
+ * Carts are identified either by userId (logged in) or anonymous sessionId.
+ */
 @RestController
 @RequestMapping("/api/cart")
 @RequiredArgsConstructor
-@Tag(name = "Shopping Cart", description = "Shopping cart operations")
+@Tag(name = "Cart Management", description = "APIs for shopping cart operations")
 public class CartController {
 
         private final CartApplicationService cartService;

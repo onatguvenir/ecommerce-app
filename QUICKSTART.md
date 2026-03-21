@@ -3,7 +3,7 @@
 ## 🚀 Getting Started
 
 ### Prerequisites
-- Java 17+
+- Java 21
 - Maven 3.8+
 - Docker & Docker Compose
 - PostgreSQL, MongoDB, Redis, Kafka (via Docker Compose)
@@ -412,17 +412,11 @@ curl http://localhost:8085/api/orders/number/ORD-1707091200000-A1B2C3D4
 ---
 
 ## 🎯 Next Steps
-
-1. **Implement Payment Service** - Complete the Saga flow
-2. **Add Product Service** - MongoDB + Elasticsearch for search
-3. **Build Cart Service** - Redis-based shopping cart
-4. **Create API Gateway** - Single entry point with JWT validation
-5. **Add Notification Service** - Email/SMS on order events
-6. **Write Tests** - Unit + Integration with Testcontainers
-7. **Create Dockerfiles** - Containerize all services
-8. **Build Helm Charts** - Kubernetes deployment
-9. **Configure Istio** - Service mesh for production
+ 
+ 1. **Chaos Engineering**: Test system resilience under load.
+ 2. **Advanced Security**: Implement mutual TLS.
+ 3. **UI Development**: Build a React/Next.js storefront.
 
 ---
 
-**You now have 3 production-ready microservices working together with Saga orchestration, optimistic locking, and event-driven architecture!** 🎉
+**You now have a complete, production-ready microservices platform working together with Saga orchestration, optimistic locking, and event-driven architecture!** 🎉

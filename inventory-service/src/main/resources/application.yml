@@ -2,10 +2,21 @@ spring:
   application:
     name: inventory-service
 
-  # ---------------------------------------------------------------
+# N+1 Detection Configuration
+nplus1:
+  enabled: true
+  threshold: 5
+  log-interval: 1
+  error-level: LOG
+  ignore-packages:
+    - com.google.
+    - org.hibernate.
+    - org.springframework.
+
   # Virtual Threads (Project Loom) — JDK 21 + Spring Boot 3.2+
-  # PostgreSQL, Redis ve Kafka I/O işlemleri virtual thread üzerinde
-  # koşar; platform thread bloke olmaz, throughput artar.
+  # Educational Note:
+  # PostgreSQL, Redis, and Kafka I/O operations run on virtual threads, 
+  # ensuring that platform threads are never blocked, maximizing throughput.
   threads:
     virtual:
       enabled: true
@@ -44,8 +55,10 @@ spring:
     redis:
       time-to-live: 3600000  # 1 hour
   
-  # ---------------------------------------------------------------
   # RabbitMQ (Spring Batch async data processing)
+  # Educational Note:
+  # Used to throttle background processing. By setting concurrency, 
+  # we ensure that bulk stock updates don't overwhelm the database.
   rabbitmq:
     host: localhost
     port: 5672
@@ -53,10 +66,9 @@ spring:
     password: guest
     listener:
       simple:
-        # Tüketim hızını sınırlar, DB'yi yormamak için concurrency ayarlanır
         concurrency: 5
         max-concurrency: 10
-        # Retry behavior (önemsiz geçici ağ hataları için, asıl DLQ aşağıda)
+        # Retry behavior for transient network errors
         retry:
           enabled: true
           initial-interval: 1000ms
@@ -111,15 +123,24 @@ management:
   metrics:
     export:
       prometheus:
+        enabled: false
+      otlp:
         enabled: true
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
     tags:
       application: ${spring.application.name}
+  otlp:
+    metrics:
+      export:
+        url: http://otel-collector:4318/v1/metrics
+        step: 1m
+    tracing:
+      endpoint: http://otel-collector:4318/v1/traces
   tracing:
     sampling:
       probability: 1.0
-  zipkin:
-    tracing:
-      endpoint: http://localhost:9411/api/v2/spans
 
 # Logging
 logging:

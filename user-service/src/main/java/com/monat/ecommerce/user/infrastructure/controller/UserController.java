@@ -13,6 +13,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -28,23 +29,17 @@ import java.util.UUID;
  * This class exposes Key API endpoints for User management.
  * </p>
  * 
- * @RestController combines @Controller and @ResponseBody. It indicates that
- *                 this class is a web controller
- *                 and the return value of methods should be bound to the web
- *                 response body (Serialized to JSON usually).
+ * REST Controller for User Management.
  * 
- *                 @RequestMapping("/api/users") specifies the base URL path for
- *                 all methods in this controller.
- * 
- * @RequiredArgsConstructor is a Lombok annotation that generates a constructor
- *                          with required arguments (final fields).
- *                          This is the preferred way to perform Constructor
- *                          Injection in Spring.
+ * Educational Note:
+ * This class provides endpoints for user registration, profile retrieval, 
+ * and address management. Every response is wrapped in ApiResponse to 
+ * maintain consistency across the entire microservice ecosystem.
  */
 @RestController
 @RequestMapping("/api/users")
 @RequiredArgsConstructor
-@Tag(name = "User Management", description = "APIs for user registration and management")
+@Validated
 public class UserController {
 
     private final UserApplicationService userApplicationService;

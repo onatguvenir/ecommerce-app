@@ -14,7 +14,13 @@ import java.util.Map;
 import java.util.function.Function;
 
 /**
- * JWT utility for token parsing and validation
+ * Utility for JSON Web Token (JWT) management.
+ * Handles signing, parsing, and validating tokens.
+ * 
+ * Architecture Note:
+ * We use HS256 (HMAC with SHA-256) for simplicity in this demo. 
+ * In production, RS256 (Asymmetric) is often preferred for 
+ * identity provider scenarios.
  */
 @Slf4j
 @Component

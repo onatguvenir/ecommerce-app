@@ -12,7 +12,12 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 /**
- * Outbox event for transactional outbox pattern
+ * Entity for the Transactional Outbox Pattern.
+ * 
+ * Educational Note:
+ * This table stores events that need to be published to Kafka. 
+ * By saving to this table in the same DB transaction as the Order, 
+ * we guarantee that events are only sent if the Order is successfully persisted.
  */
 @Entity
 @Table(name = "outbox_events", indexes = {

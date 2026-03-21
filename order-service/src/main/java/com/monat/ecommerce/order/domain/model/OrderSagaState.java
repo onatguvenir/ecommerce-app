@@ -13,7 +13,13 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 /**
- * Saga state for tracking order processing workflow
+ * Tracks the state of a Distributed Transaction (Saga).
+ * 
+ * Educational Note:
+ * A Saga is a sequence of local transactions. Each local transaction updates 
+ * the database and publishes an event to trigger the next step. 
+ * If a step fails, the Saga executes compensating transactions to undo 
+ * the changes made by previous steps.
  */
 @Entity
 @Table(name = "order_saga_state")

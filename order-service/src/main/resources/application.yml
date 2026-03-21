@@ -2,10 +2,21 @@ spring:
   application:
     name: order-service
 
-  # ---------------------------------------------------------------
+# N+1 Detection Configuration
+nplus1:
+  enabled: true
+  threshold: 5
+  log-interval: 1
+  error-level: LOG
+  ignore-packages:
+    - com.google.
+    - org.hibernate.
+    - org.springframework.
+
   # Virtual Threads (Project Loom) — JDK 21 + Spring Boot 3.2+
-  # Her HTTP isteği, @KafkaListener ve gRPC client çağrısı
-  # virtual thread üzerinde koşar; Saga koordinasyonu için ideal.
+  # Educational Note:
+  # Highly efficient for Saga coordination. Every HTTP request, 
+  # @KafkaListener, and gRPC client call runs on a virtual thread.
   threads:
     virtual:
       enabled: true
@@ -38,9 +49,11 @@ spring:
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      # Reliability settings
       acks: all
       retries: 3
       properties:
+        # Ensures exactly-once delivery within a transaction
         enable.idempotence: true
     consumer:
       group-id: order-service-group
@@ -87,15 +100,24 @@ management:
   metrics:
     export:
       prometheus:
+        enabled: false
+      otlp:
         enabled: true
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
     tags:
       application: ${spring.application.name}
+  otlp:
+    metrics:
+      export:
+        url: http://otel-collector:4318/v1/metrics
+        step: 1m
+    tracing:
+      endpoint: http://otel-collector:4318/v1/traces
   tracing:
     sampling:
       probability: 1.0
-  zipkin:
-    tracing:
-      endpoint: http://localhost:9411/api/v2/spans
 
 # Logging
 logging:

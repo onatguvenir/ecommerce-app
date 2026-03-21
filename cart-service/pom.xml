@@ -61,11 +61,6 @@
             <artifactId>jackson-databind</artifactId>
         </dependency>
 
-        <!-- Micrometer -->
-        <dependency>
-            <groupId>io.micrometer</groupId>
-            <artifactId>micrometer-registry-prometheus</artifactId>
-        </dependency>
 
         <!-- Swagger UI -->
         <dependency>

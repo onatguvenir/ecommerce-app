@@ -43,16 +43,29 @@
             <artifactId>spring-kafka</artifactId>
         </dependency>
 
-        <!-- Micrometer Tracing for distributed tracing -->
+        <!-- Micrometer Registry OTLP for metrics export -->
         <dependency>
             <groupId>io.micrometer</groupId>
-            <artifactId>micrometer-tracing-bridge-brave</artifactId>
+            <artifactId>micrometer-registry-otlp</artifactId>
         </dependency>
 
-        <!-- Zipkin reporter for sending traces -->
+        <!-- OpenTelemetry dependencies -->
         <dependency>
-            <groupId>io.zipkin.reporter2</groupId>
-            <artifactId>zipkin-reporter-brave</artifactId>
+            <groupId>io.opentelemetry</groupId>
+            <artifactId>opentelemetry-api</artifactId>
+            <version>${opentelemetry.version}</version>
+        </dependency>
+
+        <!-- Micrometer Tracing to OpenTelemetry bridge -->
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-tracing-bridge-otel</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.opentelemetry</groupId>
+            <artifactId>opentelemetry-exporter-otlp</artifactId>
+            <version>${opentelemetry.version}</version>
         </dependency>
 
         <!-- Logback encoder for structured logging with trace context -->

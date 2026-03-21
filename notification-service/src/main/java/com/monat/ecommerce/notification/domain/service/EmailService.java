@@ -44,18 +44,14 @@ public class EmailService {
 
             if (simulateEmail) {
                 // Simulate email sending (log to console)
-                String logMessage = String.format(
-                        "%n%s%n📧 %s NOTIFICATION%nFrom: %s%nTo: %s%nSubject: %s%n%s%nBody:%n%s%n%s",
-                        "=".repeat(80),
-                        NotificationType.EMAIL,
-                        fromEmail,
-                        to,
-                        subject,
-                        "-".repeat(80),
-                        htmlContent,
-                        "=".repeat(80)
-                );
-                log.info(logMessage);
+                log.info("=".repeat(80));
+                log.info("📧 {} NOTIFICATION", NotificationType.EMAIL);
+                log.info("From: {}", fromEmail);
+                log.info("To: {}", to);
+                log.info("Subject: {}", subject);
+                log.info("-".repeat(80));
+                log.info("Body:\n{}", htmlContent);
+                log.info("=".repeat(80));
             } else {
                 // Actual SMTP sending would go here
                 log.info("Sending email to: {} - Subject: {}", to, subject);

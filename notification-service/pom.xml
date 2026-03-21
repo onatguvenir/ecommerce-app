@@ -107,11 +107,6 @@
             <artifactId>spring-boot-starter-thymeleaf</artifactId>
         </dependency>
 
-        <!-- Micrometer -->
-        <dependency>
-            <groupId>io.micrometer</groupId>
-            <artifactId>micrometer-registry-prometheus</artifactId>
-        </dependency>
 
         <!-- Swagger UI -->
         <dependency>
@@ -119,11 +114,16 @@
             <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
         </dependency>
 
-        <!-- Lombok -->
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
             <optional>true</optional>
+        </dependency>
+
+        <!-- N+1 Detection -->
+        <dependency>
+            <groupId>com.github.yunusbaydarr</groupId>
+            <artifactId>Nplus1-Hunter</artifactId>
         </dependency>
 
         <!-- Testing -->

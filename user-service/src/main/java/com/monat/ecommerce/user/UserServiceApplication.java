@@ -5,18 +5,11 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
 
 /**
- * Entry point for the User Service Application.
- *
- * @SpringBootApplication is a convenience annotation that adds all of the
- *                        following:
- *                        - @Configuration: Tags the class as a source of bean
- *                        definitions for the application context.
- *                        - @EnableAutoConfiguration: Tells Spring Boot to start
- *                        adding beans based on classpath settings, other beans,
- *                        and various property settings.
- *                        - @ComponentScan: Tells Spring to look for other
- *                        components, configurations, and services in the
- *                        com/monat/ecommerce package.
+ * User Service Main Application.
+ * 
+ * Educational Note:
+ * - @EnableJpaAuditing: Enables automatic filling of fields like 'createdAt' 
+ *   and 'updatedAt' in entities.
  */
 @SpringBootApplication
 @EnableJpaAuditing

@@ -226,10 +226,9 @@ docker exec -it monat-kafka kafka-topics --bootstrap-server localhost:9092 --lis
 ⚠️ This docker-compose is for **development/testing only**
 
 For production:
-- Use Kubernetes (see k8s/ directory)
+- Use a dedicated container orchestrator
 - Separate infrastructure from services
 - Use secrets management (not environment variables)
-- Implement proper service mesh (Istio)
 - Set up proper monitoring and alerting
 - Use managed databases (AWS RDS, etc.)
 - Implement backup and disaster recovery

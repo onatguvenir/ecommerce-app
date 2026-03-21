@@ -3,7 +3,8 @@ package com.monat.ecommerce.common.exception;
 import lombok.Getter;
 
 /**
- * Base exception for all business logic exceptions
+ * Base exception for all business logic exceptions.
+ * Allows specifying a custom error code and HTTP status for fine-grained error reporting.
  */
 @Getter
 public class BusinessException extends RuntimeException {

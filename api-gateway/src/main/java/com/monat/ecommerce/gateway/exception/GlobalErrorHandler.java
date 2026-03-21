@@ -16,7 +16,13 @@ import reactor.core.publisher.Mono;
 import java.nio.charset.StandardCharsets;
 
 /**
- * Global exception handler for API Gateway
+ * Global Error Handler for the Reactive API Gateway.
+ * 
+ * Educational Note:
+ * Since Spring Cloud Gateway is based on Project Reactor (WebFlux), 
+ * we use ErrorWebExceptionHandler instead of @ControllerAdvice.
+ * This ensures that errors occurring in the hidden 'filter chain' are also 
+ * caught and returned as clean JSON.
  */
 @Slf4j
 @Component

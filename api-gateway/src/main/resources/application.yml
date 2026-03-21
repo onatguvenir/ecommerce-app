@@ -5,6 +5,8 @@ spring:
   cloud:
     gateway:
       # Global CORS configuration
+      # Architecture Note: CORS is handled at the Gateway level to provide 
+      # a single point of truth for browser-based client origin validation.
       globalcors:
         cors-configurations:
           '[/**]':
@@ -21,9 +23,14 @@ spring:
             maxAge: 3600
       
       # Route definitions
+      # Educational Note:
+      # routes define how the Gateway maps an incoming path to a backend service.
+      # predicates: identify the request (e.g., path matches /api/users/**).
+      # filters: modify the request/response (e.g., request rate limiting).
       routes:
         # User Service
         - id: user-service
+        ...
           uri: http://user-service:8081
           predicates:
             - Path=/api/users/**
@@ -166,9 +173,21 @@ management:
   metrics:
     export:
       prometheus:
+        enabled: false
+      otlp:
         enabled: true
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
     tags:
       application: ${spring.application.name}
+  otlp:
+    metrics:
+      export:
+        url: http://otel-collector:4318/v1/metrics
+        step: 1m
+    tracing:
+      endpoint: http://otel-collector:4318/v1/traces
 
 # Logging
 logging:

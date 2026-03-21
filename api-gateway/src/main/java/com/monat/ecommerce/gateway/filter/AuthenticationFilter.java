@@ -14,7 +14,13 @@ import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
 /**
- * JWT Authentication Filter for protected routes
+ * Custom JWT Authentication filter.
+ * 
+ * Educational Note:
+ * 1. Validates the 'Authorization' header.
+ * 2. If valid, 'mutates' the request to include X-User-Id.
+ * Downstream microservices can then use this header to identify the user 
+ * without re-validating the JWT (trusted subsystem pattern).
  */
 @Slf4j
 @Component

@@ -17,19 +17,13 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 /**
- * Inventory Application Service.
- * <p>
- * This class encapsulates the business logic for managing inventory and stock
- * reservations.
- * </p>
+ * Coordinator for Inventory-related business logic.
  * 
- * @Service indicates that this class is a "Service" component containing
- *          business logic.
- * 
- * @Transactional ensures that methods are executed within a database
- *                transaction.
- *                If a method fails, the transaction is rolled back, ensuring
- *                data consistency.
+ * Educational Note:
+ * This service manages 'Soft Reservations'. 
+ * - reserveStock: Decrements 'available' and increments 'reserved' temporarily.
+ * - confirmReservation: Finalizes the reservation, properly decrementing 'total'.
+ * - cancelReservation: Releases 'reserved' back to 'available'.
  */
 @Slf4j
 @Service
@@ -47,25 +41,19 @@ public class InventoryApplicationService {
 
     @Transactional
     public StockReservation reserveStock(StockReservationRequest request) {
-        Inventory inventory = inventoryRepository.findByProductId(request.getProductId())
-                .orElseThrow(() -> new ResourceNotFoundException("Product not found: " + request.getProductId()));
+        Inventory inventory = inventoryRepository.findByProductId(request.productId())
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found: " + request.productId()));
 
-        if (!inventory.isStockAvailable(request.getQuantity())) {
-            throw new IllegalStateException("Insufficient stock for product: " + request.getProductId());
-        }
+        // Perform domain reservation (decrements available, increments reserved)
+        inventory.reserveStock(request.quantity());
+        inventoryRepository.save(inventory);
 
-        // Create reservation using MapStruct
+        // Create reservation record
         StockReservation reservation = inventoryMapper.toReservation(request);
         reservation.setReservationId(UUID.randomUUID().toString());
         reservation.setCreatedAt(LocalDateTime.now());
         reservation.setExpiresAt(LocalDateTime.now().plusMinutes(15));
-
-        // Reserve logic in domain? Inventory model should handle stock deduction?
-        // Let's assume Inventory has logic to reserve.
-        // But here we are just creating a reservation record. The actual decrement
-        // might happen on commit or we reserve directly.
-        // Let's see Inventory domain methods.
-        // Assuming simple logic: We save reservation.
+        reservation.setStatus(ReservationStatus.ACTIVE);
 
         return stockReservationRepository.save(reservation);
     }

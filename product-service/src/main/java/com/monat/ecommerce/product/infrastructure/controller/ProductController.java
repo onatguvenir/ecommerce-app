@@ -23,17 +23,12 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 /**
- * Product REST Controller.
- * <p>
- * This class exposes Key API endpoints for Product management.
- * </p>
+ * REST Controller for Product Catalog.
  * 
- * @RestController combines @Controller and @ResponseBody.
- * 
- *                 @RequestMapping("/api/products") specifies the base URL path.
- * 
- * @Tag is part of OpenAPI (Swagger) documentation. It groups operations under
- *      "Product Management".
+ * Educational Note:
+ * - /search endpoint uses Elasticsearch for complex queries.
+ * - Standard GET/POST/PUT operations use MongoDB via ProductApplicationService.
+ * - @Tag: Groups these endpoints in the Swagger UI.
  */
 @Slf4j
 @RestController

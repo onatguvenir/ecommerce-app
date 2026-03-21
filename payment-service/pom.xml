@@ -122,11 +122,6 @@
             <artifactId>spring-aspects</artifactId>
         </dependency>
 
-        <!-- Micrometer -->
-        <dependency>
-            <groupId>io.micrometer</groupId>
-            <artifactId>micrometer-registry-prometheus</artifactId>
-        </dependency>
 
         <!-- SpringDoc OpenAPI -->
         <dependency>
@@ -135,11 +130,16 @@
             <version>2.3.0</version>
         </dependency>
 
-        <!-- Lombok -->
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
             <optional>true</optional>
+        </dependency>
+
+        <!-- N+1 Detection -->
+        <dependency>
+            <groupId>com.github.yunusbaydarr</groupId>
+            <artifactId>Nplus1-Hunter</artifactId>
         </dependency>
 
         <!-- Testing -->

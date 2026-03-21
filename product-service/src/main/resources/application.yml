@@ -2,11 +2,11 @@ spring:
   application:
     name: product-service
 
-  # ---------------------------------------------------------------
   # Virtual Threads (Project Loom) — JDK 21 + Spring Boot 3.2+
-  # Tomcat'ın thread pool modelini devre dışı bırakır; her istek
-  # ve I/O operasyonu (MongoDB, Redis, Elasticsearch) için ayrı,
-  # hafif bir virtual thread oluşturulur.
+  # Educational Note:
+  # Disables Tomcat's traditional thread pool. Every request and I/O operation 
+  # (MongoDB, Redis, Elasticsearch) runs on a lightweight virtual thread, 
+  # significantly increasing platform scalability.
   threads:
     virtual:
       enabled: true
@@ -63,22 +63,35 @@ management:
       enabled: true
     circuitbreakers:
       enabled: true
-  prometheus:
-    metrics:
-      export:
-        enabled: true
   metrics:
+    export:
+      prometheus:
+        enabled: false
+      otlp:
+        enabled: true
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
     tags:
       application: ${spring.application.name}
+  otlp:
+    metrics:
+      export:
+        url: http://otel-collector:4318/v1/metrics
+        step: 1m
+    tracing:
+      endpoint: http://otel-collector:4318/v1/traces
   tracing:
     sampling:
       probability: 1.0
-  zipkin:
-    tracing:
-      endpoint: http://localhost:9411/api/v2/spans
 
-# Resilience4j Circuit Breaker konfigürasyonu
+# Resilience4j Circuit Breaker configuration
+# Educational Note:
+# - elasticsearchCB: Protects the application from slow/failing search queries.
+# - If failure rate exceeds 50%, the circuit opens, preventing further load 
+#   on the failing Elasticsearch cluster and providing fast fallback responses.
 resilience4j:
+  # ... (rest of the block)
   circuitbreaker:
     instances:
       # Elasticsearch circuit breaker

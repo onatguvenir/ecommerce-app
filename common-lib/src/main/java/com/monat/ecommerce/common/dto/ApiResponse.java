@@ -1,26 +1,21 @@
 package com.monat.ecommerce.common.dto;
 
-import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-
 import java.time.LocalDateTime;
 
 /**
- * Standard API response wrapper for all REST endpoints
+ * Standard API response wrapper for all REST endpoints.
+ * Provides a consistent structure for success and basic error scenarios.
+ * Uses Java 17+ Records for immutability and concise syntax.
  */
-@Data
 @Builder
-@NoArgsConstructor
-@AllArgsConstructor
-public class ApiResponse<T> {
-    private boolean success;
-    private String message;
-    private T data;
-    private LocalDateTime timestamp;
-    private String traceId;
-
+public record ApiResponse<T>(
+    boolean success,
+    String message,
+    T data,
+    LocalDateTime timestamp,
+    String traceId // Essential for distributed tracing correlation
+) {
     public static <T> ApiResponse<T> success(T data) {
         return ApiResponse.<T>builder()
                 .success(true)

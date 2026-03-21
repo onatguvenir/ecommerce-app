@@ -15,25 +15,16 @@ import java.io.IOException;
 import java.util.UUID;
 
 /**
- * Filter to handle Correlation ID for tracing requests across microservices.
- * Checks for an existing X-Correlation-ID header; if missing, generates a new
- * UUID.
- * Adds the ID to MDC for logging and to the response headers.
- */
-/**
- * Filter for managing Correlation IDs in requests.
- * <p>
- * A Correlation ID is a unique identifier attached to every request that flows
- * through the system.
- * It allows tracing a request across multiple microservices.
- * </p>
+ * Request filter for managing Correlation IDs across microservices.
  * 
- * @Component makes this class a Spring Bean, allowing it to be automatically
- *            detected and registered
- *            by Spring's component scanning.
+ * Educational Note:
+ * A Correlation ID (X-Correlation-ID) is a unique token that travels with 
+ * a request across multiple microservice hops. It is the backbone of 
+ * distributed logging and debugging.
  * 
- *            Extending OncePerRequestFilter ensures that this filter is
- *            executed exactly once per request.
+ * - MDC (Mapped Diagnostic Context): We put the ID here so every log line 
+ *   automatically includes it without manual code.
+ * - OncePerRequestFilter: Guarantees one execution per container request.
  */
 @Component
 @Slf4j
