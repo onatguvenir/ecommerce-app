@@ -18,7 +18,7 @@ import java.io.Serializable;
 @SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor
-public class CartItem extends com.monat.ecommerce.common.model.AbstractOrderItem implements Serializable {
+public class CartItem extends AbstractOrderItem implements Serializable {
 
     private static final long serialVersionUID = 1L;
 

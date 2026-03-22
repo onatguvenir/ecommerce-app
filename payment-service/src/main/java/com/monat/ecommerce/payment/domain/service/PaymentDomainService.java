@@ -1,5 +1,8 @@
 package com.monat.ecommerce.payment.domain.service;
 
+import com.monat.ecommerce.events.payment.PaymentCompletedEvent;
+import com.monat.ecommerce.events.payment.PaymentFailedEvent;
+
 import com.monat.ecommerce.payment.domain.model.Payment;
 import com.monat.ecommerce.payment.domain.model.PaymentMethod;
 import com.monat.ecommerce.payment.domain.model.PaymentStatus;
@@ -16,7 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.retry.annotation.Backoff;
 import org.springframework.dao.CannotAcquireLockException;
-import org.springframework.dao.DeadlockLoserDataAccessException;
+import org.springframework.dao.PessimisticLockingFailureException;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 
 import java.math.BigDecimal;
@@ -48,7 +51,7 @@ public class PaymentDomainService {
      */
     @Transactional(isolation = Isolation.SERIALIZABLE)
     @Retryable(
-        retryFor = {DeadlockLoserDataAccessException.class, CannotAcquireLockException.class, ObjectOptimisticLockingFailureException.class},
+        retryFor = {PessimisticLockingFailureException.class, CannotAcquireLockException.class, ObjectOptimisticLockingFailureException.class},
         maxAttempts = 3,
         backoff = @Backoff(delay = 500, multiplier = 2)
     )
@@ -125,7 +128,7 @@ public class PaymentDomainService {
      */
     @Transactional(isolation = Isolation.SERIALIZABLE)
     @Retryable(
-        retryFor = {DeadlockLoserDataAccessException.class, CannotAcquireLockException.class, ObjectOptimisticLockingFailureException.class},
+        retryFor = {PessimisticLockingFailureException.class, CannotAcquireLockException.class, ObjectOptimisticLockingFailureException.class},
         maxAttempts = 3,
         backoff = @Backoff(delay = 500, multiplier = 2)
     )
@@ -194,7 +197,7 @@ public class PaymentDomainService {
 
     private void publishPaymentCompletedEvent(Payment payment) {
         try {
-            com.monat.ecommerce.events.payment.PaymentCompletedEvent event = com.monat.ecommerce.events.payment.PaymentCompletedEvent
+            PaymentCompletedEvent event = PaymentCompletedEvent
                     .builder()
                     .paymentId(payment.getId().toString())
                     .orderId(payment.getOrderId())
@@ -214,10 +217,11 @@ public class PaymentDomainService {
 
     private void publishPaymentFailedEvent(Payment payment) {
         try {
-            com.monat.ecommerce.events.payment.PaymentFailedEvent event = com.monat.ecommerce.events.payment.PaymentFailedEvent
+            PaymentFailedEvent event = PaymentFailedEvent
                     .builder()
                     .paymentId(payment.getId().toString())
                     .orderId(payment.getOrderId())
+                    .userId(payment.getUserId())
                     .amount(payment.getAmount())
                     .currency(payment.getCurrency())
                     .failureReason(payment.getFailureReason())

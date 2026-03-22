@@ -1,5 +1,7 @@
 package com.monat.ecommerce.payment.infrastructure.grpc;
 
+
+
 import com.monat.ecommerce.grpc.payment.*;
 import com.monat.ecommerce.payment.domain.model.Payment;
 import com.monat.ecommerce.payment.domain.model.PaymentMethod;
@@ -50,13 +52,13 @@ public class PaymentGrpcServiceImpl extends PaymentServiceGrpc.PaymentServiceImp
             if (payment.isCompleted()) {
                 responseBuilder
                         .setSuccess(true)
-                        .setStatus(com.monat.ecommerce.grpc.payment.PaymentStatus.COMPLETED)
+                        .setStatus(PaymentStatus.COMPLETED)
                         .setPaymentReference(payment.getPaymentReference())
                         .setMessage("Payment processed successfully");
             } else {
                 responseBuilder
                         .setSuccess(false)
-                        .setStatus(com.monat.ecommerce.grpc.payment.PaymentStatus.FAILED)
+                        .setStatus(PaymentStatus.FAILED)
                         .setMessage("Payment failed: " + payment.getFailureReason());
             }
 
@@ -134,19 +136,19 @@ public class PaymentGrpcServiceImpl extends PaymentServiceGrpc.PaymentServiceImp
             Payment payment = paymentDomainService.getPaymentStatus(request.getPaymentId());
 
             // Map domain PaymentStatus to gRPC PaymentStatus
-            com.monat.ecommerce.grpc.payment.PaymentStatus grpcStatus;
+            PaymentStatus grpcStatus;
             switch (payment.getStatus()) {
                 case COMPLETED:
-                    grpcStatus = com.monat.ecommerce.grpc.payment.PaymentStatus.COMPLETED;
+                    grpcStatus = PaymentStatus.COMPLETED;
                     break;
                 case FAILED:
-                    grpcStatus = com.monat.ecommerce.grpc.payment.PaymentStatus.FAILED;
+                    grpcStatus = PaymentStatus.FAILED;
                     break;
                 case REFUNDED:
-                    grpcStatus = com.monat.ecommerce.grpc.payment.PaymentStatus.REFUNDED;
+                    grpcStatus = PaymentStatus.REFUNDED;
                     break;
                 default:
-                    grpcStatus = com.monat.ecommerce.grpc.payment.PaymentStatus.PENDING;
+                    grpcStatus = PaymentStatus.PENDING;
             }
 
             GetPaymentStatusResponse response = GetPaymentStatusResponse.newBuilder()

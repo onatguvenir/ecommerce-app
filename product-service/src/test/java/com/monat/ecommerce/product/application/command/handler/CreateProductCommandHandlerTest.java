@@ -2,16 +2,17 @@ package com.monat.ecommerce.product.application.command.handler;
 
 import com.monat.ecommerce.product.application.command.CreateProductCommand;
 import com.monat.ecommerce.product.application.dto.ProductResponse;
+import com.monat.ecommerce.product.application.mapper.ProductMapper;
 import com.monat.ecommerce.product.domain.event.ProductCreatedEvent;
 import com.monat.ecommerce.product.domain.model.Product;
 import com.monat.ecommerce.product.domain.model.ProductStatus;
 import com.monat.ecommerce.product.domain.repository.ProductRepository;
+import org.mapstruct.factory.Mappers;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
@@ -45,14 +46,17 @@ class CreateProductCommandHandlerTest {
     @Mock
     private ApplicationEventPublisher eventPublisher;
 
-    @InjectMocks
     private CreateProductCommandHandler handler;
+    private ProductMapper productMapper;
 
     private CreateProductCommand validCommand;
     private Product savedProduct;
 
     @BeforeEach
     void setUp() {
+        productMapper = Mappers.getMapper(ProductMapper.class);
+        handler = new CreateProductCommandHandler(productRepository, eventPublisher, productMapper);
+
         validCommand = new CreateProductCommand(
                 "PROD-001", "Test Product", "A detailed test product description",
                 "Electronics", "TestBrand", BigDecimal.valueOf(99.99),

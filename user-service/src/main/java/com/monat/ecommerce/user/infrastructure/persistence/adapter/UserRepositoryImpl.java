@@ -7,15 +7,18 @@ import com.monat.ecommerce.user.infrastructure.persistence.entity.UserEntity;
 import com.monat.ecommerce.user.infrastructure.persistence.mapper.UserMapper;
 import com.monat.ecommerce.user.infrastructure.persistence.repository.UserJpaRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
 import java.util.UUID;
 
 @Component
 @RequiredArgsConstructor
+@Slf4j
 public class UserRepositoryImpl implements UserRepository {
 
     private final UserJpaRepository jpaRepository;
@@ -92,5 +95,35 @@ public class UserRepositoryImpl implements UserRepository {
     @Override
     public long count() {
         return jpaRepository.count();
+    }
+
+    /**
+     * Suspends a user account using Pessimistic Write Lock.
+     * 
+     * Theory (Educational Note):
+     * A Pessimistic Write Lock is used here to enforce strict serialization
+     * when multiple threads might try to suspend the same user simultaneously
+     * (e.g., triggered by concurrent Kafka consumer threads processing the same
+     * fraudulent user). Without this lock, a "lost update" anomaly could occur:
+     * one thread reads ACTIVE status, another reads ACTIVE status, both try to
+     * write SUSPENDED → both writes succeed, but only one update is retained
+     * effectively. PESSIMISTIC_WRITE prevents this race condition by blocking
+     * concurrent reads until the lock holder commits.
+     */
+    @Override
+    @Transactional
+    public void suspendUserById(UUID userId, String reason) {
+        jpaRepository.findByIdWithLock(userId).ifPresentOrElse(
+                entity -> {
+                    if (entity.getStatus() == UserStatus.SUSPENDED) {
+                        log.info("User {} is already SUSPENDED. Skipping.", userId);
+                        return;
+                    }
+                    entity.setStatus(UserStatus.SUSPENDED);
+                    jpaRepository.save(entity);
+                    log.warn("User {} has been SUSPENDED. Reason: {}", userId, reason);
+                },
+                () -> log.error("Cannot suspend user {}: not found.", userId)
+        );
     }
 }

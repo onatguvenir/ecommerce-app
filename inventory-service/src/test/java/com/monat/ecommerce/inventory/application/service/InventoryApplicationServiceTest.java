@@ -1,6 +1,7 @@
 package com.monat.ecommerce.inventory.application.service;
 
 import com.monat.ecommerce.common.exception.ResourceNotFoundException;
+import com.monat.ecommerce.inventory.application.dto.InventoryMapper;
 import com.monat.ecommerce.inventory.application.dto.InventoryResponse;
 import com.monat.ecommerce.inventory.application.dto.StockReservationRequest;
 import com.monat.ecommerce.inventory.domain.model.Inventory;
@@ -32,6 +33,11 @@ class InventoryApplicationServiceTest {
 
     @Mock
     private StockReservationRepository stockReservationRepository;
+
+    // InventoryMapper, MapStruct aracılığıyla üretilen bir Spring bean'idir.
+    // @InjectMocks'un doğru çalışması için mock'lanması gerekir.
+    @Mock
+    private InventoryMapper inventoryMapper;
 
     @InjectMocks
     private InventoryApplicationService inventoryApplicationService;
@@ -140,8 +146,9 @@ class InventoryApplicationServiceTest {
 
         InventoryResponse response = inventoryApplicationService.addStock("PROD-456", 50);
 
-        assertThat(response.getProductId()).isEqualTo("PROD-456");
-        assertThat(response.getQuantity()).isEqualTo(50);
+        // InventoryResponse bir Java Record olduğundan getter değil, accessor metod syntax'ı kullanılır.
+        assertThat(response.productId()).isEqualTo("PROD-456");
+        assertThat(response.quantity()).isEqualTo(50);
         verify(inventoryRepository).save(any(Inventory.class));
     }
 
@@ -151,7 +158,8 @@ class InventoryApplicationServiceTest {
 
         InventoryResponse response = inventoryApplicationService.getInventory("PROD-123");
 
-        assertThat(response.getProductId()).isEqualTo("PROD-123");
-        assertThat(response.getQuantity()).isEqualTo(100);
+        // InventoryResponse bir Java Record olduğundan getter değil, accessor metod syntax'ı kullanılır.
+        assertThat(response.productId()).isEqualTo("PROD-123");
+        assertThat(response.quantity()).isEqualTo(100);
     }
 }

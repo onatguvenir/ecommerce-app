@@ -1,5 +1,8 @@
 package com.monat.ecommerce.order.domain.service;
 
+import com.monat.ecommerce.events.order.OrderCancelledEvent;
+import com.monat.ecommerce.events.order.OrderCompletedEvent;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.monat.ecommerce.grpc.inventory.*;
 import com.monat.ecommerce.grpc.payment.*;
@@ -273,8 +276,8 @@ public class OrderSagaOrchestrator {
 
     private void publishOrderCompletedEvent(Order order) {
         try {
-            com.monat.ecommerce.events.order.OrderCompletedEvent event =
-                    com.monat.ecommerce.events.order.OrderCompletedEvent.builder()
+            OrderCompletedEvent event =
+                    OrderCompletedEvent.builder()
                             .orderId(order.getId().toString())
                             .orderNumber(order.getOrderNumber())
                             .userId(order.getUserId().toString())
@@ -301,8 +304,8 @@ public class OrderSagaOrchestrator {
 
     private void publishOrderCancelledEvent(Order order, String reason) {
         try {
-            com.monat.ecommerce.events.order.OrderCancelledEvent event =
-                    com.monat.ecommerce.events.order.OrderCancelledEvent.builder()
+            OrderCancelledEvent event =
+                    OrderCancelledEvent.builder()
                             .orderId(order.getId().toString())
                             .orderNumber(order.getOrderNumber())
                             .userId(order.getUserId().toString())

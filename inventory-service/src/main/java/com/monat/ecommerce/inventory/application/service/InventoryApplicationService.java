@@ -5,6 +5,7 @@ import com.monat.ecommerce.inventory.application.dto.InventoryMapper;
 import com.monat.ecommerce.inventory.application.dto.InventoryResponse;
 import com.monat.ecommerce.inventory.application.dto.StockReservationRequest;
 import com.monat.ecommerce.inventory.domain.model.Inventory;
+import com.monat.ecommerce.inventory.domain.model.ReservationStatus;
 import com.monat.ecommerce.inventory.domain.model.StockReservation;
 import com.monat.ecommerce.inventory.domain.repository.InventoryRepository;
 import com.monat.ecommerce.inventory.domain.repository.StockReservationRepository;

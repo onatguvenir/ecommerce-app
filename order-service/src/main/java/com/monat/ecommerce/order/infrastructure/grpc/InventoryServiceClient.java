@@ -1,5 +1,7 @@
 package com.monat.ecommerce.order.infrastructure.grpc;
 
+import com.monat.ecommerce.grpc.inventory.StockItem;
+
 import com.monat.ecommerce.grpc.inventory.ReserveStockRequest;
 import com.monat.ecommerce.grpc.inventory.ReserveStockResponse;
 import com.monat.ecommerce.grpc.inventory.ReleaseStockRequest;
@@ -63,7 +65,7 @@ public class InventoryServiceClient {
         // Add stock items
         for (var entry : productQuantities.entrySet()) {
             requestBuilder.addItems(
-                    com.monat.ecommerce.grpc.inventory.StockItem.newBuilder()
+                    StockItem.newBuilder()
                             .setProductId(entry.getKey())
                             .setQuantity(entry.getValue())
                             .build());

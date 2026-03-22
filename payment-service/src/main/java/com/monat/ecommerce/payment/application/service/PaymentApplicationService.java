@@ -18,7 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.retry.annotation.Backoff;
 import org.springframework.dao.CannotAcquireLockException;
-import org.springframework.dao.DeadlockLoserDataAccessException;
+import org.springframework.dao.PessimisticLockingFailureException;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 
 import java.time.LocalDateTime;
@@ -44,7 +44,7 @@ public class PaymentApplicationService {
 
     @Transactional(isolation = Isolation.SERIALIZABLE)
     @Retryable(
-        retryFor = {DeadlockLoserDataAccessException.class, CannotAcquireLockException.class, ObjectOptimisticLockingFailureException.class},
+        retryFor = {PessimisticLockingFailureException.class, CannotAcquireLockException.class, ObjectOptimisticLockingFailureException.class},
         maxAttempts = 3,
         backoff = @Backoff(delay = 500, multiplier = 2)
     )
@@ -91,7 +91,7 @@ public class PaymentApplicationService {
 
     @Transactional(isolation = Isolation.SERIALIZABLE)
     @Retryable(
-        retryFor = {DeadlockLoserDataAccessException.class, CannotAcquireLockException.class, ObjectOptimisticLockingFailureException.class},
+        retryFor = {PessimisticLockingFailureException.class, CannotAcquireLockException.class, ObjectOptimisticLockingFailureException.class},
         maxAttempts = 3,
         backoff = @Backoff(delay = 500, multiplier = 2)
     )

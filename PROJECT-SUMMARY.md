@@ -133,7 +133,7 @@ curl -X POST http://localhost:8085/api/orders ...
 
 **Infrastructure:** 100% ready
 - ✅ Docker Compose with all databases
-- ✅ Kafka + Zookeeper
+- ✅ Kafka (KRaft mode)
 - ✅ Prometheus + Grafana
 - ✅ Jaeger tracing
 - ✅ Kafdrop (Kafka UI)

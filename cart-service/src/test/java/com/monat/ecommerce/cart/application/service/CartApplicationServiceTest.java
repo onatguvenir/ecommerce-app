@@ -1,5 +1,7 @@
 package com.monat.ecommerce.cart.application.service;
 
+import com.monat.ecommerce.cart.application.mapper.CartMapper;
+
 import com.monat.ecommerce.cart.application.dto.AddToCartRequest;
 import com.monat.ecommerce.cart.application.dto.CartItemResponse;
 import com.monat.ecommerce.cart.application.dto.CartResponse;
@@ -35,7 +37,7 @@ class CartApplicationServiceTest {
     private CartRepository cartRepository;
 
     @Mock
-    private com.monat.ecommerce.cart.application.mapper.CartMapper cartMapper;
+    private CartMapper cartMapper;
 
     @InjectMocks
     private CartApplicationService cartApplicationService;
@@ -114,7 +116,7 @@ class CartApplicationServiceTest {
         when(cartRepository.save(any(Cart.class))).thenReturn(cart);
         CartResponse mockResponse = CartResponse.builder()
                 .cartId("CART-123")
-                .items(java.util.List.of(com.monat.ecommerce.cart.application.dto.CartItemResponse.builder().productId("PROD-001").quantity(3).build()))
+                .items(java.util.List.of(CartItemResponse.builder().productId("PROD-001").quantity(3).build()))
                 .build();
         when(cartMapper.toResponse(any(Cart.class))).thenReturn(mockResponse);
  
@@ -198,7 +200,7 @@ class CartApplicationServiceTest {
         when(cartRepository.save(any(Cart.class))).thenReturn(cart);
         CartResponse mockResponse = CartResponse.builder()
                 .cartId("CART-123")
-                .items(List.of(com.monat.ecommerce.cart.application.dto.CartItemResponse.builder().productId("PROD-001").quantity(10).build()))
+                .items(List.of(CartItemResponse.builder().productId("PROD-001").quantity(10).build()))
                 .build();
         when(cartMapper.toResponse(any(Cart.class))).thenReturn(mockResponse);
 
@@ -278,7 +280,7 @@ class CartApplicationServiceTest {
         when(cartRepository.findById("TARGET-CART")).thenReturn(Optional.of(targetCart));
         when(cartRepository.save(any(Cart.class))).thenReturn(targetCart);
         doNothing().when(cartRepository).delete("SOURCE-CART");
-        when(cartMapper.toResponse(any(Cart.class))).thenReturn(CartResponse.builder().cartId("TARGET-CART").items(List.of(com.monat.ecommerce.cart.application.dto.CartItemResponse.builder().build())).build());
+        when(cartMapper.toResponse(any(Cart.class))).thenReturn(CartResponse.builder().cartId("TARGET-CART").items(List.of(CartItemResponse.builder().build())).build());
 
         // When
         CartResponse response = cartApplicationService.mergeCart("SOURCE-CART", "TARGET-CART");

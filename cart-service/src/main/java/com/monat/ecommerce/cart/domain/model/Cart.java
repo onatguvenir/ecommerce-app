@@ -20,7 +20,7 @@ import java.util.ArrayList;
 @SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor
-public class Cart extends com.monat.ecommerce.common.model.AbstractOrder<CartItem> implements Serializable {
+public class Cart extends AbstractOrder<CartItem> implements Serializable {
 
     private static final long serialVersionUID = 1L;
 

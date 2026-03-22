@@ -18,6 +18,7 @@
 
     <properties>
         <repackage.skip>true</repackage.skip>
+        <protobuf.temp.directory>${java.io.tmpdir}/monat-protobuf/${project.artifactId}</protobuf.temp.directory>
     </properties>
 
     <dependencies>
@@ -68,6 +69,12 @@
                 <configuration>
                     <protocArtifact>com.google.protobuf:protoc:${protobuf.version}:exe:${os.detected.classifier}</protocArtifact>
                     <protoSourceRoot>${project.basedir}/src/main/proto</protoSourceRoot>
+                    <checkStaleness>true</checkStaleness>
+                    <staleMillis>10000</staleMillis>
+                    <clearOutputDirectory>false</clearOutputDirectory>
+                    <useArgumentFile>true</useArgumentFile>
+                    <tempDirectory>${protobuf.temp.directory}</tempDirectory>
+                    <temporaryProtoFileDirectory>${protobuf.temp.directory}/deps</temporaryProtoFileDirectory>
                 </configuration>
                 <executions>
                     <execution>
@@ -92,7 +99,7 @@
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>build-helper-maven-plugin</artifactId>
-                <version>3.2.0</version>
+                <version>${build-helper.version}</version>
                 <executions>
                     <execution>
                         <id>add-source</id>

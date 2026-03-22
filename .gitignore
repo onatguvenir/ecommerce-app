@@ -44,3 +44,6 @@ load-images.ps1
 update-k8s-images.ps1
 patch-deployments.ps1
 build-all.ps1
+refactor_fqcn.py
+test_endpoints.py
+.claude/settings.local.json

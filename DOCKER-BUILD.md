@@ -58,7 +58,7 @@ This starts:
 - MongoDB (27017)
 - Redis (6379)
 - Elasticsearch (9200)
-- Kafka + Zookeeper (9092)
+- Kafka (KRaft mode) (9092)
 - Prometheus (9090)
 - Grafana (3000)
 - Jaeger (16686)

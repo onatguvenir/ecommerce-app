@@ -1,5 +1,7 @@
 package com.monat.ecommerce.order.infrastructure.grpc;
 
+import com.monat.ecommerce.grpc.payment.PaymentStatus;
+
 import com.monat.ecommerce.grpc.payment.ProcessPaymentRequest;
 import com.monat.ecommerce.grpc.payment.ProcessPaymentResponse;
 import com.monat.ecommerce.grpc.payment.PaymentServiceGrpc;
@@ -83,7 +85,7 @@ public class PaymentServiceClient {
 
         return ProcessPaymentResponse.newBuilder()
                 .setSuccess(false)
-                .setStatus(com.monat.ecommerce.grpc.payment.PaymentStatus.FAILED)
+                .setStatus(PaymentStatus.FAILED)
                 .setMessage("Payment service temporarily unavailable. Please try again later.")
                 .build();
     }

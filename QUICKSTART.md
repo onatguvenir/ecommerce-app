@@ -19,7 +19,7 @@ This starts:
 - PostgreSQL (5432) - User, Order, Inventory, Payment databases
 - MongoDB (27017) - Product catalog
 - Redis (6379) - Cart & caching
-- Kafka + Zookeeper (9092, 2181) - Event streaming
+- Kafka (KRaft mode) (9092) - Event streaming
 - Elasticsearch (9200) - Product search
 - Prometheus (9090) - Metrics
 - Grafana (3000) - Dashboards

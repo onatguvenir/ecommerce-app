@@ -1,17 +1,18 @@
 package com.monat.ecommerce.product.application.query.handler;
 
 import com.monat.ecommerce.product.application.dto.ProductResponse;
+import com.monat.ecommerce.product.application.mapper.ProductMapper;
 import com.monat.ecommerce.product.application.query.SearchProductsQuery;
 import com.monat.ecommerce.product.domain.model.Product;
 import com.monat.ecommerce.product.domain.model.ProductStatus;
 import com.monat.ecommerce.product.domain.repository.ProductRepository;
 import com.monat.ecommerce.product.infrastructure.search.ProductSearchDocument;
 import com.monat.ecommerce.product.infrastructure.search.ProductSearchQueryBuilder;
+import org.mapstruct.factory.Mappers;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
@@ -53,8 +54,8 @@ class SearchProductsQueryHandlerTest {
     @Mock
     private ProductRepository productRepository;
 
-    @InjectMocks
     private SearchProductsQueryHandler handler;
+    private ProductMapper productMapper;
 
     private PageRequest pageable;
     private ProductSearchDocument searchDocument;
@@ -62,6 +63,9 @@ class SearchProductsQueryHandlerTest {
 
     @BeforeEach
     void setUp() {
+        productMapper = Mappers.getMapper(ProductMapper.class);
+        handler = new SearchProductsQueryHandler(elasticsearchOperations, queryBuilder, productRepository, productMapper);
+
         pageable = PageRequest.of(0, 10);
 
         searchDocument = ProductSearchDocument.builder()

@@ -42,4 +42,10 @@ public interface UserRepository {
     void deleteAll();
 
     long count();
+
+    /**
+     * Suspend a user by ID with Pessimistic Write Lock.
+     * Used for fraud detection to prevent concurrent lost-updates.
+     */
+    void suspendUserById(UUID userId, String reason);
 }

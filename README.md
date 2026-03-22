@@ -48,7 +48,7 @@ mvn clean package -DskipTests
 
 3. **Start infrastructure (databases, Kafka, etc.):**
 ```bash
-docker-compose up -d postgres mongodb redis elasticsearch kafka zookeeper
+docker-compose up -d postgres mongodb redis elasticsearch kafka
 ```
 
 4. **Start services:**
@@ -70,7 +70,7 @@ This will start:
 - MongoDB (port 27017)
 - Redis (port 6379)
 - Elasticsearch (port 9200)
-- Kafka & Zookeeper (9092, 2181)
+- Kafka (KRaft mode) (9092)
 - All microservices
 
 ## 📝 API Documentation
