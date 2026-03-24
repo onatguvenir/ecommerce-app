@@ -47,3 +47,4 @@ build-all.ps1
 refactor_fqcn.py
 test_endpoints.py
 .claude/settings.local.json
+CLAUDE.local.md
