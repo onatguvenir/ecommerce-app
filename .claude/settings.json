@@ -1,0 +1,33 @@
+{
+  "version": 1,
+  "permissions": {
+    "allow": [
+      "Bash(mvn:*)",
+      "Bash(docker:*)",
+      "Bash(docker compose:*)",
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git checkout:*)",
+      "Bash(git branch:*)",
+      "Bash(git push:*)",
+      "Bash(git pull:*)",
+      "Bash(docker logs:*)",
+      "Bash(docker exec:*)",
+      "Bash(ls:*)",
+      "Bash(cat:*)",
+      "Read(**)",
+      "Edit(**)",
+      "Write(**)"
+    ],
+    "deny": [
+      "Write(.gitignore)",
+      "Write(pom.xml)",
+      "Write(CLAUDE.md)",
+      "Write(AGENTS.md)",
+      "Write(GEMINI.md)"
+    ]
+  }
+}
