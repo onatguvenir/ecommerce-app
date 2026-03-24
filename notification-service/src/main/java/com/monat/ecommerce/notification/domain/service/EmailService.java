@@ -19,7 +19,17 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class EmailService {
 
+    private static final String CUSTOMER_NAME = "customerName";
+    private static final String ORDER_NUMBER = "orderNumber";
+    private static final String REASON = "reason";
+
     private final TemplateEngine templateEngine;
+    private EmailService self; // Self-injection for @Async proxy
+
+    @org.springframework.beans.factory.annotation.Autowired
+    public void setSelf(EmailService self) {
+        this.self = self;
+    }
 
     @Value("${application.notification.simulate-email:true}")
     private boolean simulateEmail;
@@ -30,9 +40,8 @@ public class EmailService {
     /**
      * Send email notification.
      *
-     * @Async: Bu metot çağrıldığında AsyncConfig'te tanımlı VirtualThread
-     * executor'ı üzerinde ayrı bir thread'de çalışır. Böylece KafkaListener
-     * thread'i bloke olmaz ve consumer throughput artar.
+     * @Async: This method runs on a separate VirtualThread executor as defined in AsyncConfig. 
+     *         This ensures the KafkaListener thread is not blocked, increasing consumer throughput.
      */
     @Async("taskExecutor")
     public void sendEmail(String to, String subject, String templateName, Map<String, Object> variables) {
@@ -53,9 +62,7 @@ public class EmailService {
                 log.info("Body:\n{}", htmlContent);
                 log.info("=".repeat(80));
             } else {
-                // Actual SMTP sending would go here
                 log.info("Sending email to: {} - Subject: {}", to, subject);
-                // mailSender.send(mimeMessage);
             }
 
         } catch (Exception e) {
@@ -63,50 +70,50 @@ public class EmailService {
         }
     }
 
-    /** Sipariş onay e-postası — Async, VirtualThread üzerinde çalışır */
+    /** Order confirmation email — Runs asynchronously on a VirtualThread */
     @Async("taskExecutor")
     public void sendOrderConfirmation(String email, String orderNumber, String customerName, String totalAmount) {
         Map<String, Object> variables = Map.of(
-                "customerName", customerName,
-                "orderNumber", orderNumber,
+                CUSTOMER_NAME, customerName,
+                ORDER_NUMBER, orderNumber,
                 "totalAmount", totalAmount
         );
 
-        sendEmail(email, "Order Confirmation - " + orderNumber, "order-confirmation", variables);
+        self.sendEmail(email, "Order Confirmation - " + orderNumber, "order-confirmation", variables);
     }
 
-    /** Sipariş tamamlandı e-postası */
+    /** Order completed email */
     @Async("taskExecutor")
     public void sendOrderCompleted(String email, String orderNumber, String customerName) {
         Map<String, Object> variables = Map.of(
-                "customerName", customerName,
-                "orderNumber", orderNumber
+                CUSTOMER_NAME, customerName,
+                ORDER_NUMBER, orderNumber
         );
 
-        sendEmail(email, "Order Completed - " + orderNumber, "order-completed", variables);
+        self.sendEmail(email, "Order Completed - " + orderNumber, "order-completed", variables);
     }
 
-    /** Sipariş iptal e-postası */
+    /** Order cancelled email */
     @Async("taskExecutor")
     public void sendOrderCancelled(String email, String orderNumber, String customerName, String reason) {
         Map<String, Object> variables = Map.of(
-                "customerName", customerName,
-                "orderNumber", orderNumber,
-                "reason", reason
+                CUSTOMER_NAME, customerName,
+                ORDER_NUMBER, orderNumber,
+                REASON, reason
         );
 
-        sendEmail(email, "Order Cancelled - " + orderNumber, "order-cancelled", variables);
+        self.sendEmail(email, "Order Cancelled - " + orderNumber, "order-cancelled", variables);
     }
 
-    /** Ödeme onay e-postası */
+    /** Payment confirmation email */
     @Async("taskExecutor")
     public void sendPaymentConfirmation(String email, String orderNumber, String paymentReference, String amount) {
         Map<String, Object> variables = Map.of(
-                "orderNumber", orderNumber,
+                ORDER_NUMBER, orderNumber,
                 "paymentReference", paymentReference,
                 "amount", amount
         );
 
-        sendEmail(email, "Payment Confirmation - " + orderNumber, "payment-confirmation", variables);
+        self.sendEmail(email, "Payment Confirmation - " + orderNumber, "payment-confirmation", variables);
     }
 }

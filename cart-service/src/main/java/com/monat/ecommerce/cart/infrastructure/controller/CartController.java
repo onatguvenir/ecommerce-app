@@ -45,7 +45,7 @@ public class CartController {
         @PostMapping("/{cartId}/items")
         @Operation(summary = "Add item to cart")
         public ResponseEntity<ApiResponse<CartResponse>> addToCart(
-                        @PathVariable("cartId") String cartId,
+                        @PathVariable(name = "cartId") String cartId,
                         @Valid @RequestBody AddToCartRequest request) {
 
                 CartResponse cart = cartService.addToCart(cartId, request);
@@ -61,8 +61,8 @@ public class CartController {
         @PutMapping("/{cartId}/items/{productId}")
         @Operation(summary = "Update item quantity")
         public ResponseEntity<ApiResponse<CartResponse>> updateItemQuantity(
-                        @PathVariable("cartId") String cartId,
-                        @PathVariable("productId") String productId,
+                        @PathVariable(name = "cartId") String cartId,
+                        @PathVariable(name = "productId") String productId,
                         @RequestParam(name = "quantity") Integer quantity) {
 
                 CartResponse cart = cartService.updateItemQuantity(cartId, productId, quantity);
@@ -78,8 +78,8 @@ public class CartController {
         @DeleteMapping("/{cartId}/items/{productId}")
         @Operation(summary = "Remove item from cart")
         public ResponseEntity<ApiResponse<CartResponse>> removeItem(
-                        @PathVariable("cartId") String cartId,
-                        @PathVariable("productId") String productId) {
+                        @PathVariable(name = "cartId") String cartId,
+                        @PathVariable(name = "productId") String productId) {
 
                 CartResponse cart = cartService.removeItem(cartId, productId);
 
@@ -93,7 +93,7 @@ public class CartController {
 
         @DeleteMapping("/{cartId}")
         @Operation(summary = "Clear cart")
-        public ResponseEntity<ApiResponse<Void>> clearCart(@PathVariable("cartId") String cartId) {
+        public ResponseEntity<ApiResponse<Void>> clearCart(@PathVariable(name = "cartId") String cartId) {
                 cartService.clearCart(cartId);
 
                 return ResponseEntity.ok(ApiResponse.<Void>builder()

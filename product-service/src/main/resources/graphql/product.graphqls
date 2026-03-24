@@ -1,0 +1,85 @@
+type Query {
+  product(productId: ID!): Product
+  products(page: Int = 0, size: Int = 20, sortBy: String = "name"): ProductPage!
+  productsByCategory(category: String!, page: Int = 0, size: Int = 20): ProductPage!
+  productsByStatus(status: ProductStatus!, page: Int = 0, size: Int = 20): ProductPage!
+  searchProducts(
+    keyword: String!
+    category: String
+    minPrice: BigDecimal
+    maxPrice: BigDecimal
+    page: Int = 0
+    size: Int = 20
+  ): ProductPage!
+}
+
+type Mutation {
+  createProduct(input: ProductInput!): Product!
+  updateProduct(productId: ID!, input: ProductInput!): Product!
+  deleteProduct(productId: ID!): Boolean!
+}
+
+type Product {
+  id: ID
+  productId: ID!
+  name: String!
+  description: String!
+  category: String!
+  brand: String
+  price: BigDecimal!
+  currency: String
+  images: [String!]!
+  tags: [String!]!
+  status: String
+  weight: String
+  dimensions: String
+  color: String
+  material: String
+  additionalSpecs: [ProductSpecificationEntry!]!
+}
+
+type ProductPage {
+  content: [Product!]!
+  page: Int!
+  size: Int!
+  totalElements: Long!
+  totalPages: Int!
+  last: Boolean!
+}
+
+type ProductSpecificationEntry {
+  key: String!
+  value: String!
+}
+
+input ProductInput {
+  productId: ID!
+  name: String!
+  description: String!
+  category: String!
+  brand: String
+  price: BigDecimal!
+  currency: String
+  images: [String!]
+  tags: [String!]
+  weight: String
+  dimensions: String
+  color: String
+  material: String
+  additionalSpecs: [ProductSpecificationEntryInput!]
+}
+
+input ProductSpecificationEntryInput {
+  key: String!
+  value: String!
+}
+
+enum ProductStatus {
+  ACTIVE
+  INACTIVE
+  DISCONTINUED
+  OUT_OF_STOCK
+}
+
+scalar BigDecimal
+scalar Long

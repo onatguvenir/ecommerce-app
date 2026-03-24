@@ -3,7 +3,6 @@ package com.monat.ecommerce.product.application.query.handler;
 import com.monat.ecommerce.product.application.dto.ProductResponse;
 import com.monat.ecommerce.product.application.mapper.ProductMapper;
 import com.monat.ecommerce.product.application.query.SearchProductsQuery;
-import com.monat.ecommerce.product.domain.model.Product;
 import com.monat.ecommerce.product.domain.model.ProductStatus;
 import com.monat.ecommerce.product.domain.repository.ProductRepository;
 import com.monat.ecommerce.product.infrastructure.search.ProductSearchDocument;
@@ -24,17 +23,17 @@ import java.util.List;
 /**
  * SearchProductsQuery Handler.
  * <p>
- * CQRS Read Side: Elasticsearch üzerinden gelişmiş ürün araması.
+ * CQRS Read Side: Advanced product search via Elasticsearch.
  * <p>
  * Resilience4j Circuit Breaker:
- * - Elasticsearch erişilemez olduğunda circuit açılır.
- * - Fallback: MongoDB üzerinden basit arama yapılır.
- * - Bu sayede Elasticsearch arızası tüm arama özelliğini çökertmez.
+ * - If Elasticsearch is unavailable, the circuit opens.
+ * - Fallback: Executes a simplified search query via MongoDB.
+ * - This ensures that an Elasticsearch outage doesn't completely disable the search feature.
  * <p>
  * Circuit Breaker States:
- * - CLOSED: Normal çalışma, ES'e gider
- * - OPEN: ES arızalı, fallback devreye girer
- * - HALF_OPEN: Test istekleri gönderilir, ES iyileştiyse CLOSED'a döner
+ * - CLOSED: Normal operation, requests routed to ES.
+ * - OPEN: ES is failing, requests routed to fallback.
+ * - HALF_OPEN: Test requests are sent; if ES has recovered, state returns to CLOSED.
  * </p>
  */
 @Slf4j
@@ -44,15 +43,13 @@ public class SearchProductsQueryHandler implements QueryHandler<SearchProductsQu
 
     private final ElasticsearchOperations elasticsearchOperations;
     private final ProductSearchQueryBuilder queryBuilder;
-    private final ProductRepository productRepository; // Fallback için
+    private final ProductRepository productRepository; // For fallback
     private final ProductMapper productMapper;
 
     /**
-     * @CircuitBreaker: "elasticsearchCB" adlı circuit breaker'ı kullanır.
-     *                  fallbackMethod: ES erişilemez olduğunda çağrılacak metod.
-     *                  application.yml'de
-     *                  resilience4j.circuitbreaker.instances.elasticsearchCB ile
-     *                  yapılandırılır.
+     * @CircuitBreaker: Uses the circuit breaker named "elasticsearchCB".
+     *                  fallbackMethod: Method invoked when ES is unreachable.
+     *                  Configured in application.yml under resilience4j.circuitbreaker.instances.elasticsearchCB.
      */
     @Override
     @CircuitBreaker(name = "elasticsearchCB", fallbackMethod = "searchFallback")
@@ -60,7 +57,7 @@ public class SearchProductsQueryHandler implements QueryHandler<SearchProductsQu
         log.debug("Searching products in Elasticsearch — keyword: {}, category: {}",
                 query.keyword(), query.category());
 
-        // NativeQuery builder ile dinamik sorgu oluştur
+        // Construct dynamic query using NativeQuery builder
         Query nativeQuery = queryBuilder.buildSearchQuery(
                 query.keyword(),
                 query.category(),
@@ -85,11 +82,10 @@ public class SearchProductsQueryHandler implements QueryHandler<SearchProductsQu
     }
 
     /**
-     * Circuit Breaker Fallback: Elasticsearch erişilemez olduğunda MongoDB'ye
-     * düşer.
+     * Circuit Breaker Fallback: Falls back to MongoDB when Elasticsearch is unavailable.
      * <p>
-     * Fallback metod imzası: orijinal metod + Throwable parametresi.
-     * Bu sayede hangi exception'ın circuit'i açtığı loglanabilir.
+     * Fallback method signature: matches original method + Throwable parameter.
+     * This allows logging the specific exception that triggered the circuit.
      * </p>
      */
     @SuppressWarnings("unused")
@@ -97,7 +93,7 @@ public class SearchProductsQueryHandler implements QueryHandler<SearchProductsQu
         log.warn("Elasticsearch circuit breaker OPEN — falling back to MongoDB. Reason: {}",
                 throwable.getMessage());
 
-        // MongoDB üzerinden basit kategori/isim araması
+        // Basic category/keyword search via MongoDB
         if (query.category() != null) {
             return productRepository.findByCategory(query.category(), query.pageable())
                     .map(productMapper::toResponse);
@@ -109,6 +105,6 @@ public class SearchProductsQueryHandler implements QueryHandler<SearchProductsQu
         }
 
         return productRepository.findByStatus(ProductStatus.ACTIVE, query.pageable())
-                .map(productMapper::toResponse);
+                    .map(productMapper::toResponse);
     }
 }

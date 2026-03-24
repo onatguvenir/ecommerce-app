@@ -122,8 +122,6 @@ management:
       enabled: true
   metrics:
     export:
-      prometheus:
-        enabled: false
       otlp:
         enabled: true
     distribution:
@@ -141,6 +139,10 @@ management:
   tracing:
     sampling:
       probability: 1.0
+  prometheus:
+    metrics:
+      export:
+        enabled: false
 
 # Logging
 logging:

@@ -13,22 +13,21 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 /**
- * Elasticsearch Senkronizasyon Servisi — Event-Driven & Async.
+ * Elasticsearch Synchronization Service — Event-Driven & Async.
  * <p>
- * Önceki implementasyonda ProductApplicationService doğrudan bu servisi
- * çağırıyordu.
- * Bu durum write path'i (MongoDB kaydetme) ES latency'sine bağımlı kılıyordu.
+ * Previous implementation: ProductApplicationService directly called this service.
+ * This made the write path (MongoDB save) dependent on ES latency.
  * <p>
- * Yeni yaklaşım — Domain Event Pattern:
- * 1. CommandHandler, MongoDB'ye yazar ve domain event yayınlar.
- * 2. Bu servis @EventListener ile event'i yakalar.
- * 3. @Async sayesinde ayrı bir thread pool'da ES indexleme yapar.
+ * New Approach — Domain Event Pattern:
+ * 1. CommandHandler writes to MongoDB and publishes a domain event.
+ * 2. This service catches the event via @EventListener.
+ * 3. @Async ensures ES indexing happens in a separate thread pool.
  * <p>
- * Avantajlar:
- * - Write latency düşer: ES yavaşlasa bile MongoDB yazma etkilenmez.
- * - Loose coupling: CommandHandler, ES'ten haberdar değil.
- * - Resilience: ES geçici olarak erişilemez olsa bile event işleme
- * retry mekanizması ile tekrar denenebilir (future enhancement).
+ * Advantages:
+ * - Lower Write Latency: MongoDB writes are unaffected if ES slows down.
+ * - Loose Coupling: CommandHandlers are unaware of ES.
+ * - Resilience: If ES is temporarily unavailable, event processing can be 
+ *   retried (future enhancement).
  * </p>
  */
 @Slf4j
@@ -39,10 +38,10 @@ public class ProductSyncService {
     private final ProductSearchRepository searchRepository;
 
     /**
-     * ProductCreatedEvent dinleyicisi.
+     * Listener for ProductCreatedEvent.
      * 
-     * @Async: Bu metod, event yayıncısının thread'inden bağımsız,
-     *         ayrı bir thread'de (AsyncTaskExecutor) çalışır.
+     * @Async: This method runs independently of the event publisher's thread,
+     *         in a separate thread (AsyncTaskExecutor).
      */
     @Async
     @EventListener
@@ -52,8 +51,8 @@ public class ProductSyncService {
     }
 
     /**
-     * ProductUpdatedEvent dinleyicisi.
-     * ES'teki mevcut document'ı günceller (upsert semantiği).
+     * Listener for ProductUpdatedEvent.
+     * Updates the existing document in ES (upsert semantics).
      */
     @Async
     @EventListener
@@ -63,8 +62,8 @@ public class ProductSyncService {
     }
 
     /**
-     * ProductDeletedEvent dinleyicisi.
-     * ES'ten document'ı kaldırır.
+     * Listener for ProductDeletedEvent.
+     * Removes the document from ES.
      */
     @Async
     @EventListener
@@ -74,8 +73,8 @@ public class ProductSyncService {
     }
 
     /**
-     * Tüm ürünleri yeniden index'ler (bakım operasyonu).
-     * Admin endpoint'ten veya scheduled job'dan çağrılabilir.
+     * Re-indexes all products (maintenance operation).
+     * Can be called from an admin endpoint or a scheduled job.
      */
     public void reindexAll(Iterable<Product> products) {
         log.info("Starting full ES reindex...");
@@ -95,8 +94,8 @@ public class ProductSyncService {
             searchRepository.save(searchDoc);
             log.debug("Product indexed in Elasticsearch: {}", product.getProductId());
         } catch (Exception e) {
-            // ES hatası write path'i etkilemez — sadece loglanır.
-            // Gelecekte: Dead Letter Queue veya retry mekanizması eklenebilir.
+            // ES failure does not affect the write path — it is only logged.
+            // Future Enhancement: Dead Letter Queue or retry mechanism can be added.
             log.error("Failed to index product in Elasticsearch: {}", product.getProductId(), e);
         }
     }

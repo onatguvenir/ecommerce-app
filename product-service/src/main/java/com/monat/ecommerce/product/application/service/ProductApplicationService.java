@@ -18,11 +18,12 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 
 /**
+ * Product Application Service — Orchestrates business logic across Command and Query sides.
  * <p>
- * Neden korunuyor?
- * - Geriye dönük uyumluluk: Mevcut controller bu servisi kullanıyor.
- * - Kademeli geçiş: Controller doğrudan CQRS servislerine geçirildiğinde bu
- * sınıf kaldırılabilir.
+ * Why is this retained?
+ * - Backward Compatibility: Existing controllers still depend on this service.
+ * - Gradual Migration: Once controllers are refactored to use CQRS services directly, 
+ *   this class may be decommissioned.
  * </p>
  */
 @Slf4j

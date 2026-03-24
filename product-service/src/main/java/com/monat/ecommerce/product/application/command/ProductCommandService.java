@@ -11,11 +11,11 @@ import org.springframework.stereotype.Service;
 /**
  * CQRS Command Service — Write Side Facade.
  * <p>
- * Facade Pattern: Controller'ın doğrudan handler'lara bağımlı olmasını önler.
- * Yeni bir command eklendiğinde sadece bu sınıfa metod eklenir,
- * controller değişmez (Open/Closed Principle).
+ * Facade Pattern: Prevents the controller from being directly dependent on individual handlers.
+ * When a new command is added, only this class needs to be updated, keeping the controller 
+ * unchanged (Open/Closed Principle).
  * <p>
- * Bu sınıf iş mantığı içermez; sadece doğru handler'a yönlendirir.
+ * This class contains no business logic; it merely routes commands to the appropriate handler.
  * </p>
  */
 @Slf4j

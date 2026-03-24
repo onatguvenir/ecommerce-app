@@ -45,7 +45,7 @@ public class OrderController {
 
     @GetMapping("/{orderId}")
     @Operation(summary = "Get order by ID")
-    public ResponseEntity<ApiResponse<OrderResponse>> getOrderById(@PathVariable("orderId") UUID orderId) {
+    public ResponseEntity<ApiResponse<OrderResponse>> getOrderById(@PathVariable(name = "orderId") UUID orderId) {
         OrderResponse response = orderApplicationService.getOrderById(orderId);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
@@ -53,7 +53,7 @@ public class OrderController {
     @GetMapping("/number/{orderNumber}")
     @Operation(summary = "Get order by order number")
     public ResponseEntity<ApiResponse<OrderResponse>> getOrderByNumber(
-            @PathVariable("orderNumber") String orderNumber) {
+            @PathVariable(name = "orderNumber") String orderNumber) {
         OrderResponse response = orderApplicationService.getOrderByNumber(orderNumber);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
@@ -61,7 +61,7 @@ public class OrderController {
     @GetMapping("/user/{userId}")
     @Operation(summary = "Get orders for a user")
     public ResponseEntity<ApiResponse<PagedResponse<OrderResponse>>> getUserOrders(
-            @PathVariable("userId") UUID userId,
+            @PathVariable(name = "userId") UUID userId,
             @RequestParam(defaultValue = "0", name = "page") int page,
             @RequestParam(defaultValue = "20", name = "size") int size) {
 

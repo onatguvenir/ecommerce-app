@@ -4,20 +4,19 @@ import com.monat.ecommerce.product.domain.model.Product;
 import org.springframework.context.ApplicationEvent;
 
 /**
- * Domain Event: Yeni ürün oluşturulduğunda yayınlanır.
+ * Domain Event: Published when a new product is created.
  * <p>
- * Domain Event Pattern: Domain'deki önemli olayları temsil eder.
- * ApplicationEvent extends etmek Spring'in event altyapısını kullanmamızı
- * sağlar.
+ * Domain Event Pattern: Represents significant occurrences within the domain.
+ * Extending ApplicationEvent integrates the event with Spring's event infrastructure.
  * <p>
- * Bu event'i dinleyen ProductSyncService, Elasticsearch'e asenkron olarak
- * index işlemi yapar. Bu sayede write path (MongoDB kaydetme) ile
- * read model güncelleme (ES indexleme) birbirinden ayrılır.
+ * This event is consumed by ProductSyncService to trigger asynchronous indexing 
+ * in Elasticsearch. This separates the write path (MongoDB persistence) from 
+ * the read model update (ES indexing).
  * </p>
  */
 public class ProductCreatedEvent extends ApplicationEvent {
 
-    private final Product product;
+    private final transient Product product;
 
     public ProductCreatedEvent(Object source, Product product) {
         super(source);

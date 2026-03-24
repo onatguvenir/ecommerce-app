@@ -29,12 +29,11 @@ import static org.mockito.Mockito.*;
 /**
  * ProductApplicationService Unit Tests (CQRS Delegation Layer).
  * <p>
- * Bu test sınıfı, ProductApplicationService'in doğru şekilde
- * ProductCommandService ve ProductQueryService'e delege ettiğini doğrular.
+ * This test class verifies that ProductApplicationService correctly 
+ * delegates calls to ProductCommandService and ProductQueryService.
  * <p>
- * Artık ProductSyncService ve ProductSearchRepository mock'lanmıyor —
- * bu sorumluluklar handler'lara ve event listener'lara taşındı.
- * </p>
+ * ProductSyncService and ProductSearchRepository are no longer mocked here — 
+ * those responsibilities have moved to handlers and event listeners.
  */
 @ExtendWith(MockitoExtension.class)
 @DisplayName("ProductApplicationService (CQRS Delegation) Tests")
@@ -76,7 +75,7 @@ class ProductApplicationServiceTest {
     }
 
     @Test
-    @DisplayName("createProduct: CreateProductCommand oluşturulup CommandService'e delege edilmeli")
+    @DisplayName("createProduct: Should create CreateProductCommand and delegate to CommandService")
     void createProduct_ShouldDelegateToCommandService() {
         // Given
         when(commandService.createProduct(any())).thenReturn(productResponse);
@@ -93,7 +92,7 @@ class ProductApplicationServiceTest {
     }
 
     @Test
-    @DisplayName("updateProduct: UpdateProductCommand oluşturulup CommandService'e delege edilmeli")
+    @DisplayName("updateProduct: Should create UpdateProductCommand and delegate to CommandService")
     void updateProduct_ShouldDelegateToCommandService() {
         // Given
         when(commandService.updateProduct(any())).thenReturn(productResponse);
@@ -107,7 +106,7 @@ class ProductApplicationServiceTest {
     }
 
     @Test
-    @DisplayName("deleteProduct: DeleteProductCommand oluşturulup CommandService'e delege edilmeli")
+    @DisplayName("deleteProduct: Should create DeleteProductCommand and delegate to CommandService")
     void deleteProduct_ShouldDelegateToCommandService() {
         // Given
         doNothing().when(commandService).deleteProduct(any());
@@ -121,7 +120,7 @@ class ProductApplicationServiceTest {
     }
 
     @Test
-    @DisplayName("getProduct: GetProductQuery oluşturulup QueryService'e delege edilmeli")
+    @DisplayName("getProduct: Should create GetProductQuery and delegate to QueryService")
     void getProduct_ShouldDelegateToQueryService() {
         // Given
         when(queryService.getProduct("PROD-001")).thenReturn(productResponse);
@@ -137,7 +136,7 @@ class ProductApplicationServiceTest {
     }
 
     @Test
-    @DisplayName("getProduct: Ürün bulunamazsa ResourceNotFoundException yayılmalı")
+    @DisplayName("getProduct: Should propagate ResourceNotFoundException if product not found")
     void getProduct_NotFound_ShouldPropagateException() {
         // Given
         when(queryService.getProduct("INVALID"))
@@ -150,7 +149,7 @@ class ProductApplicationServiceTest {
     }
 
     @Test
-    @DisplayName("getAllProducts: QueryService'e delege edilmeli")
+    @DisplayName("getAllProducts: Should delegate to QueryService")
     void getAllProducts_ShouldDelegateToQueryService() {
         // Given
         Page<ProductResponse> page = new PageImpl<>(List.of(productResponse));
@@ -166,7 +165,7 @@ class ProductApplicationServiceTest {
     }
 
     @Test
-    @DisplayName("getProductsByCategory: QueryService'e delege edilmeli")
+    @DisplayName("getProductsByCategory: Should delegate to QueryService")
     void getProductsByCategory_ShouldDelegateToQueryService() {
         // Given
         Page<ProductResponse> page = new PageImpl<>(List.of(productResponse));

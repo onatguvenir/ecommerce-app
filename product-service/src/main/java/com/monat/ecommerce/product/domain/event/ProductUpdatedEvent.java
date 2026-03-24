@@ -4,12 +4,12 @@ import com.monat.ecommerce.product.domain.model.Product;
 import org.springframework.context.ApplicationEvent;
 
 /**
- * Domain Event: Ürün güncellendiğinde yayınlanır.
- * Elasticsearch read modelini asenkron günceller.
+ * Domain Event: Published when a product is updated.
+ * Triggers an asynchronous update of the Elasticsearch read model.
  */
 public class ProductUpdatedEvent extends ApplicationEvent {
 
-    private final Product product;
+    private final transient Product product;
 
     public ProductUpdatedEvent(Object source, Product product) {
         super(source);

@@ -1,78 +1,78 @@
-# Postman Collection Kullanım Kılavuzu
+# Postman Collection Usage Guide
 
-## Kurulum
+## Setup
 
-1. **Postman'ı İndirin**: [Postman İndir](https://www.postman.com/downloads/)
+1. **Download Postman**: [Download Postman](https://www.postman.com/downloads/)
 
-2. **Collection'ı İçe Aktarın**:
-   - Postman'ı açın
-   - Sol üst köşedeki "Import" butonuna tıklayın
-   - `Monat-Ecommerce-API.postman_collection.json` dosyasını seçin
-   - "Import" butonuna tıklayın
+2. **Import the Collection**:
+   - Open Postman
+   - Click the "Import" button in the top-left corner
+   - Select the `Monat-Ecommerce-API.postman_collection.json` file
+   - Click the "Import" button
 
-## Ortam Değişkenleri (Environment Variables)
+## Environment Variables
 
-Collection otomatik olarak aşağıdaki değişkenleri içerir:
+The collection automatically includes the following variables:
 
-### Servis URL'leri
+### Service URLs
 - `USER_SERVICE_URL`: http://localhost:8081
 - `PRODUCT_SERVICE_URL`: http://localhost:8082
 - `CART_SERVICE_URL`: http://localhost:8084
 - `ORDER_SERVICE_URL`: http://localhost:8085
 
-### Dinamik Değişkenler (Test sırasında doldurulacak)
-- `USER_ID`: Kullanıcı UUID'si
-- `PRODUCT_ID`: Ürün ID'si
-- `CART_ID`: Sepet ID'si
-- `ANONYMOUS_CART_ID`: Anonim sepet ID'si
-- `ORDER_ID`: Sipariş UUID'si
-- `ORDER_NUMBER`: Sipariş numarası
+### Dynamic Variables (To be populated during testing)
+- `USER_ID`: User UUID
+- `PRODUCT_ID`: Product ID
+- `CART_ID`: Cart ID
+- `ANONYMOUS_CART_ID`: Anonymous cart ID
+- `ORDER_ID`: Order UUID
+- `ORDER_NUMBER`: Order number
 
-## Test Akışı
+## Test Flow
 
-### 1. Kullanıcı Oluşturma
+### 1. User Registration
 ```
 POST /api/users/register
 ```
-- Yeni bir kullanıcı kaydeder
-- Response'dan `userId`'yi kopyalayın ve `USER_ID` değişkenine yapıştırın
+- Registers a new user
+- Copy the `userId` from the response and paste it into the `USER_ID` variable
 
-### 2. Ürün Oluşturma
+### 2. Product Creation
 ```
 POST /api/products
 ```
-- Yeni bir ürün oluşturur
-- Response'dan `productId`'yi kopyalayın ve `PRODUCT_ID` değişkenine yapıştırın
+- Creates a new product
+- Copy the `productId` from the response and paste it into the `PRODUCT_ID` variable
 
-### 3. Sepete Ürün Ekleme
+### 3. Adding Product to Cart
 ```
 POST /api/cart/{cartId}/items
 ```
-- `CART_ID` değişkenine bir değer girin (örn: "user-123" veya "session-abc")
-- Sepete ürün ekler
+- Enter a value for the `CART_ID` variable (e.g., "user-123" or "session-abc")
+- Adds a product to the cart
 
-### 4. Sepeti Görüntüleme
+### 4. Viewing Cart
 ```
 GET /api/cart/{cartId}
 ```
-- Sepet içeriğini görüntüler
+- Displays cart contents
 
-### 5. Sipariş Oluşturma
+### 5. Order Creation
 
-#### Seçenek A: Doğrudan Sipariş
+#### Option A: Direct Order
 ```
 POST /api/orders (Direct)
 ```
-- Ürünleri doğrudan belirterek sipariş oluşturur
+- Creates an order by specifying products directly
 
-#### Seçenek B: Sepetten Sipariş
+#### Option B: Order from Cart
 ```
 POST /api/orders (From Cart)
 ```
-- Mevcut sepetten sipariş oluşturur
-- Sipariş oluşturulduktan sonra sepet otomatik olarak silinir
+- Creates an order from the existing cart
+- The cart is automatically deleted after the order is created
 
-## Endpoint Grupları
+## Endpoint Groups
 
 ### User Service (Port 8081)
 - ✅ Register User
@@ -102,70 +102,70 @@ POST /api/orders (From Cart)
 
 ### Order Service (Port 8085)
 - ✅ Create Order (Direct)
-- ✅ Create Order (From Cart) **[YENİ]**
+- ✅ Create Order (From Cart) **[NEW]**
 - ✅ Get Order by ID
 - ✅ Get Order by Number
 - ✅ Get User Orders (Paginated)
 
-## Örnek Test Senaryosu
+## Example Test Scenario
 
-### Tam E2E Akış:
+### Full E2E Flow:
 
-1. **Kullanıcı Kaydı**
+1. **User Registration**
    ```
    POST /api/users/register
-   → USER_ID'yi kaydet
+   → Save USER_ID
    ```
 
-2. **Ürün Oluşturma**
+2. **Product Creation**
    ```
    POST /api/products
-   → PRODUCT_ID'yi kaydet
+   → Save PRODUCT_ID
    ```
 
-3. **Sepete Ekleme**
+3. **Add to Cart**
    ```
    POST /api/cart/user-{{USER_ID}}/items
    → CART_ID = "user-{{USER_ID}}"
    ```
 
-4. **Sepeti Kontrol**
+4. **Verify Cart**
    ```
    GET /api/cart/user-{{USER_ID}}
    ```
 
-5. **Sepetten Sipariş**
+5. **Order from Cart**
    ```
    POST /api/orders (From Cart)
-   → ORDER_ID'yi kaydet
+   → Save ORDER_ID
    ```
 
-6. **Siparişi Görüntüleme**
+6. **View Order**
    ```
    GET /api/orders/{{ORDER_ID}}
    ```
 
-## Notlar
+## Notes
 
-- Tüm servisler Docker Compose ile çalışıyor olmalıdır
-- Swagger UI'dan da test edebilirsiniz:
+- All services must be running with Docker Compose
+- You can also test via Swagger UI:
   - User: http://localhost:8081/swagger-ui.html
   - Product: http://localhost:8082/swagger-ui.html
   - Cart: http://localhost:8084/swagger-ui.html
   - Order: http://localhost:8085/swagger-ui.html
 
-## Sorun Giderme
+## Troubleshooting
 
-### Servisler çalışmıyor mu?
+### Services not running?
 ```bash
 docker-compose ps
 docker-compose up -d
 ```
 
-### Veritabanı bağlantı hatası?
+### Database connection error?
 ```bash
 docker-compose restart
 ```
 
-### Port çakışması?
-`docker-compose.yml` dosyasındaki portları değiştirin.
+### Port conflict?
+Change the ports in the `docker-compose.yml` file.

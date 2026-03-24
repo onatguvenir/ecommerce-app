@@ -17,18 +17,18 @@ import java.util.HashMap;
 /**
  * CreateProductCommand Handler.
  * <p>
- * CQRS Write Side: Sadece yazma operasyonundan sorumludur.
+ * CQRS Write Side: Responsible solely for write operations.
  * <p>
- * Sorumlulukları:
- * 1. Business rule doğrulaması (duplicate productId kontrolü)
- * 2. Domain nesnesi oluşturma
- * 3. MongoDB'ye persist etme
- * 4. Domain event yayınlama (Elasticsearch sync asenkron yapılır)
+ * Responsibilities:
+ * 1. Business rule validation (e.g., checking for duplicate productId).
+ * 2. Domain object creation.
+ * 3. Persistence to MongoDB.
+ * 4. Domain event publication (Elasticsearch synchronization is handled asynchronously).
  * <p>
- * ApplicationEventPublisher kullanımı sayesinde Elasticsearch senkronizasyonu
- * write path'ten ayrılmış, asenkron hale getirilmiştir. Bu sayede:
- * - Write latency düşer (ES yavaşlasa bile MongoDB yazma etkilenmez)
- * - Loose coupling sağlanır
+ * Using ApplicationEventPublisher decouples Elasticsearch synchronization from the write path, 
+ * making it asynchronous. This results in:
+ * - Reduced write latency (MongoDB writes are unaffected by ES performance).
+ * - Loose coupling between components.
  * </p>
  */
 @Slf4j
@@ -41,27 +41,27 @@ public class CreateProductCommandHandler implements CommandHandler<CreateProduct
     private final ProductMapper productMapper;
 
     /**
-     * @Transactional: MongoDB yazma işlemini transaction içine alır.
-     *                 Event publish, transaction commit'ten SONRA gerçekleşir
-     *                 (TransactionalEventListener ile kullanılabilir).
+     * @Transactional: Wraps the MongoDB write operation in a transaction.
+     *                 Event publication occurs AFTER the transaction is committed
+     *                 (can be further refined with TransactionalEventListener).
      */
     @Override
     @Transactional
     public ProductResponse handle(CreateProductCommand command) {
         log.info("Handling CreateProductCommand for productId: {}", command.productId());
 
-        // Guard clause: business key uniqueness kontrolü
+        // Guard clause: enforce business key uniqueness
         if (productRepository.existsByProductId(command.productId())) {
             throw new IllegalArgumentException("Product ID already exists: " + command.productId());
         }
 
-        // Domain nesnesi oluşturma — MapStruct kullanılıyor
+        // Domain object mapping via MapStruct
         Product product = productMapper.toEntity(command);
         product = productRepository.save(product);
 
         log.info("Product persisted to MongoDB: {}", product.getProductId());
 
-        // Domain event yayınla
+        // Publish domain event
         eventPublisher.publishEvent(new ProductCreatedEvent(this, product));
 
         return productMapper.toResponse(product);

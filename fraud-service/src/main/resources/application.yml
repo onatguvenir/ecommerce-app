@@ -28,9 +28,9 @@ management:
     web:
       exposure:
         include: health,info,prometheus
-  metrics:
-    export:
-      prometheus:
+  prometheus:
+    metrics:
+      export:
         enabled: true
 
 app:

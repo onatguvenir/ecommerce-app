@@ -30,7 +30,12 @@ public class SecurityConfig {
                         // Public endpoints
                         .requestMatchers("/api/users/register").permitAll()
                         .requestMatchers("/actuator/**").permitAll()
-                        .requestMatchers("/swagger-ui/**", "/api-docs/**").permitAll()
+                        .requestMatchers(
+                                "/swagger-ui/**",
+                                "/swagger-ui.html",
+                                "/v3/api-docs/**",
+                                "/api-docs/**")
+                        .permitAll()
                         // Secured endpoints (will be handled by API Gateway)
                         .anyRequest().permitAll() // For now, allow all during development
                 )

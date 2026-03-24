@@ -2,6 +2,10 @@ spring:
   application:
     name: product-service
 
+  graphql:
+    graphiql:
+      enabled: true
+
   # Virtual Threads (Project Loom) — JDK 21 + Spring Boot 3.2+
   # Educational Note:
   # Disables Tomcat's traditional thread pool. Every request and I/O operation 
@@ -65,8 +69,6 @@ management:
       enabled: true
   metrics:
     export:
-      prometheus:
-        enabled: false
       otlp:
         enabled: true
     distribution:
@@ -84,6 +86,10 @@ management:
   tracing:
     sampling:
       probability: 1.0
+  prometheus:
+    metrics:
+      export:
+        enabled: false
 
 # Resilience4j Circuit Breaker configuration
 # Educational Note:

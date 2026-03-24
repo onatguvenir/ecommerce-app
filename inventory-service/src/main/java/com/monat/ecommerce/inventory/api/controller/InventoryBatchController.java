@@ -37,13 +37,13 @@ public class InventoryBatchController {
     private final Job bulkStockUpdateJob;
 
     /**
-     * CSV dosyası yüklenerek RabbitMQ destekli toplu stok güncelleme
-     * asenkron Batch Job'ını tetikler.
+     * Triggers an asynchronous Batch Job for bulk stock updates supported by RabbitMQ 
+     * by uploading a CSV file.
      *
-     * @param file Yüklenen CSV dosyası
+     * @param file The uploaded CSV file
      */
     @PostMapping("/import")
-    public ResponseEntity<ApiResponse<String>> importCsvToDBJob(@RequestParam("file") MultipartFile file) {
+    public ResponseEntity<ApiResponse<String>> importCsvToDBJob(@RequestParam(name = "file") MultipartFile file) {
 
         if (file.isEmpty()) {
             return ResponseEntity.badRequest()
@@ -51,25 +51,25 @@ public class InventoryBatchController {
         }
 
         try {
-            // Spring Batch FlatFileItemReader'ın okuyabilmesi için dosyayı diske (temp) yazarız.
-            String tempFilePath = System.getProperty("java.io.tmpdir") + "/" + file.getOriginalFilename();
+            // Write the file to disk (temp) so the Spring Batch FlatFileItemReader can read it.
+            String tempFilePath = System.getProperty("java.io.tmpdir") + File.separator + file.getOriginalFilename();
             File tempFile = new File(tempFilePath);
             file.transferTo(tempFile);
 
-            log.info("Batch job tetikleniyor. Dosya: {}", tempFilePath);
+            log.info("Triggering batch job. File: {}", tempFilePath);
 
             JobParameters jobParameters = new JobParametersBuilder()
                     .addString("filePath", tempFilePath)
                     .addLong("startAt", System.currentTimeMillis())
                     .toJobParameters();
 
-            // Job asenkron çalışır ve arkaplanda RabbitMQ üzerinden akış başlar
+            // Job executes asynchronously, and the process begins via RabbitMQ
             jobLauncher.run(bulkStockUpdateJob, jobParameters);
 
             return ResponseEntity.ok(ApiResponse.success("Batch is triggered and processing started asynchronously behind RabbitMQ"));
 
         } catch (Exception e) {
-            log.error("Batch tetikleme sırasında hata oluştu", e);
+            log.error("An error occurred while triggering the batch job", e);
             return ResponseEntity.internalServerError()
                     .body(ApiResponse.error("Failed to start batch job: " + e.getMessage()));
         }

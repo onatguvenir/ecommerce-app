@@ -14,13 +14,11 @@ import org.springframework.transaction.annotation.Transactional;
 /**
  * DeleteProductCommand Handler.
  * <p>
- * Write Side: Silme operasyonu.
+ * Write Side: Handles the deletion operation.
  * <p>
- * 
- * @CacheEvict: Silinen ürünü Redis cache'den temizler.
- *              allEntries=false: Sadece ilgili key silinir, diğer cache
- *              entry'leri korunur.
- *              </p>
+ * @CacheEvict: Evicts the deleted product from the Redis cache.
+ *              allEntries=false: Only the specific entry is removed; other entries are preserved.
+ * </p>
  */
 @Slf4j
 @Component
@@ -42,7 +40,7 @@ public class DeleteProductCommandHandler implements CommandHandler<DeleteProduct
 
         log.info("Product deleted from MongoDB: {}", command.productId());
 
-        // Elasticsearch'ten asenkron kaldır
+        // Remove from Elasticsearch asynchronously
         eventPublisher.publishEvent(new ProductDeletedEvent(this, product.getId(), command.productId()));
 
         return null;

@@ -18,14 +18,12 @@ import java.util.HashMap;
 /**
  * UpdateProductCommand Handler.
  * <p>
- * Write Side: Güncelleme operasyonu.
+ * Write Side: Handles the update operation.
  * <p>
- * 
- * @CacheEvict: Güncelleme sonrası Redis cache'deki eski veriyi temizler.
- *              Cache key olarak productId kullanılır — bu sayede sonraki GET
- *              isteği
- *              taze veriyi MongoDB'den çeker ve cache'e yazar.
- *              </p>
+ * @CacheEvict: Clears stale data from the Redis cache after an update.
+ *              The productId is used as the cache key, ensuring subsequent GET 
+ *              requests fetch fresh data from MongoDB and re-populate the cache.
+ * </p>
  */
 @Slf4j
 @Component
@@ -41,17 +39,17 @@ public class UpdateProductCommandHandler implements CommandHandler<UpdateProduct
     public ProductResponse handle(UpdateProductCommand command) {
         log.info("Handling UpdateProductCommand for productId: {}", command.productId());
 
-        // Mevcut ürünü bul
+        // Find existing product
         Product product = productRepository.findByProductId(command.productId())
                 .orElseThrow(() -> new ResourceNotFoundException("Product not found: " + command.productId()));
 
-        // Domain nesnesini güncelle — MapStruct kullanılıyor
+        // Update domain entity via MapStruct
         productMapper.updateEntityFromCommand(command, product);
         product = productRepository.save(product);
 
         log.info("Product updated in MongoDB: {}", product.getProductId());
 
-        // Elasticsearch'ü asenkron güncelle
+        // Update Elasticsearch asynchronously
         eventPublisher.publishEvent(new ProductUpdatedEvent(this, product));
 
         return productMapper.toResponse(product);

@@ -1,8 +1,8 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8" />
-    <title>Ödeme Başarısız</title>
+    <title>Payment Failed</title>
     <style>
         body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
         .container { max-width: 600px; margin: 0 auto; padding: 20px; }
@@ -15,23 +15,23 @@
 <body>
 <div class="container">
     <div class="header">
-        <h1>❌ Ödeme Başarısız</h1>
+        <h1>❌ Payment Failed</h1>
     </div>
     <div class="content">
-        <p>Merhaba <strong th:text="${customerName}">Müşteri</strong>,</p>
-        <p>Maalesef <strong th:text="${orderId}">#ORDER-001</strong> numaralı siparişinizin ödemesi gerçekleştirilemedi.</p>
+        <p>Hello <strong th:text="${customerName}">Customer</strong>,</p>
+        <p>Unfortunately, the payment for your order <strong th:text="${orderId}">#ORDER-001</strong> could not be processed.</p>
 
         <div class="alert-box">
-            <p><strong>Hata Nedeni:</strong> <span th:text="${reason}">Bilinmeyen hata</span></p>
+            <p><strong>Reason:</strong> <span th:text="${reason}">Unknown error</span></p>
         </div>
 
-        <p>Lütfen ödeme bilgilerinizi kontrol ederek tekrar deneyiniz. Sorun devam ederse destek ekibimizle iletişime geçiniz.</p>
-        <p>İyi günler dileriz.</p>
-        <p>Monat E-Commerce Ekibi</p>
+        <p>Please check your payment details and try again. If the issue persists, please contact our support team.</p>
+        <p>Best regards,</p>
+        <p>Monat E-Commerce Team</p>
     </div>
     <div class="footer">
-        <p>© 2026 Monat E-Commerce. Tüm hakları saklıdır.</p>
-        <p>Sorularınız için: support@monat-ecommerce.com</p>
+        <p>© 2026 Monat E-Commerce. All rights reserved.</p>
+        <p>For questions: support@monat-ecommerce.com</p>
     </div>
 </div>
 </body>

@@ -11,18 +11,18 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Ödeme event'lerini tüketen Kafka Consumer.
+ * Kafka Consumer for consuming payment events.
  *
- * Tasarım notu:
- *  PaymentCompletedEvent ve PaymentFailedEvent'te userId alanı bulunmaz.
- *  Bu nedenle User Service çağrısı yapılamaz. Müşteri bildirimleri esas
- *  olarak OrderEventConsumer üzerinden (order.completed, order.cancelled)
- *  gerçekleştirilir. Payment consumer'ı DLQ / Idempotency koruma altında
- *  loglama ve iç bildirim işlemleri için saklanmaktadır.
+ * Design Note:
+ *  PaymentCompletedEvent and PaymentFailedEvent do not contain a userId field.
+ *  As a result, User Service calls cannot be made. Customer notifications are mainly 
+ *  handled via OrderEventConsumer (order.completed, order.cancelled).
+ *  The payment consumer is retained for logging, auditing, and internal processing 
+ *  under DLQ / Idempotency protection.
  *
- *  Production-Grade özellikler:
- *   - Idempotency koruması (ProcessedEvent tablosu)
- *   - Exception fırlatma → KafkaConsumerConfig DefaultErrorHandler devreye girer (DLQ)
+ *  Production-Grade Features:
+ *   - Idempotency protection (via ProcessedEvent table).
+ *   - Exception handling → triggers KafkaConsumerConfig's DefaultErrorHandler (DLQ).
  */
 @Slf4j
 @Component
@@ -45,8 +45,8 @@ public class PaymentEventConsumer {
         log.info("Payment completed: paymentId={}, orderId={}, amount={}",
                 event.getPaymentId(), event.getOrderId(), event.getAmount());
 
-        // Müşteri bildirimi OrderEventConsumer > order.completed event'i ile gönderilir.
-        // Bu consumer sadece iç işlem kaydı / audit amacıyla çalışır.
+        // Customer notification is dispatched via OrderEventConsumer > order.completed event.
+        // This consumer acts solely for internal record keeping / auditing purposes.
 
         markAsProcessed(eventKey, eventType);
     }
@@ -62,7 +62,7 @@ public class PaymentEventConsumer {
             return;
         }
 
-        // Ödeme başarısız — sipariş iptal event'i gelince order.cancelled consumer tetiklenecek
+        // Payment failed — order.cancelled consumer will trigger when the order cancellation event arrives
         log.warn("Payment failed: paymentId={}, orderId={}, reason={}",
                 event.getPaymentId(), event.getOrderId(), event.getFailureReason());
 

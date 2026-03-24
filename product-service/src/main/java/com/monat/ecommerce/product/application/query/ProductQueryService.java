@@ -2,8 +2,6 @@ package com.monat.ecommerce.product.application.query;
 
 import com.monat.ecommerce.product.application.dto.ProductResponse;
 import com.monat.ecommerce.product.application.mapper.ProductMapper;
-import com.monat.ecommerce.product.application.query.GetProductQuery;
-import com.monat.ecommerce.product.application.query.SearchProductsQuery;
 import com.monat.ecommerce.product.application.query.handler.GetProductQueryHandler;
 import com.monat.ecommerce.product.application.query.handler.SearchProductsQueryHandler;
 import com.monat.ecommerce.product.domain.model.ProductStatus;
@@ -18,11 +16,11 @@ import org.springframework.transaction.annotation.Transactional;
 /**
  * CQRS Query Service — Read Side Facade.
  * <p>
- * Tüm okuma operasyonlarını koordine eder.
- * Read model, write model'den tamamen bağımsızdır:
- * - Tekil okuma: Redis cache → MongoDB
- * - Arama: Elasticsearch (circuit breaker) → MongoDB fallback
- * - Liste: MongoDB (paginated)
+ * Orchestrates all read operations.
+ * The read model is entirely independent of the write model:
+ * - Single Lookup: Redis cache → MongoDB fallback.
+ * - Search: Elasticsearch (with circuit breaker) → MongoDB fallback.
+ * - Listing: MongoDB (paginated).
  * </p>
  */
 @Slf4j

@@ -3,8 +3,8 @@ package com.monat.ecommerce.product.domain.event;
 import org.springframework.context.ApplicationEvent;
 
 /**
- * Domain Event: Ürün silindiğinde yayınlanır.
- * Elasticsearch'ten asenkron kaldırır.
+ * Domain Event: Published when a product is deleted.
+ * Triggers an asynchronous removal of the product from Elasticsearch.
  */
 public class ProductDeletedEvent extends ApplicationEvent {
 

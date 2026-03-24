@@ -51,7 +51,7 @@ public class OrderEventConsumer {
         String eventType = "ORDER_CREATED";
 
         if (isAlreadyProcessed(eventKey, eventType)) {
-            log.warn("[Idempotency] Atlanıyor: orderId={}, type={}", eventKey, eventType);
+            log.warn("[Idempotency] Skipping: orderId={}, type={}", eventKey, eventType);
             return;
         }
 
@@ -69,7 +69,7 @@ public class OrderEventConsumer {
             );
             log.info("Order confirmation email sent: orderId={}, email={}", eventKey, user.getEmail());
         } else {
-            log.warn("Kullanıcı bilgisi alınamadı, bildirim atlandı: userId={}", event.getUserId());
+            log.warn("User information not found, notification skipped: userId={}", event.getUserId());
         }
 
         markAsProcessed(eventKey, eventType);
@@ -86,7 +86,7 @@ public class OrderEventConsumer {
         String eventType = "ORDER_COMPLETED";
 
         if (isAlreadyProcessed(eventKey, eventType)) {
-            log.warn("[Idempotency] Atlanıyor: orderId={}, type={}", eventKey, eventType);
+            log.warn("[Idempotency] Skipping: orderId={}, type={}", eventKey, eventType);
             return;
         }
 
@@ -102,7 +102,7 @@ public class OrderEventConsumer {
             );
             log.info("Order completed email sent: orderId={}", eventKey);
         } else {
-            log.warn("Kullanıcı bilgisi alınamadı, bildirim atlandı: userId={}", event.getUserId());
+            log.warn("User information not found, notification skipped: userId={}", event.getUserId());
         }
 
         markAsProcessed(eventKey, eventType);
@@ -119,7 +119,7 @@ public class OrderEventConsumer {
         String eventType = "ORDER_CANCELLED";
 
         if (isAlreadyProcessed(eventKey, eventType)) {
-            log.warn("[Idempotency] Atlanıyor: orderId={}, type={}", eventKey, eventType);
+            log.warn("[Idempotency] Skipping: orderId={}, type={}", eventKey, eventType);
             return;
         }
 
@@ -136,7 +136,7 @@ public class OrderEventConsumer {
             );
             log.info("Order cancelled email sent: orderId={}", eventKey);
         } else {
-            log.warn("Kullanıcı bilgisi alınamadı, bildirim atlandı: userId={}", event.getUserId());
+            log.warn("User information not found, notification skipped: userId={}", event.getUserId());
         }
 
         markAsProcessed(eventKey, eventType);

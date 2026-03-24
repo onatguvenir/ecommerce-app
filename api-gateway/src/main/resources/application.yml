@@ -30,7 +30,6 @@ spring:
       routes:
         # User Service
         - id: user-service
-        ...
           uri: http://user-service:8081
           predicates:
             - Path=/api/users/**
@@ -172,8 +171,6 @@ management:
       enabled: true
   metrics:
     export:
-      prometheus:
-        enabled: false
       otlp:
         enabled: true
     distribution:
@@ -188,6 +185,10 @@ management:
         step: 1m
     tracing:
       endpoint: http://otel-collector:4318/v1/traces
+  prometheus:
+    metrics:
+      export:
+        enabled: false
 
 # Logging
 logging:

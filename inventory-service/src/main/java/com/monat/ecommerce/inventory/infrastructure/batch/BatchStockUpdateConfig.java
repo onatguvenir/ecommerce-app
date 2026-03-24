@@ -24,11 +24,11 @@ import org.springframework.core.io.FileSystemResource;
 import org.springframework.transaction.PlatformTransactionManager;
 
 /**
- * Stok toplu güncellemelerini yöneten Spring Batch Configuration.
+ * Spring Batch Configuration for managing bulk stock updates.
  * 
- * Veritabanını I/O sınırında kitlememek (lock contention) için ItemWriter olarak
- * doğrudan veritabanı (JpaItemWriter) yerine RabbitMQ'ya (AmqpItemWriter)
- * yazar. Asıl veritabanı update işlemini RabbitMQ Consumer'lar gerçekleştirir.
+ * To avoid database write contention at the I/O boundary, this configuration 
+ * uses an AmqpItemWriter (RabbitMQ) instead of a direct database writer (JpaItemWriter).
+ * The actual database updates are handled asynchronously by RabbitMQ consumers.
  */
 @Slf4j
 @Configuration
@@ -40,8 +40,8 @@ public class BatchStockUpdateConfig {
     private final RabbitTemplate rabbitTemplate;
 
     /**
-     * Adım 1: CSV dosyasından veriyi okur.
-     * @param filePath JobParametresi olarak dosya yolunu alır.
+     * Step 1: Reads data from a CSV file.
+     * @param filePath Receives the file path as a JobParameter.
      */
     @Bean
     @StepScope
@@ -53,7 +53,7 @@ public class BatchStockUpdateConfig {
                 .resource(new FileSystemResource(filePath))
                 .delimited()
                 .names("sku", "quantity", "operationType", "referenceId")
-                .linesToSkip(1) // Header satırını atla
+                .linesToSkip(1) // Skip header row
                 .fieldSetMapper(fieldSet -> new StockUpdateMessage(
                         fieldSet.readString("sku"),
                         fieldSet.readInt("quantity"),
@@ -64,26 +64,26 @@ public class BatchStockUpdateConfig {
     }
 
     /**
-     * Adım 2: Formattan geçen veriyi doğrular (Validation/Filtering).
+     * Step 2: Validates the read data (Validation/Filtering).
      */
     @Bean
     public ItemProcessor<StockUpdateMessage, StockUpdateMessage> stockProcessor() {
         return item -> {
             if (item.quantity() < 0) {
-                log.warn("Negatif stok miktarı atlanıyor. SKU: {}", item.sku());
-                return null; // Filtreler (atla)
+                log.warn("Negative stock quantity skipped. SKU: {}", item.sku());
+                return null; // Filters (skip)
             }
             if (!"ADD".equalsIgnoreCase(item.operationType()) && !"SET".equalsIgnoreCase(item.operationType())) {
-                log.warn("Geçersiz operasyon tipi atlanıyor. SKU: {}, Opr: {}", item.sku(), item.operationType());
-                return null; // Filtreler
+                log.warn("Invalid operation type skipped. SKU: {}, Opr: {}", item.sku(), item.operationType());
+                return null; // Filters
             }
             return item;
         };
     }
 
     /**
-     * Adım 3: İşlenmiş veriyi RabbitMQ'ya (AmqpItemWriter) yollar.
-     * Chunck size (ör: 100) kadar biriktiğinde kuyruğa push edilir.
+     * Step 3: Sends processed data to RabbitMQ (AmqpItemWriter).
+     * Pushed to the queue when the chunk size (e.g., 100) is reached.
      */
     @Bean
     public ItemWriter<StockUpdateMessage> amqpStockWriter() {
@@ -96,7 +96,7 @@ public class BatchStockUpdateConfig {
     }
 
     /**
-     * Step Tanımlaması: chunkSize(100) -> Her 100 satırda bir kuyruğa fırlatır.
+     * Step Definition: chunkSize(100) -> Flushes to the queue every 100 rows.
      */
     @Bean
     public Step bulkStockUpdateStep() {
@@ -109,7 +109,7 @@ public class BatchStockUpdateConfig {
     }
 
     /**
-     * Job Tanımlaması.
+     * Job Definition.
      */
     @Bean
     public Job bulkStockUpdateJob() {

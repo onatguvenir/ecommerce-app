@@ -40,6 +40,7 @@ import java.util.UUID;
 @RequestMapping("/api/users")
 @RequiredArgsConstructor
 @Validated
+@Tag(name = "User Management", description = "User registration, profile, and address operations")
 public class UserController {
 
     private final UserApplicationService userApplicationService;
@@ -57,14 +58,14 @@ public class UserController {
 
     @GetMapping("/{userId}")
     @Operation(summary = "Get user by ID")
-    public ResponseEntity<ApiResponse<UserResponse>> getUserById(@PathVariable("userId") UUID userId) {
+    public ResponseEntity<ApiResponse<UserResponse>> getUserById(@PathVariable(name = "userId") UUID userId) {
         UserResponse response = userApplicationService.getUserById(userId);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
     @GetMapping("/email/{email}")
     @Operation(summary = "Get user by email")
-    public ResponseEntity<ApiResponse<UserResponse>> getUserByEmail(@PathVariable("email") String email) {
+    public ResponseEntity<ApiResponse<UserResponse>> getUserByEmail(@PathVariable(name = "email") String email) {
         UserResponse response = userApplicationService.getUserByEmail(email);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
@@ -83,7 +84,7 @@ public class UserController {
     @PostMapping("/{userId}/addresses")
     @Operation(summary = "Add address to user")
     public ResponseEntity<ApiResponse<AddressResponse>> addAddress(
-            @PathVariable("userId") UUID userId,
+            @PathVariable(name = "userId") UUID userId,
             @Valid @RequestBody CreateAddressRequest request) {
 
         AddressResponse response = userApplicationService.addAddress(userId, request);
@@ -94,7 +95,7 @@ public class UserController {
     @GetMapping("/{userId}/addresses")
     @Operation(summary = "Get user addresses")
     public ResponseEntity<ApiResponse<List<AddressResponse>>> getUserAddresses(
-            @PathVariable("userId") UUID userId) {
+            @PathVariable(name = "userId") UUID userId) {
 
         List<AddressResponse> response = userApplicationService.getUserAddresses(userId);
         return ResponseEntity.ok(ApiResponse.success(response));
@@ -102,7 +103,7 @@ public class UserController {
 
     @GetMapping("/{userId}/validate")
     @Operation(summary = "Validate if user is active")
-    public ResponseEntity<ApiResponse<Boolean>> validateUser(@PathVariable("userId") UUID userId) {
+    public ResponseEntity<ApiResponse<Boolean>> validateUser(@PathVariable(name = "userId") UUID userId) {
         boolean isValid = userApplicationService.validateUser(userId);
         return ResponseEntity.ok(ApiResponse.success(isValid));
     }
