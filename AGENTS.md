@@ -41,3 +41,15 @@ Aşağıdaki kurallar Agent prompt maliyetlerini düşürmek ve sistem sağlığ
 - Sadece `payment-service` build: `mvn compile -pl payment-service --also-make -q`
 - Tüm Docker mimarisini kurma: `docker compose up -d`
 - Log inceleme: `docker compose logs -f [service_name]`
+
+## 5. Detaylı Kurallar
+
+Aşağıdaki kural dosyaları bu projeye uygulanır:
+
+@.claude/rules/coding-standards.md
+@.claude/rules/concurrency.md
+@.claude/rules/null-safety.md
+@.claude/rules/outbox-pattern.md
+@.claude/rules/grpc-conventions.md
+@.claude/rules/api-conventions.md
+@.claude/rules/infrastructure.md
