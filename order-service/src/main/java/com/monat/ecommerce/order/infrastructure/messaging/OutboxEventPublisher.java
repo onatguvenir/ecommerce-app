@@ -2,6 +2,8 @@ package com.monat.ecommerce.order.infrastructure.messaging;
 
 import com.monat.ecommerce.order.domain.model.OutboxEvent;
 import com.monat.ecommerce.order.domain.repository.OutboxEventRepository;
+import com.monat.ecommerce.order.infrastructure.config.OrderMetrics;
+import io.micrometer.core.instrument.Timer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
@@ -9,6 +11,7 @@ import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 
 import java.util.List;
 
@@ -22,19 +25,24 @@ public class OutboxEventPublisher {
 
     private final OutboxEventRepository outboxEventRepository;
     private final KafkaTemplate<String, Object> kafkaTemplate;
+    private final OrderMetrics orderMetrics;
 
     @Scheduled(fixedDelayString = "${application.outbox.polling-interval-ms:5000}")
+    @SchedulerLock(name = "pollAndPublishOrderEvents", lockAtLeastFor = "PT2S", lockAtMostFor = "PT4S")
     @Transactional
     public void publishPendingEvents() {
+        Timer.Sample sample = Timer.start();
         int batchSize = 100;
         List<OutboxEvent> pendingEvents = outboxEventRepository
                 .findByProcessedFalseOrderByCreatedAtAsc(PageRequest.of(0, batchSize));
 
         if (pendingEvents.isEmpty()) {
+            sample.stop(orderMetrics.outboxPublishTimer());
             return;
         }
 
         log.debug("Publishing {} outbox events", pendingEvents.size());
+        orderMetrics.recordOutboxBatchSize(pendingEvents.size());
 
         for (OutboxEvent event : pendingEvents) {
             try {
@@ -43,14 +51,18 @@ public class OutboxEventPublisher {
 
                 event.markAsProcessed();
                 outboxEventRepository.save(event);
+                orderMetrics.incrementOutboxPublish("success", event.getEventType());
 
                 log.debug("Published event: {} for aggregate: {}", event.getEventType(), event.getAggregateId());
 
             } catch (Exception e) {
                 log.error("Failed to publish event: {}", event.getId(), e);
                 // Event will be retried in next poll
+                orderMetrics.incrementOutboxPublish("failure", event.getEventType());
             }
         }
+
+        sample.stop(orderMetrics.outboxPublishTimer());
     }
 
     private String getTopicForEventType(String eventType) {

@@ -1,0 +1,87 @@
+spring:
+  application:
+    name: cart-service
+
+  # Virtual Threads (Project Loom) — JDK 21 + Spring Boot 3.2+
+  # Educational Note:
+  # Redis I/O operations and HTTP handlers run on virtual threads,
+  # allowing the service to handle massive concurrent traffic efficiently.
+  threads:
+    virtual:
+      enabled: true
+  
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      password: 
+      # Educational Note:
+      # Data TTL ensures that the cart data is automatically cleaned 
+      # from Redis after a period of inactivity (e.g., 24 hours).
+      time-to-live: 86400s
+      timeout: 2000ms
+      lettuce:
+        pool:
+          max-active: 10
+          max-idle: 5
+          min-idle: 2
+
+# Server Configuration
+server:
+  port: 8084
+  shutdown: graceful
+
+# Management & Actuator
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always
+      probes:
+        enabled: true
+  health:
+    livenessState:
+      enabled: true
+    readinessState:
+      enabled: true
+  metrics:
+    export:
+      otlp:
+        enabled: true
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+    tags:
+      application: ${spring.application.name}
+  otlp:
+    metrics:
+      export:
+        url: http://otel-collector:4318/v1/metrics
+        step: 1m
+    tracing:
+      endpoint: http://otel-collector:4318/v1/traces
+  tracing:
+    sampling:
+      probability: 1.0
+  prometheus:
+    metrics:
+      export:
+        enabled: false
+
+# Logging
+logging:
+  level:
+    root: INFO
+    com.monat.ecommerce: DEBUG
+
+
+# Application specific
+application:
+  cart:
+    # Cart expiry in days (7 days default)
+    expiry-days: 7
+    # Max items per cart
+    max-items: 100

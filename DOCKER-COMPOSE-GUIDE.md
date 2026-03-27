@@ -34,7 +34,7 @@ docker-compose ps
 | Order Service | http://localhost:8085 | Direct access (dev only) |
 | Payment Service | http://localhost:8086 | Direct access (dev only) |
 | Notification Service | http://localhost:8087 | Direct access (dev only) |
-| **Kafdrop** (Kafka UI) | http://localhost:9000 | Monitor Kafka topics |
+| **AKHQ** (Kafka UI) | http://localhost:9000 | Monitor Kafka topics |
 | **Grafana** | http://localhost:3000 | Metrics dashboards (admin/admin) |
 | **Prometheus** | http://localhost:9090 | Metrics storage |
 | **Jaeger** | http://localhost:16686 | Distributed tracing |

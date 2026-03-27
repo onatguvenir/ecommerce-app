@@ -2,6 +2,8 @@ server:
   port: ${SERVER_PORT:8088}
 
 spring:
+  profiles:
+    active: dev
   application:
     name: fraud-service
   threads:
@@ -27,11 +29,41 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,prometheus
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always
+      probes:
+        enabled: true
+  health:
+    livenessState:
+      enabled: true
+    readinessState:
+      enabled: true
+  metrics:
+    export:
+      otlp:
+        enabled: true
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+        kafka.streams.processor.node.metrics.process.latency.avg: true
+    tags:
+      application: ${spring.application.name}
+  otlp:
+    metrics:
+      export:
+        url: http://otel-collector:4318/v1/metrics
+        step: 1m
+    tracing:
+      endpoint: http://otel-collector:4318/v1/traces
+  tracing:
+    sampling:
+      probability: 1.0
   prometheus:
     metrics:
       export:
-        enabled: true
+        enabled: false
 
 app:
   fraud:

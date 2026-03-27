@@ -1,7 +1,9 @@
 package com.monat.ecommerce.common.exception;
 
 import com.monat.ecommerce.common.dto.ErrorResponse;
+import com.monat.ecommerce.common.util.LocalizationUtils;
 import jakarta.servlet.http.HttpServletRequest;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -29,7 +31,10 @@ import java.util.UUID;
  */
 @Slf4j
 @RestControllerAdvice
+@RequiredArgsConstructor
 public class GlobalExceptionHandler {
+
+        private final LocalizationUtils localizationUtils;
 
         @ExceptionHandler(ResourceNotFoundException.class)
         public ResponseEntity<ErrorResponse> handleResourceNotFound(
@@ -38,7 +43,7 @@ public class GlobalExceptionHandler {
                 log.error("Resource not found: {}", ex.getMessage());
 
                 ErrorResponse error = ErrorResponse.builder()
-                                .error("Not Found")
+                                .error(localizationUtils.getMessage("generic.not-found"))
                                 .message(ex.getMessage())
                                 .status(404)
                                 .path(request.getRequestURI())
@@ -56,7 +61,7 @@ public class GlobalExceptionHandler {
                 log.error("Validation error: {}", ex.getMessage());
 
                 ErrorResponse error = ErrorResponse.builder()
-                                .error("Validation Error")
+                                .error(localizationUtils.getMessage("generic.validation-error"))
                                 .message(ex.getMessage())
                                 .status(400)
                                 .path(request.getRequestURI())
@@ -75,7 +80,7 @@ public class GlobalExceptionHandler {
 
                 ErrorResponse error = ErrorResponse.builder()
                                 .error(ex.getErrorCode())
-                                .message(ex.getMessage())
+                                .message(localizationUtils.getMessage(ex.getErrorCode(), ex.getMessage()))
                                 .status(ex.getHttpStatus())
                                 .path(request.getRequestURI())
                                 .timestamp(LocalDateTime.now())
@@ -99,8 +104,8 @@ public class GlobalExceptionHandler {
                 });
 
                 ErrorResponse error = ErrorResponse.builder()
-                                .error("Validation Failed")
-                                .message("Input validation failed")
+                                .error(localizationUtils.getMessage("generic.validation-error"))
+                                .message(localizationUtils.getMessage("generic.validation-error"))
                                 .status(400)
                                 .path(request.getRequestURI())
                                 .timestamp(LocalDateTime.now())
@@ -138,7 +143,7 @@ public class GlobalExceptionHandler {
 
                 ErrorResponse error = ErrorResponse.builder()
                                 .error("Internal Server Error")
-                                .message("An unexpected error occurred")
+                                .message(localizationUtils.getMessage("generic.error"))
                                 .status(500)
                                 .path(request.getRequestURI())
                                 .timestamp(LocalDateTime.now())

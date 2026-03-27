@@ -73,5 +73,5 @@ See `application.yml` for:
 
 ## Monitoring
 - Health: http://localhost:8080/actuator/health
-- Metrics: http://localhost:8080/actuator/prometheus
+- Metrics: exported via OTLP to the OpenTelemetry Collector, then scraped by Prometheus
 - Gateway routes: http://localhost:8080/actuator/gateway/routes

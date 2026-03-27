@@ -3,6 +3,7 @@ package com.monat.ecommerce.inventory.infrastructure.messaging;
 import com.monat.ecommerce.inventory.domain.dto.StockUpdateMessage;
 import com.monat.ecommerce.inventory.domain.model.Inventory;
 import com.monat.ecommerce.inventory.domain.repository.InventoryRepository;
+import com.monat.ecommerce.inventory.infrastructure.config.InventoryMetrics;
 import com.monat.ecommerce.inventory.infrastructure.config.RabbitMQConfig;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -13,7 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.UUID;
 
 /**
- * Spring Batch tarafından RabbitMQ'ya yazılan toplu stok güncellemelerini işler.
+ * Consumes bulk stock update messages produced through RabbitMQ.
  */
 @Slf4j
 @Component
@@ -21,18 +22,14 @@ import java.util.UUID;
 public class StockUpdateMessageConsumer {
 
     private final InventoryRepository inventoryRepository;
+    private final InventoryMetrics inventoryMetrics;
 
     @Transactional
-    // RabbitMQConfig'te concurrency: 5, max-concurrency: 10 ayarlandığı için Spring otomatik limite uyar.
     @RabbitListener(queues = RabbitMQConfig.STOCK_UPDATE_QUEUE)
     public void handleStockUpdate(StockUpdateMessage message) {
-        log.debug("Toplu stok güncelleme mesajı alındı - SKU: {}, Qty: {}, Opr: {}", 
+        log.debug("Received bulk stock update - SKU: {}, Qty: {}, Operation: {}",
                 message.sku(), message.quantity(), message.operationType());
 
-        // Pessimistic Write Lock uygulanarak DB I/O güvenliği sağlanır. (Bu örnekte repository'nin pessimistic
-        // desteklediği varsayılır, aksi halde entity'de @Version field (Optimistic) vardır).
-        // Inventory uygulaması zaten Optimistic Locking destekliyor (private Long version).
-        
         Inventory inventory = inventoryRepository.findByProductId(message.sku())
                 .orElse(Inventory.builder()
                         .id(UUID.randomUUID())
@@ -44,12 +41,20 @@ public class StockUpdateMessageConsumer {
 
         if ("ADD".equalsIgnoreCase(message.operationType())) {
             inventory.addStock(message.quantity());
-            log.info("Stok artırıldı - SKU: {}, Eklenen: {}, Yeni Toplam: {}", 
+            inventoryMetrics.incrementBulkUpdate("ADD", "success");
+            inventoryMetrics.recordStockAdjustment(message.quantity(), "bulk_add");
+            log.info("Stock increased - SKU: {}, Added: {}, New available: {}",
                     message.sku(), message.quantity(), inventory.getAvailableQuantity());
         } else if ("SET".equalsIgnoreCase(message.operationType())) {
             inventory.setStock(message.quantity());
-            log.info("Stok eşitlendi - SKU: {}, Yeni Stok: {}", 
+            inventoryMetrics.incrementBulkUpdate("SET", "success");
+            inventoryMetrics.recordStockAdjustment(message.quantity(), "bulk_set");
+            log.info("Stock set - SKU: {}, New available: {}",
                     message.sku(), inventory.getAvailableQuantity());
+        } else {
+            inventoryMetrics.incrementBulkUpdate(message.operationType(), "ignored");
+            log.warn("Unsupported stock update operation: {}", message.operationType());
+            return;
         }
 
         inventoryRepository.save(inventory);

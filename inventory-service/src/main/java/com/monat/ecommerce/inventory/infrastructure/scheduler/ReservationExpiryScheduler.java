@@ -7,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 
 import java.time.LocalDateTime;
 
@@ -22,6 +23,7 @@ public class ReservationExpiryScheduler {
     private final InventoryDomainService inventoryDomainService;
 
     @Scheduled(fixedDelay = 60000) // Every minute
+    @SchedulerLock(name = "releaseExpiredReservationsLock", lockAtLeastFor = "PT30S", lockAtMostFor = "PT55S")
     public void releaseExpiredReservations() {
         log.debug("Checking for expired reservations");
 

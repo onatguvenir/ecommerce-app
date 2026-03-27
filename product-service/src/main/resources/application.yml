@@ -1,4 +1,6 @@
 spring:
+  profiles:
+    active: dev
   application:
     name: product-service
 
@@ -54,7 +56,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics,prometheus,circuitbreakers,caches
+        include: health,info,metrics,circuitbreakers,caches
   endpoint:
     health:
       show-details: always

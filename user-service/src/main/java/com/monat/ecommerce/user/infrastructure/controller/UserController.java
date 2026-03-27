@@ -56,6 +56,13 @@ public class UserController {
                 .body(ApiResponse.success(response, "User registered successfully"));
     }
 
+    @PostMapping("/login")
+    @Operation(summary = "Authenticate user and get JWT")
+    public ResponseEntity<ApiResponse<AuthResponse>> login(@Valid @RequestBody AuthRequest request) {
+        AuthResponse response = userApplicationService.login(request);
+        return ResponseEntity.ok(ApiResponse.success(response, "Login successful"));
+    }
+
     @GetMapping("/{userId}")
     @Operation(summary = "Get user by ID")
     public ResponseEntity<ApiResponse<UserResponse>> getUserById(@PathVariable(name = "userId") UUID userId) {

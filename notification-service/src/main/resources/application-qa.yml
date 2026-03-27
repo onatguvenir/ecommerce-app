@@ -1,0 +1,159 @@
+spring:
+  application:
+    name: notification-service
+
+# N+1 Detection Configuration
+nplus1:
+  enabled: true
+  threshold: 5
+  log-interval: 1
+  error-level: LOG
+  ignore-packages:
+    - com.google.
+    - org.hibernate.
+    - org.springframework.
+
+  # Virtual Threads (Project Loom) — JDK 21 + Spring Boot 3.2+
+  # Educational Note:
+  # @KafkaListener methods and SMTP calls run on virtual threads, 
+  # ensuring that the consumer group is not delayed by I/O.
+  threads:
+    virtual:
+      enabled: true
+
+  # ---------------------------------------------------------------
+  # PostgreSQL (Notification Idempotency tablosu için)
+  datasource:
+    url: jdbc:postgresql://localhost:5432/notificationdb
+    username: postgres
+    password: postgres
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 5
+      minimum-idle: 2
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: false
+
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    locations: classpath:db/migration
+  
+  kafka:
+    bootstrap-servers: localhost:9092
+    consumer:
+      group-id: notification-service-group
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "*"
+  
+  # Email configuration (simulated - using console logging)
+  mail:
+    host: smtp.example.com
+    port: 587
+    username: noreply@monat-ecommerce.com
+    password: changeme
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
+# Server Configuration
+server:
+  port: 8087
+  shutdown: graceful
+
+# Management & Actuator
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always
+      probes:
+        enabled: true
+  health:
+    livenessState:
+      enabled: true
+    readinessState:
+      enabled: true
+  metrics:
+    export:
+      otlp:
+        enabled: true
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+    tags:
+      application: ${spring.application.name}
+  otlp:
+    metrics:
+      export:
+        url: http://otel-collector:4318/v1/metrics
+        step: 1m
+    tracing:
+      endpoint: http://otel-collector:4318/v1/traces
+  tracing:
+    sampling:
+      probability: 1.0
+  prometheus:
+    metrics:
+      export:
+        enabled: false
+
+# Logging
+logging:
+  level:
+    root: INFO
+    com.monat.ecommerce: DEBUG
+    org.springframework.kafka: INFO
+
+# Application specific
+# Educational Note:
+# In development, these 'simulation' flags allow us to test the 
+# event flow without needing a real SMTP or SMS gateway connected.
+application:
+  notification:
+    simulate-email: true
+    simulate-sms: true
+    from-email: noreply@monat-ecommerce.com
+    support-email: support@monat-ecommerce.com
+
+# gRPC Client (User Service)
+grpc:
+  client:
+    user-service:
+      host: localhost
+      port: 9081
+      negotiationType: plaintext
+
+# Resilience4j (gRPC çağrıları için CircuitBreaker ve Retry)
+resilience4j:
+  circuitbreaker:
+    instances:
+      user-service:
+        registerHealthIndicator: true
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        failureRateThreshold: 50
+        waitDurationInOpenState: 10s
+  retry:
+    instances:
+      user-service:
+        maxAttempts: 3
+        waitDuration: 1000ms
+        enableExponentialBackoff: true
+        exponentialBackoffMultiplier: 2

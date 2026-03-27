@@ -2,6 +2,7 @@ package com.monat.ecommerce.inventory.infrastructure.messaging;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.monat.ecommerce.inventory.infrastructure.config.InventoryMetrics;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.Cache;
@@ -26,6 +27,7 @@ public class DebeziumInventoryCacheListener {
 
     private final ObjectMapper objectMapper;
     private final CacheManager cacheManager;
+    private final InventoryMetrics inventoryMetrics;
 
     @KafkaListener(topics = "cdc.public.inventory", groupId = "inventory-cache-evictor-group")
     public void onInventoryChanged(String message) {
@@ -46,9 +48,11 @@ public class DebeziumInventoryCacheListener {
             if (stateNode != null && stateNode.has("product_id")) {
                 String productId = stateNode.get("product_id").asText();
                 evictCache(productId);
+                inventoryMetrics.incrementCacheEviction("success");
             }
         } catch (Exception e) {
             log.error("Failed to process Debezium CDC message for cache eviction", e);
+            inventoryMetrics.incrementCacheEviction("failure");
         }
     }
 

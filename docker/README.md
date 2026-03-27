@@ -31,19 +31,19 @@ volumes:
 
 ## Prometheus Configuration
 
-The `prometheus.yml` file defines scraping targets for all microservices:
-- Service discovery via static configs
-- Metrics endpoints on `/actuator/prometheus`
+The `prometheus.yml` file defines scraping targets for the observability layer:
+- Prometheus scrapes the OpenTelemetry Collector
+- Microservices export metrics to the collector via OTLP
 - 15-second scrape interval
 
 ### Adding New Services
 
-Add to `prometheus.yml`:
-```yaml
-- job_name: 'new-service'
-  static_configs:
-    - targets: ['new-service:8080']
-```
+To onboard a new service:
+1. Enable OTLP metric export in the service's `application*.yml`
+2. Point it to `http://otel-collector:4318/v1/metrics`
+3. Add service-specific meters if needed
+
+You usually do not need to add the service directly to `prometheus.yml` unless you want Prometheus to scrape that component itself.
 
 ## Environment Variables
 

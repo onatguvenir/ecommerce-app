@@ -12,4 +12,6 @@ import java.util.UUID;
 public interface PaymentOutboxEventJpaRepository extends JpaRepository<PaymentOutboxEventEntity, UUID> {
 
     List<PaymentOutboxEventEntity> findByProcessedFalseOrderByCreatedAtAsc(Pageable pageable);
+
+    long countByProcessedFalse();
 }

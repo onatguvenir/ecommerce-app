@@ -10,6 +10,7 @@ import com.monat.ecommerce.payment.domain.model.PaymentStatus;
 import com.monat.ecommerce.payment.domain.repository.PaymentRepository;
 import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 import io.github.resilience4j.ratelimiter.RequestNotPermitted;
+import io.micrometer.observation.annotation.Observed;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -75,6 +76,7 @@ public class PaymentApplicationService {
     }
 
     @Transactional(readOnly = true)
+    @Observed(name = "payment.lookup", contextualName = "payment-get-by-id")
     public PaymentResponse getPayment(UUID id) {
         return paymentRepository.findById(id)
                 .map(paymentMapper::toResponse)
@@ -82,6 +84,7 @@ public class PaymentApplicationService {
     }
 
     @Transactional(readOnly = true)
+    @Observed(name = "payment.lookup", contextualName = "payment-get-by-order-id")
     public PaymentResponse getPaymentByOrderId(String orderId) {
         return paymentRepository.findByOrderId(orderId).stream()
                 .findFirst() // Assuming one payment per order for simplicity

@@ -2,13 +2,13 @@ package com.monat.ecommerce.payment.domain.service;
 
 import com.monat.ecommerce.events.payment.PaymentCompletedEvent;
 import com.monat.ecommerce.events.payment.PaymentFailedEvent;
-
 import com.monat.ecommerce.payment.domain.model.Payment;
 import com.monat.ecommerce.payment.domain.model.PaymentMethod;
-import com.monat.ecommerce.payment.domain.model.PaymentStatus;
 import com.monat.ecommerce.payment.domain.repository.PaymentRepository;
 import com.monat.ecommerce.payment.domain.model.PaymentOutboxEvent;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.monat.ecommerce.payment.infrastructure.config.PaymentMetrics;
+import io.micrometer.core.instrument.Timer;
 import java.time.LocalDateTime;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -37,6 +37,7 @@ public class PaymentDomainService {
 
     private final PaymentRepository paymentRepository;
     private final ObjectMapper objectMapper;
+    private final PaymentMetrics paymentMetrics;
     private final Random random = new Random();
 
     @Value("${application.payment.failure-rate:0.30}")
@@ -62,65 +63,65 @@ public class PaymentDomainService {
             BigDecimal amount,
             String currency,
             PaymentMethod paymentMethod) {
+        Timer.Sample sample = Timer.start();
 
         log.info("Processing payment - Idempotency Key: {}, Order: {}, Amount: {}",
                 idempotencyKey, orderId, amount);
 
-        // Check idempotency with PESSIMISTIC_WRITE lock
-        Optional<Payment> existingPayment = paymentRepository.findByIdempotencyKeyWithLock(idempotencyKey);
-        if (existingPayment.isPresent()) {
-            log.info("Payment already processed (idempotent) - Returning existing payment: {}",
-                    existingPayment.get().getId());
-            return existingPayment.get();
-        }
-
-        // Create payment record
-        Payment payment = Payment.builder()
-                .idempotencyKey(idempotencyKey)
-                .orderId(orderId)
-                .userId(userId)
-                .amount(amount)
-                .currency(currency)
-                .paymentMethod(paymentMethod)
-                .status(PaymentStatus.PROCESSING)
-                .build();
-
-        payment = paymentRepository.save(payment);
-
-        // Simulate payment processing delay
         try {
-            Thread.sleep(processingDelayMs);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        }
+            Optional<Payment> existingPayment = paymentRepository.findByIdempotencyKeyWithLock(idempotencyKey);
+            if (existingPayment.isPresent()) {
+                log.info("Payment already processed (idempotent) - Returning existing payment: {}",
+                        existingPayment.get().getId());
+                paymentMetrics.recordPaymentAmount(amount.doubleValue(), currency, "idempotent");
+                return existingPayment.get();
+            }
 
-        // Simulate payment processing (random success/failure based on failure rate)
-        boolean paymentSuccessful = random.nextDouble() > failureRate;
+            Payment payment = Payment.builder()
+                    .idempotencyKey(idempotencyKey)
+                    .orderId(orderId)
+                    .userId(userId)
+                    .amount(amount)
+                    .currency(currency)
+                    .paymentMethod(paymentMethod)
+                    .status(com.monat.ecommerce.payment.domain.model.PaymentStatus.PROCESSING)
+                    .build();
 
-        if (paymentSuccessful) {
-            // Successful payment
-            String paymentReference = "PAY-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
-            payment.markAsSuccessful(paymentReference);
             payment = paymentRepository.save(payment);
 
-            log.info("Payment successful - Payment ID: {}, Reference: {}", payment.getId(), paymentReference);
+            try {
+                Thread.sleep(processingDelayMs);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
 
-            // Publish PaymentCompletedEvent
-            publishPaymentCompletedEvent(payment);
+            boolean paymentSuccessful = random.nextDouble() > failureRate;
 
-        } else {
-            // Failed payment
-            String failureReason = simulateFailureReason();
-            payment.markAsFailed(failureReason);
-            payment = paymentRepository.save(payment);
+            if (paymentSuccessful) {
+                String paymentReference = "PAY-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+                payment.markAsSuccessful(paymentReference);
+                payment = paymentRepository.save(payment);
 
-            log.warn("Payment failed - Payment ID: {}, Reason: {}", payment.getId(), failureReason);
+                log.info("Payment successful - Payment ID: {}, Reference: {}", payment.getId(), paymentReference);
+                publishPaymentCompletedEvent(payment);
+                paymentMetrics.recordPaymentAmount(amount.doubleValue(), currency, "success");
+            } else {
+                String failureReason = simulateFailureReason();
+                payment.markAsFailed(failureReason);
+                payment = paymentRepository.save(payment);
 
-            // Publish PaymentFailedEvent
-            publishPaymentFailedEvent(payment);
+                log.warn("Payment failed - Payment ID: {}, Reason: {}", payment.getId(), failureReason);
+                publishPaymentFailedEvent(payment);
+                paymentMetrics.recordPaymentAmount(amount.doubleValue(), currency, "failed");
+            }
+
+            return payment;
+        } catch (RuntimeException ex) {
+            paymentMetrics.incrementPaymentResult("process", "error");
+            throw ex;
+        } finally {
+            sample.stop(paymentMetrics.paymentProcessingTimer());
         }
-
-        return payment;
     }
 
     /**
@@ -133,44 +134,48 @@ public class PaymentDomainService {
         backoff = @Backoff(delay = 500, multiplier = 2)
     )
     public Payment refundPayment(String paymentId, String orderId, BigDecimal amount, String reason) {
+        Timer.Sample sample = Timer.start();
         log.info("Refunding payment - Payment ID: {}, Amount: {}", paymentId, amount);
 
-        // Find payment by ID or order ID
-        Payment payment;
         try {
-            UUID uuid = UUID.fromString(paymentId);
-            payment = paymentRepository.findByIdWithLock(uuid)
-                    .orElseThrow(() -> new IllegalArgumentException("Payment not found: " + paymentId));
-        } catch (IllegalArgumentException e) {
-        // Try finding by order ID since refund via orderId is needed
-            payment = paymentRepository.findByOrderId(orderId).stream()
-                    .filter(Payment::canBeRefunded)
-                    .findFirst()
-                    .orElseThrow(() -> new IllegalArgumentException("No refundable payment found for order: " + orderId));
-            
-            // Acquire lock since we have the ID now
-            payment = paymentRepository.findByIdWithLock(payment.getId())
-                    .orElseThrow(() -> new IllegalArgumentException("Payment lock failed"));
+            Payment payment;
+            try {
+                UUID uuid = UUID.fromString(paymentId);
+                payment = paymentRepository.findByIdWithLock(uuid)
+                        .orElseThrow(() -> new IllegalArgumentException("Payment not found: " + paymentId));
+            } catch (IllegalArgumentException e) {
+                payment = paymentRepository.findByOrderId(orderId).stream()
+                        .filter(Payment::canBeRefunded)
+                        .findFirst()
+                        .orElseThrow(() -> new IllegalArgumentException("No refundable payment found for order: " + orderId));
+
+                payment = paymentRepository.findByIdWithLock(payment.getId())
+                        .orElseThrow(() -> new IllegalArgumentException("Payment lock failed"));
+            }
+
+            if (!payment.canBeRefunded()) {
+                throw new IllegalStateException("Payment cannot be refunded. Current status: " + payment.getStatus());
+            }
+
+            try {
+                Thread.sleep(300);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+
+            String refundReference = "REF-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+            payment.markAsRefunded(refundReference, amount);
+            payment = paymentRepository.save(payment);
+
+            log.info("Refund successful - Payment ID: {}, Refund Reference: {}", payment.getId(), refundReference);
+            paymentMetrics.recordRefundAmount(amount.doubleValue(), payment.getCurrency(), "success");
+            return payment;
+        } catch (RuntimeException ex) {
+            paymentMetrics.incrementPaymentResult("refund", "error");
+            throw ex;
+        } finally {
+            sample.stop(paymentMetrics.refundProcessingTimer());
         }
-
-        if (!payment.canBeRefunded()) {
-            throw new IllegalStateException("Payment cannot be refunded. Current status: " + payment.getStatus());
-        }
-
-        // Simulate refund processing
-        try {
-            Thread.sleep(300);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        }
-
-        String refundReference = "REF-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
-        payment.markAsRefunded(refundReference, amount);
-        payment = paymentRepository.save(payment);
-
-        log.info("Refund successful - Payment ID: {}, Refund Reference: {}", payment.getId(), refundReference);
-
-        return payment;
     }
 
     /**

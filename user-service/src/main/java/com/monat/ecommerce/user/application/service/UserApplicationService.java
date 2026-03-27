@@ -8,6 +8,7 @@ import com.monat.ecommerce.user.domain.model.User;
 import com.monat.ecommerce.user.domain.model.UserAddress;
 import com.monat.ecommerce.user.domain.model.UserStatus;
 import com.monat.ecommerce.user.domain.repository.UserRepository;
+import com.monat.ecommerce.common.util.JwtUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -17,6 +18,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -36,6 +38,7 @@ public class UserApplicationService {
     private final UserRepository userRepository;
     private final UserMapper userMapper;
     private final PasswordEncoder passwordEncoder;
+    private final JwtUtils jwtUtils;
 
     @Transactional
     public UserResponse registerUser(UserRegistrationRequest request) {
@@ -59,6 +62,35 @@ public class UserApplicationService {
         log.info("User registered successfully with ID: {}", savedUser.getId());
 
         return userMapper.toUserResponse(savedUser);
+    }
+
+    @Transactional(readOnly = true)
+    public AuthResponse login(AuthRequest request) {
+        log.info("Attempting login for user: {}", request.username());
+
+        User user = userRepository.findByUsername(request.username())
+                .orElseThrow(() -> new BusinessException("Invalid username or password", "AUTH_FAILED", 401));
+
+        if (!passwordEncoder.matches(request.password(), user.getPasswordHash())) {
+            throw new BusinessException("Invalid username or password", "AUTH_FAILED", 401);
+        }
+
+        if (user.getStatus() != UserStatus.ACTIVE) {
+            throw new BusinessException("User account is not active", "USER_INACTIVE", 403);
+        }
+
+        String token = jwtUtils.generateToken(user.getUsername(), Map.of(
+                "email", user.getEmail(),
+                "role", "USER" // Default role for now
+        ));
+
+        log.info("User {} logged in successfully", request.username());
+
+        return AuthResponse.builder()
+                .accessToken(token)
+                .username(user.getUsername())
+                .expiresIn(86400000 / 1000) // 24 hours in seconds
+                .build();
     }
 
     @Transactional(readOnly = true)

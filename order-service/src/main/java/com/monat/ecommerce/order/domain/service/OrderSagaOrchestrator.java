@@ -11,6 +11,8 @@ import com.monat.ecommerce.order.domain.model.*;
 import com.monat.ecommerce.order.domain.repository.OrderRepository;
 import com.monat.ecommerce.order.domain.repository.OrderSagaStateRepository;
 import com.monat.ecommerce.order.domain.repository.OutboxEventRepository;
+import com.monat.ecommerce.order.infrastructure.config.OrderMetrics;
+import io.micrometer.core.instrument.Timer;
 import io.grpc.StatusRuntimeException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -33,6 +35,7 @@ public class OrderSagaOrchestrator {
     private final OrderSagaStateRepository sagaStateRepository;
     private final OutboxEventRepository outboxEventRepository;
     private final ObjectMapper objectMapper;
+    private final OrderMetrics orderMetrics;
 
     @GrpcClient("inventory-service")
     private InventoryServiceGrpc.InventoryServiceBlockingStub inventoryService;
@@ -45,6 +48,7 @@ public class OrderSagaOrchestrator {
 
     @Transactional
     public void executeOrderSaga(Order order) {
+        Timer.Sample sample = Timer.start();
         log.info("Starting Saga for order: {}", order.getId());
 
         // Create Saga state
@@ -67,10 +71,14 @@ public class OrderSagaOrchestrator {
 
             // Step 4: Complete Order
             completeOrder(order, sagaState);
+            orderMetrics.incrementSagaResult("success");
 
         } catch (Exception e) {
             log.error("Saga failed for order: {}", order.getId(), e);
+            orderMetrics.incrementSagaResult("failed");
             compensateSaga(order, sagaState, e.getMessage());
+        } finally {
+            sample.stop(orderMetrics.sagaExecutionTimer());
         }
     }
 
@@ -85,6 +93,7 @@ public class OrderSagaOrchestrator {
             ValidateUserResponse response = userService.validateUser(request);
 
             if (!response.getIsValid() || !response.getIsActive()) {
+                orderMetrics.incrementSagaStep("validate_user", "failed");
                 throw new RuntimeException("User validation failed: " + response.getMessage());
             }
 
@@ -92,8 +101,10 @@ public class OrderSagaOrchestrator {
             sagaStateRepository.save(sagaState);
 
             log.info("User validated successfully for order: {}", order.getId());
+            orderMetrics.incrementSagaStep("validate_user", "success");
 
         } catch (StatusRuntimeException e) {
+            orderMetrics.incrementSagaStep("validate_user", "error");
             throw new RuntimeException("User service unavailable: " + e.getMessage(), e);
         }
     }
@@ -117,6 +128,7 @@ public class OrderSagaOrchestrator {
             ReserveStockResponse response = inventoryService.reserveStock(request);
 
             if (!response.getSuccess()) {
+                orderMetrics.incrementSagaStep("reserve_stock", "failed");
                 throw new RuntimeException("Stock reservation failed: " + response.getMessage());
             }
 
@@ -125,8 +137,10 @@ public class OrderSagaOrchestrator {
             sagaStateRepository.save(sagaState);
 
             log.info("Stock reserved successfully for order: {}", order.getId());
+            orderMetrics.incrementSagaStep("reserve_stock", "success");
 
         } catch (StatusRuntimeException e) {
+            orderMetrics.incrementSagaStep("reserve_stock", "error");
             throw new RuntimeException("Inventory service unavailable: " + e.getMessage(), e);
         }
     }
@@ -147,6 +161,7 @@ public class OrderSagaOrchestrator {
             ProcessPaymentResponse response = paymentService.processPayment(request);
 
             if (!response.getSuccess()) {
+                orderMetrics.incrementSagaStep("process_payment", "failed");
                 throw new RuntimeException("Payment processing failed: " + response.getMessage());
             }
 
@@ -158,8 +173,10 @@ public class OrderSagaOrchestrator {
             orderRepository.save(order);
 
             log.info("Payment processed successfully for order: {}", order.getId());
+            orderMetrics.incrementSagaStep("process_payment", "success");
 
         } catch (StatusRuntimeException e) {
+            orderMetrics.incrementSagaStep("process_payment", "error");
             throw new RuntimeException("Payment service unavailable: " + e.getMessage(), e);
         }
     }
@@ -175,9 +192,11 @@ public class OrderSagaOrchestrator {
                     .build();
 
             inventoryService.commitStock(request);
+            orderMetrics.incrementSagaStep("commit_stock", "success");
         } catch (Exception e) {
             log.warn("Failed to commit stock, but order is already paid: {}", e.getMessage());
             // Continue as payment is already processed
+            orderMetrics.incrementSagaStep("commit_stock", "error");
         }
 
         // Mark order as completed
@@ -190,6 +209,7 @@ public class OrderSagaOrchestrator {
         sagaStateRepository.save(sagaState);
 
         log.info("Order completed successfully: {}", order.getId());
+        orderMetrics.incrementSagaStep("complete_order", "success");
 
         // Publish OrderCompletedEvent via outbox
         publishOrderCompletedEvent(order);
@@ -243,10 +263,12 @@ public class OrderSagaOrchestrator {
             sagaStateRepository.save(sagaState);
 
             log.info("Stock released for order: {}", order.getId());
+            orderMetrics.incrementSagaStep("release_stock", "success");
 
         } catch (Exception e) {
             log.error("Failed to release stock for order: {}", order.getId(), e);
             // Log but don't fail compensation
+            orderMetrics.incrementSagaStep("release_stock", "error");
         }
     }
 
@@ -267,10 +289,12 @@ public class OrderSagaOrchestrator {
             sagaStateRepository.save(sagaState);
 
             log.info("Payment refunded for order: {}", order.getId());
+            orderMetrics.incrementSagaStep("refund_payment", "success");
 
         } catch (Exception e) {
             log.error("Failed to refund payment for order: {}", order.getId(), e);
             // Log but don't fail compensation
+            orderMetrics.incrementSagaStep("refund_payment", "error");
         }
     }
 

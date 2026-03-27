@@ -112,7 +112,7 @@ curl -X POST http://localhost:8081/api/users/register \
 - Graceful degradation
 
 ### Observability
-- **Metrics**: Prometheus endpoints on `/actuator/prometheus`
+- **Metrics**: Services export metrics via OTLP to the OpenTelemetry Collector; Prometheus scrapes the collector
 - **Health Checks**: `/actuator/health` (liveness & readiness probes)
 - **Tracing**: OpenTelemetry integration
 - **Logging**: Structured logging with correlation IDs
@@ -190,7 +190,12 @@ docker build -t monat-ecommerce/product-service:latest ./product-service
 ## 📊 Monitoring
 
 ### Prometheus Metrics
-Access metrics at: `http://localhost:9090`
+Prometheus UI: `http://localhost:9090`
+
+Metrics flow:
+1. Services export metrics to the OpenTelemetry Collector via OTLP
+2. Collector exposes Prometheus-formatted metrics on `http://otel-collector:8889/metrics`
+3. Prometheus scrapes the collector instead of individual service `/actuator/prometheus` endpoints
 
 ### Grafana Dashboards
 Access dashboards at: `http://localhost:3000`
