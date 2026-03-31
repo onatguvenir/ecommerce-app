@@ -3,21 +3,17 @@ spring:
     name: cart-service
 
   # Virtual Threads (Project Loom) — JDK 21 + Spring Boot 3.2+
-  # Educational Note:
-  # Redis I/O operations and HTTP handlers run on virtual threads,
-  # allowing the service to handle massive concurrent traffic efficiently.
+  # Redis I/O and HTTP handlers run on virtual threads, enabling high concurrency
+  # with minimal memory overhead compared to platform threads.
   threads:
     virtual:
       enabled: true
-  
+
   data:
     redis:
       host: localhost
       port: 6379
-      password: 
-      # Educational Note:
-      # Data TTL ensures that the cart data is automatically cleaned 
-      # from Redis after a period of inactivity (e.g., 24 hours).
+      password:
       time-to-live: 86400s
       timeout: 2000ms
       lettuce:
@@ -26,7 +22,22 @@ spring:
           max-idle: 5
           min-idle: 2
 
-# Server Configuration
+  # Redisson — single-node config for local/dev (same host as spring.data.redis)
+  # Redisson is used exclusively for distributed cart write locks.
+  # It connects independently from the Lettuce connection pool used for cart data.
+  redis:
+    redisson:
+      config: |
+        singleServerConfig:
+          address: "redis://localhost:6379"
+          connectionMinimumIdleSize: 2
+          connectionPoolSize: 10
+          connectTimeout: 3000
+          timeout: 2000
+          retryAttempts: 2
+          retryInterval: 1000
+
+# Server
 server:
   port: 8084
   shutdown: graceful
@@ -77,11 +88,18 @@ logging:
     root: INFO
     com.monat.ecommerce: DEBUG
 
-
-# Application specific
+# Application-specific configuration
 application:
   cart:
     # Cart expiry in days (7 days default)
     expiry-days: 7
     # Max items per cart
     max-items: 100
+    # Distributed lock settings (Redisson / Redis)
+    # wait-time-ms  — max time a request waits to acquire cart lock before failing (CartLockException).
+    #                 3s is generous for dev; production should be 1-2s.
+    # lease-time-ms — max time a lock is held. Prevents deadlock on process crash.
+    #                 10s >> any typical cart operation duration.
+    lock:
+      wait-time-ms: 3000
+      lease-time-ms: 10000

@@ -6,6 +6,7 @@ import com.monat.ecommerce.cart.application.mapper.CartMapper;
 import com.monat.ecommerce.cart.domain.model.Cart;
 import com.monat.ecommerce.cart.domain.model.CartItem;
 import com.monat.ecommerce.cart.domain.repository.CartRepository;
+import com.monat.ecommerce.cart.infrastructure.config.CartLockService;
 import com.monat.ecommerce.cart.infrastructure.config.CartMetrics;
 import io.micrometer.core.instrument.Timer;
 import io.micrometer.observation.annotation.Observed;
@@ -14,16 +15,25 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-
 import java.time.LocalDateTime;
 
 /**
  * Coordinator for Shopping Cart operations.
- * 
- * Educational Note:
- * This service uses Redis to store active cart data. 
- * High-speed caching is essential here as users interact with their carts 
- * frequently during a single session.
+ *
+ * <p>Concurrency Strategy — Distributed Redis Lock:
+ * Every mutating operation (add, update, remove, clear, merge) follows the
+ * Read-Modify-Write pattern against Redis. Without synchronisation, two concurrent
+ * requests for the same cart can both read stale state and silently overwrite each other
+ * (lost update).
+ *
+ * <p>To prevent this, each write operation acquires a per-cart distributed lock via
+ * {@link CartLockService} before reading the cart. The lock is backed by Redisson
+ * (Redis) and is automatically released after the operation completes (or on failure).
+ * Callers receive a {@link CartLockService.CartLockException} if the lock cannot be
+ * acquired within the configured timeout, which should be mapped to HTTP 429/503.
+ *
+ * <p>Read operations (getCart) are intentionally left unlocked — reading a slightly
+ * stale snapshot is acceptable and keeps read latency minimal.
  */
 @Slf4j
 @Service
@@ -33,12 +43,13 @@ public class CartApplicationService {
     private final CartRepository cartRepository;
     private final CartMapper cartMapper;
     private final CartMetrics cartMetrics;
+    private final CartLockService cartLockService;
 
     @Value("${application.cart.max-items:100}")
     private Integer maxItems;
 
     /**
-     * Get cart by cart ID (user ID or session ID)
+     * Get cart by cart ID — read is lock-free for performance.
      */
     @Observed(name = "cart.operation", contextualName = "cart-get")
     public CartResponse getCart(String cartId) {
@@ -50,29 +61,39 @@ public class CartApplicationService {
     }
 
     /**
-     * Add item to cart
+     * Add item to cart.
+     *
+     * <p>Lock scope: The lock is held for the entire read-modify-write cycle to prevent
+     * two simultaneous add-item requests from both reading the same cart state and then
+     * overwriting each other's updates (classic lost update).
      */
     public CartResponse addToCart(String cartId, AddToCartRequest request) {
         Timer.Sample sample = Timer.start();
         log.info("Adding item to cart: {} - Product: {}", cartId, request.productId());
         try {
-            Cart cart = cartRepository.findById(cartId)
-                    .orElseGet(() -> createNewCart(cartId));
+            return cartLockService.executeWithLock(cartId, () -> {
+                Cart cart = cartRepository.findById(cartId)
+                        .orElseGet(() -> createNewCart(cartId));
 
-            if (cart.getTotalItems() >= maxItems) {
-                cartMetrics.incrementOperation("add", "capacity_reached");
-                throw new IllegalStateException("Cart has reached maximum capacity of " + maxItems + " items");
-            }
+                if (cart.getTotalItems() >= maxItems) {
+                    cartMetrics.incrementOperation("add", "capacity_reached");
+                    throw new IllegalStateException(
+                            "Cart has reached maximum capacity of " + maxItems + " items");
+                }
 
-            CartItem item = cartMapper.toItem(request);
-            item.calculateSubtotal();
-            cart.addItem(item);
-            cartRepository.save(cart);
+                CartItem item = cartMapper.toItem(request);
+                item.calculateSubtotal();
+                cart.addItem(item);
+                cartRepository.save(cart);
 
-            log.info("Item added to cart: {} - Total items: {}", cartId, cart.getTotalItems());
-            cartMetrics.incrementOperation("add", "success");
-            cartMetrics.recordCartSize(cart.getTotalItems(), "add");
-            return cartMapper.toResponse(cart);
+                log.info("Item added to cart: {} - Total items: {}", cartId, cart.getTotalItems());
+                cartMetrics.incrementOperation("add", "success");
+                cartMetrics.recordCartSize(cart.getTotalItems(), "add");
+                return cartMapper.toResponse(cart);
+            });
+        } catch (CartLockService.CartLockException ex) {
+            cartMetrics.incrementOperation("add", "lock_timeout");
+            throw ex;
         } catch (RuntimeException ex) {
             cartMetrics.incrementOperation("add", "failure");
             throw ex;
@@ -82,25 +103,33 @@ public class CartApplicationService {
     }
 
     /**
-     * Update item quantity
+     * Update item quantity.
+     *
+     * <p>Lock scope: Prevents concurrent quantity updates from interleaving and producing
+     * an incorrect final quantity.
      */
     public CartResponse updateItemQuantity(String cartId, String productId, Integer quantity) {
         Timer.Sample sample = Timer.start();
         log.info("Updating item quantity - Cart: {}, Product: {}, Qty: {}", cartId, productId, quantity);
         try {
-            Cart cart = cartRepository.findById(cartId)
-                    .orElseThrow(() -> new IllegalArgumentException("Cart not found: " + cartId));
+            return cartLockService.executeWithLock(cartId, () -> {
+                Cart cart = cartRepository.findById(cartId)
+                        .orElseThrow(() -> new IllegalArgumentException("Cart not found: " + cartId));
 
-            if (quantity <= 0) {
-                cart.removeItem(productId);
-            } else {
-                cart.updateItemQuantity(productId, quantity);
-            }
+                if (quantity <= 0) {
+                    cart.removeItem(productId);
+                } else {
+                    cart.updateItemQuantity(productId, quantity);
+                }
 
-            cartRepository.save(cart);
-            cartMetrics.incrementOperation("update_quantity", "success");
-            cartMetrics.recordCartSize(cart.getTotalItems(), "update_quantity");
-            return cartMapper.toResponse(cart);
+                cartRepository.save(cart);
+                cartMetrics.incrementOperation("update_quantity", "success");
+                cartMetrics.recordCartSize(cart.getTotalItems(), "update_quantity");
+                return cartMapper.toResponse(cart);
+            });
+        } catch (CartLockService.CartLockException ex) {
+            cartMetrics.incrementOperation("update_quantity", "lock_timeout");
+            throw ex;
         } catch (RuntimeException ex) {
             cartMetrics.incrementOperation("update_quantity", "failure");
             throw ex;
@@ -110,20 +139,28 @@ public class CartApplicationService {
     }
 
     /**
-     * Remove item from cart
+     * Remove item from cart.
+     *
+     * <p>Lock scope: Guards against race conditions where item removal and quantity update
+     * overlap on the same cart.
      */
     public CartResponse removeItem(String cartId, String productId) {
         Timer.Sample sample = Timer.start();
         log.info("Removing item - Cart: {}, Product: {}", cartId, productId);
         try {
-            Cart cart = cartRepository.findById(cartId)
-                    .orElseThrow(() -> new IllegalArgumentException("Cart not found: " + cartId));
+            return cartLockService.executeWithLock(cartId, () -> {
+                Cart cart = cartRepository.findById(cartId)
+                        .orElseThrow(() -> new IllegalArgumentException("Cart not found: " + cartId));
 
-            cart.removeItem(productId);
-            cartRepository.save(cart);
-            cartMetrics.incrementOperation("remove", "success");
-            cartMetrics.recordCartSize(cart.getTotalItems(), "remove");
-            return cartMapper.toResponse(cart);
+                cart.removeItem(productId);
+                cartRepository.save(cart);
+                cartMetrics.incrementOperation("remove", "success");
+                cartMetrics.recordCartSize(cart.getTotalItems(), "remove");
+                return cartMapper.toResponse(cart);
+            });
+        } catch (CartLockService.CartLockException ex) {
+            cartMetrics.incrementOperation("remove", "lock_timeout");
+            throw ex;
         } catch (RuntimeException ex) {
             cartMetrics.incrementOperation("remove", "failure");
             throw ex;
@@ -133,19 +170,24 @@ public class CartApplicationService {
     }
 
     /**
-     * Clear cart
+     * Clear all items from the cart.
      */
     public void clearCart(String cartId) {
         Timer.Sample sample = Timer.start();
         log.info("Clearing cart: {}", cartId);
         try {
-            Cart cart = cartRepository.findById(cartId)
-                    .orElseThrow(() -> new IllegalArgumentException("Cart not found: " + cartId));
+            cartLockService.executeWithLock(cartId, () -> {
+                Cart cart = cartRepository.findById(cartId)
+                        .orElseThrow(() -> new IllegalArgumentException("Cart not found: " + cartId));
 
-            cart.clear();
-            cartRepository.save(cart);
-            cartMetrics.incrementOperation("clear", "success");
-            cartMetrics.recordCartSize(cart.getTotalItems(), "clear");
+                cart.clear();
+                cartRepository.save(cart);
+                cartMetrics.incrementOperation("clear", "success");
+                cartMetrics.recordCartSize(cart.getTotalItems(), "clear");
+            });
+        } catch (CartLockService.CartLockException ex) {
+            cartMetrics.incrementOperation("clear", "lock_timeout");
+            throw ex;
         } catch (RuntimeException ex) {
             cartMetrics.incrementOperation("clear", "failure");
             throw ex;
@@ -155,7 +197,7 @@ public class CartApplicationService {
     }
 
     /**
-     * Delete cart
+     * Delete the cart entirely — no lock needed; delete is idempotent.
      */
     @Observed(name = "cart.operation", contextualName = "cart-delete")
     public void deleteCart(String cartId) {
@@ -165,26 +207,35 @@ public class CartApplicationService {
     }
 
     /**
-     * Merge anonymous cart with user cart on login
+     * Merge anonymous cart with user cart on login.
+     *
+     * <p>Lock scope: Locks the user cart (destination) during the merge to prevent
+     * concurrent add-item requests from overwriting merged items. The anonymous cart
+     * is only read, so it does not need a lock.
      */
     public CartResponse mergeCart(String anonymousCartId, String userId) {
         Timer.Sample sample = Timer.start();
         log.info("Merging carts - Anonymous: {}, User: {}", anonymousCartId, userId);
         try {
-            Cart anonymousCart = cartRepository.findById(anonymousCartId).orElse(null);
-            Cart userCart = cartRepository.findById(userId)
-                    .orElseGet(() -> createNewCart(userId));
+            return cartLockService.executeWithLock(userId, () -> {
+                Cart anonymousCart = cartRepository.findById(anonymousCartId).orElse(null);
+                Cart userCart = cartRepository.findById(userId)
+                        .orElseGet(() -> createNewCart(userId));
 
-            if (anonymousCart != null && !anonymousCart.isEmpty()) {
-                userCart.merge(anonymousCart);
-                cartRepository.save(userCart);
-                cartRepository.delete(anonymousCartId);
-                log.info("Carts merged successfully - Total items: {}", userCart.getTotalItems());
-            }
+                if (anonymousCart != null && !anonymousCart.isEmpty()) {
+                    userCart.merge(anonymousCart);
+                    cartRepository.save(userCart);
+                    cartRepository.delete(anonymousCartId);
+                    log.info("Carts merged successfully - Total items: {}", userCart.getTotalItems());
+                }
 
-            cartMetrics.incrementOperation("merge", "success");
-            cartMetrics.recordCartSize(userCart.getTotalItems(), "merge");
-            return cartMapper.toResponse(userCart);
+                cartMetrics.incrementOperation("merge", "success");
+                cartMetrics.recordCartSize(userCart.getTotalItems(), "merge");
+                return cartMapper.toResponse(userCart);
+            });
+        } catch (CartLockService.CartLockException ex) {
+            cartMetrics.incrementOperation("merge", "lock_timeout");
+            throw ex;
         } catch (RuntimeException ex) {
             cartMetrics.incrementOperation("merge", "failure");
             throw ex;

@@ -1,0 +1,80 @@
+# DEBUG OVERRIDE - Use with: docker compose -f docker-compose.yml -f docker-compose.debug.yml up [service]
+#
+# This file enables JDWP remote debugging for each microservice.
+# Usage examples:
+#   Debug single service:
+#     docker compose -f docker-compose.yml -f docker-compose.debug.yml up order-service
+#   Debug all services:
+#     docker compose -f docker-compose.yml -f docker-compose.debug.yml up
+#
+# IntelliJ IDEA setup:
+#   Edit Configurations → Add → Remote JVM Debug
+#   Host: localhost, Port: see below
+#   -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005
+
+services:
+  api-gateway:
+    ports:
+      - "8080:8080"
+      - "5005:5005"     # Remote debug port
+    environment:
+      - JAVA_TOOL_OPTIONS=-javaagent:/skywalking/agent/skywalking-agent.jar -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005
+
+  user-service:
+    ports:
+      - "8081:8081"     # Expose HTTP locally for direct debugging
+      - "9081:9081"
+      - "5081:5081"     # Remote debug port
+    environment:
+      - JAVA_TOOL_OPTIONS=-javaagent:/skywalking/agent/skywalking-agent.jar -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5081
+
+  product-service:
+    ports:
+      - "8082:8082"
+      - "5082:5082"     # Remote debug port
+    environment:
+      - JAVA_TOOL_OPTIONS=-javaagent:/skywalking/agent/skywalking-agent.jar -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5082
+
+  inventory-service:
+    ports:
+      - "8083:8083"
+      - "9083:9083"
+      - "5083:5083"     # Remote debug port
+    environment:
+      - JAVA_TOOL_OPTIONS=-javaagent:/skywalking/agent/skywalking-agent.jar -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5083
+
+  cart-service:
+    ports:
+      - "8084:8084"
+      - "5084:5084"     # Remote debug port
+    environment:
+      - JAVA_TOOL_OPTIONS=-javaagent:/skywalking/agent/skywalking-agent.jar -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5084
+
+  order-service:
+    ports:
+      - "8085:8085"
+      - "5085:5085"     # Remote debug port
+    environment:
+      - JAVA_TOOL_OPTIONS=-javaagent:/skywalking/agent/skywalking-agent.jar -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5085
+
+  payment-service:
+    ports:
+      - "8086:8086"
+      - "9086:9086"
+      - "5086:5086"     # Remote debug port
+    environment:
+      - JAVA_TOOL_OPTIONS=-javaagent:/skywalking/agent/skywalking-agent.jar -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5086
+
+  notification-service:
+    ports:
+      - "8087:8087"
+      - "5087:5087"     # Remote debug port
+    environment:
+      - JAVA_TOOL_OPTIONS=-javaagent:/skywalking/agent/skywalking-agent.jar -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5087
+
+  fraud-service:
+    ports:
+      - "8088:8088"
+      - "5088:5088"     # Remote debug port
+    environment:
+      - JAVA_TOOL_OPTIONS=-javaagent:/skywalking/agent/skywalking-agent.jar -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5088

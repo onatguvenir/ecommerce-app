@@ -1,4 +1,4 @@
-# Monat E-Commerce Infrastructure & Monitoring
+﻿# Monat E-Commerce Infrastructure & Monitoring
 # Removed deprecated version: '3.8' for Compose V2 compatibility
 
 services:
@@ -469,7 +469,6 @@ services:
       skywalking-agent-init:
         condition: service_completed_successfully
     ports:
-      - "8081:8081"
       - "9081:9081"
     environment:
       - SPRING_PROFILES_ACTIVE=docker
@@ -505,8 +504,7 @@ services:
         condition: service_healthy
       skywalking-agent-init:
         condition: service_completed_successfully
-    ports:
-      - "8082:8082"
+    # HTTP NOT exposed - use api-gateway:8080
     environment:
       - SPRING_PROFILES_ACTIVE=docker
       - SPRING_DATA_MONGODB_URI=mongodb://mongodb:27017/productdb?replicaSet=rs0&directConnection=true
@@ -539,7 +537,6 @@ services:
       skywalking-agent-init:
         condition: service_completed_successfully
     ports:
-      - "8083:8083"
       - "9083:9083"
     environment:
       - SPRING_PROFILES_ACTIVE=docker
@@ -573,8 +570,7 @@ services:
         condition: service_healthy
       skywalking-agent-init:
         condition: service_completed_successfully
-    ports:
-      - "8084:8084"
+    # HTTP NOT exposed - use api-gateway:8080
     environment:
       - SPRING_PROFILES_ACTIVE=docker
       - SPRING_DATA_REDIS_HOST=redis
@@ -612,8 +608,7 @@ services:
         condition: service_healthy
       skywalking-agent-init:
         condition: service_completed_successfully
-    ports:
-      - "8085:8085"
+    # HTTP NOT exposed - use api-gateway:8080
     environment:
       - SPRING_PROFILES_ACTIVE=docker
       - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/orderdb
@@ -651,7 +646,6 @@ services:
       skywalking-agent-init:
         condition: service_completed_successfully
     ports:
-      - "8086:8086"
       - "9086:9086"
     environment:
       - SPRING_PROFILES_ACTIVE=docker
@@ -684,8 +678,7 @@ services:
         condition: service_healthy
       skywalking-agent-init:
         condition: service_completed_successfully
-    ports:
-      - "8087:8087"
+    # HTTP NOT exposed - use api-gateway:8080
     environment:
       - SPRING_PROFILES_ACTIVE=docker
       - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:29092
@@ -715,8 +708,7 @@ services:
         condition: service_healthy
       skywalking-agent-init:
         condition: service_completed_successfully
-    ports:
-      - "8088:8088"
+    # HTTP NOT exposed - use api-gateway:8080
     environment:
       - SPRING_PROFILES_ACTIVE=docker
       - KAFKA_BOOTSTRAP_SERVERS=kafka:29092
