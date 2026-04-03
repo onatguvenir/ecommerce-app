@@ -3,15 +3,16 @@ package com.monat.ecommerce.order.infrastructure.messaging;
 import com.monat.ecommerce.order.domain.model.OutboxEvent;
 import com.monat.ecommerce.order.domain.repository.OutboxEventRepository;
 import com.monat.ecommerce.order.infrastructure.config.OrderMetrics;
+
 import io.micrometer.core.instrument.Timer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
-import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 
 import java.util.List;
 

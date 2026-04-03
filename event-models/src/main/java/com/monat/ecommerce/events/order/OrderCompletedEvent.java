@@ -1,11 +1,8 @@
 package com.monat.ecommerce.events.order;
 
 import com.monat.ecommerce.events.BaseEvent;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.EqualsAndHashCode;
-import lombok.NoArgsConstructor;
+
+import lombok.*;
 
 import java.math.BigDecimal;
 

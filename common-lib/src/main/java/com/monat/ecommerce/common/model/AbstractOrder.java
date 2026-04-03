@@ -2,9 +2,7 @@ package com.monat.ecommerce.common.model;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
 import lombok.experimental.SuperBuilder;
 
 import java.math.BigDecimal;
@@ -29,23 +27,53 @@ public abstract class AbstractOrder<I> {
     @Builder.Default
     protected List<I> items = new ArrayList<>();
 
-    public String getUserId() { return userId; }
-    public void setUserId(String userId) { this.userId = userId; }
+    public String getUserId() {
+        return userId;
+    }
 
-    public BigDecimal getTotalAmount() { return totalAmount; }
-    public void setTotalAmount(BigDecimal totalAmount) { this.totalAmount = totalAmount; }
+    public void setUserId(String userId) {
+        this.userId = userId;
+    }
 
-    public String getCurrency() { return currency; }
-    public void setCurrency(String currency) { this.currency = currency; }
+    public BigDecimal getTotalAmount() {
+        return totalAmount;
+    }
 
-    public LocalDateTime getCreatedAt() { return createdAt; }
-    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+    public void setTotalAmount(BigDecimal totalAmount) {
+        this.totalAmount = totalAmount;
+    }
 
-    public LocalDateTime getUpdatedAt() { return updatedAt; }
-    public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
+    public String getCurrency() {
+        return currency;
+    }
 
-    public List<I> getItems() { return items; }
-    public void setItems(List<I> items) { this.items = items; }
+    public void setCurrency(String currency) {
+        this.currency = currency;
+    }
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public LocalDateTime getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public void setUpdatedAt(LocalDateTime updatedAt) {
+        this.updatedAt = updatedAt;
+    }
+
+    public List<I> getItems() {
+        return items;
+    }
+
+    public void setItems(List<I> items) {
+        this.items = items;
+    }
 
     public void calculateTotalAmount() {
         if (items == null || items.isEmpty()) {
@@ -66,7 +94,7 @@ public abstract class AbstractOrder<I> {
     public Integer getTotalItems() {
         if (items == null) return 0;
         return items.stream()
-                .mapToInt(item -> ((AbstractOrderItem)item).getQuantity())
+                .mapToInt(item -> ((AbstractOrderItem) item).getQuantity())
                 .sum();
     }
 }

@@ -6,10 +6,16 @@ import com.monat.ecommerce.common.exception.ResourceNotFoundException;
 import com.monat.ecommerce.order.application.dto.*;
 import com.monat.ecommerce.order.domain.model.Order;
 import com.monat.ecommerce.order.domain.model.OrderItem;
+import com.monat.ecommerce.order.domain.model.OrderStatus;
 import com.monat.ecommerce.order.domain.model.dto.CartDto;
 import com.monat.ecommerce.order.domain.repository.OrderRepository;
 import com.monat.ecommerce.order.domain.service.OrderSagaOrchestrator;
+import com.monat.ecommerce.order.infrastructure.client.CartClient;
 import com.monat.ecommerce.order.infrastructure.config.OrderMetrics;
+import com.monat.ecommerce.order.infrastructure.reporting.OrderAnalyticsRepository;
+import com.monat.ecommerce.order.infrastructure.reporting.OrderReadPage;
+import com.monat.ecommerce.order.infrastructure.reporting.OrderSummaryReadModel;
+
 import io.micrometer.core.instrument.Timer;
 import io.micrometer.observation.annotation.Observed;
 import lombok.RequiredArgsConstructor;
@@ -19,9 +25,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
-import com.monat.ecommerce.order.infrastructure.client.CartClient;
 
 /**
  * Order Application Service.
@@ -50,6 +57,7 @@ public class OrderApplicationService {
     private final OrderSagaOrchestrator sagaOrchestrator;
     private final CartClient cartClient;
     private final OrderMetrics orderMetrics;
+    private final OrderAnalyticsRepository orderAnalyticsRepository;
 
     @Transactional
     public OrderResponse createOrder(CreateOrderRequest request) {
@@ -84,6 +92,7 @@ public class OrderApplicationService {
                     .reduce(BigDecimal.ZERO, BigDecimal::add);
 
             Order order = orderMapper.toOrder(request);
+            order.setCreatedAt(LocalDateTime.now());
             order.setOrderNumber(orderNumber);
             order.setTotalAmount(totalAmount);
 
@@ -146,22 +155,67 @@ public class OrderApplicationService {
     @Observed(name = "order.lookup", contextualName = "order-get-user-orders")
     public PagedResponse<OrderResponse> getUserOrders(UUID userId, Pageable pageable) {
         log.debug("Fetching orders for user: {}", userId);
+        OrderReadPage<OrderSummaryReadModel> result = orderAnalyticsRepository.findUserOrderHistory(
+                userId,
+                pageable.getPageNumber(),
+                pageable.getPageSize());
+        return toPagedResponse(result, pageable);
+    }
 
+    @Transactional(readOnly = true)
+    @Observed(name = "order.lookup", contextualName = "order-list")
+    public PagedResponse<OrderResponse> listOrders(OrderStatus status, Pageable pageable) {
+        log.debug("Listing orders with status: {}", status);
+        OrderReadPage<OrderSummaryReadModel> result = orderAnalyticsRepository.findOrders(
+                status,
+                pageable.getPageNumber(),
+                pageable.getPageSize());
+        return toPagedResponse(result, pageable);
+    }
+
+    @Transactional(readOnly = true)
+    public List<DailySalesReportResponse> getDailySalesReport(LocalDate startDate, LocalDate endDate) {
+        return orderAnalyticsRepository.findDailySalesReport(startDate, endDate);
+    }
+
+    @Transactional(readOnly = true)
+    public List<OrderStatusDistributionResponse> getOrderStatusDistribution() {
+        return orderAnalyticsRepository.findOrderStatusDistribution();
+    }
+
+    private PagedResponse<OrderResponse> toPagedResponse(
+            OrderReadPage<OrderSummaryReadModel> result,
+            Pageable pageable
+    ) {
         int page = pageable.getPageNumber();
         int size = pageable.getPageSize();
-
-        List<Order> orders = orderRepository.findByUserId(userId, page, size);
-        long totalElements = orderRepository.countByUserId(userId);
-        int totalPages = (int) Math.ceil((double) totalElements / size);
+        long totalElements = result.totalElements();
+        int totalPages = size == 0 ? 0 : (int) Math.ceil((double) totalElements / size);
 
         return PagedResponse.<OrderResponse>builder()
-                .content(orderMapper.toOrderResponseList(orders))
+                .content(result.content().stream().map(this::toOrderResponse).toList())
                 .page(page)
                 .size(size)
                 .totalElements(totalElements)
                 .totalPages(totalPages)
                 .first(page == 0)
-                .last(page == totalPages - 1)
+                .last(totalPages == 0 || page >= totalPages - 1)
+                .build();
+    }
+
+    private OrderResponse toOrderResponse(OrderSummaryReadModel order) {
+        return OrderResponse.builder()
+                .id(order.id())
+                .orderNumber(order.orderNumber())
+                .userId(order.userId())
+                .status(order.status())
+                .totalAmount(order.totalAmount())
+                .currency(order.currency())
+                .items(List.of())
+                .paymentReference(order.paymentReference())
+                .cancellationReason(order.cancellationReason())
+                .createdAt(order.createdAt())
+                .updatedAt(order.updatedAt())
                 .build();
     }
 

@@ -1,0 +1,6 @@
+type: specs.openrewrite.org/v1beta/recipe
+name: com.monat.ecommerce.OrderServiceCleanup
+displayName: Monat order service cleanup
+recipeList:
+  - org.openrewrite.java.RemoveUnusedImports
+  - org.openrewrite.java.OrderImports

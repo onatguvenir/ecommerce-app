@@ -2,6 +2,7 @@ package com.monat.ecommerce.order.infrastructure.config;
 
 import com.monat.ecommerce.common.util.MetricUtils;
 import com.monat.ecommerce.order.domain.repository.OutboxEventRepository;
+
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.DistributionSummary;
 import io.micrometer.core.instrument.Gauge;

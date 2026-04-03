@@ -12,6 +12,11 @@ import com.monat.ecommerce.order.domain.model.dto.CartItemDto;
 import com.monat.ecommerce.order.domain.repository.OrderRepository;
 import com.monat.ecommerce.order.domain.service.OrderSagaOrchestrator;
 import com.monat.ecommerce.order.infrastructure.client.CartClient;
+import com.monat.ecommerce.order.infrastructure.config.OrderMetrics;
+import com.monat.ecommerce.order.infrastructure.reporting.OrderAnalyticsRepository;
+
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -54,8 +59,21 @@ class OrderApplicationServiceTest {
     @Mock
     private CartClient cartClient;
 
+    @Mock
+    private OrderMetrics orderMetrics;
+
+    @Mock
+    private OrderAnalyticsRepository orderAnalyticsRepository;
+
     @InjectMocks
     private OrderApplicationService orderApplicationService;
+
+    @BeforeEach
+    void setUp() {
+        when(orderMetrics.orderCreationTimer()).thenReturn(
+                io.micrometer.core.instrument.Timer.builder("test.order.creation")
+                        .register(new SimpleMeterRegistry()));
+    }
 
     @Test
     @DisplayName("Should create order from cart successfully and initiate Saga")
@@ -85,11 +103,11 @@ class OrderApplicationServiceTest {
 
         ApiResponse<CartDto> cartApiResponse = ApiResponse.success(cartDto, "Success");
         when(cartClient.getCart("cart-123")).thenReturn(cartApiResponse);
-        
+
         Order order = new Order();
         order.setId(UUID.randomUUID());
         order.setOrderNumber("ORD-TEST-001");
-        
+
         when(orderMapper.toOrder(any())).thenReturn(order);
         when(orderMapper.toOrderItem(any())).thenReturn(new OrderItem());
         when(orderRepository.save(any())).thenReturn(order);
@@ -101,11 +119,11 @@ class OrderApplicationServiceTest {
         // Assert
         assertThat(response).isNotNull();
         assertThat(response.orderNumber()).isEqualTo("ORD-TEST-001");
-        
+
         verify(cartClient, times(1)).getCart("cart-123");
         verify(cartClient, times(1)).deleteCart("cart-123");
         verify(orderRepository, times(1)).save(any());
-        
+
         // Note: sagaOrchestrator is called in a separate thread. 
         // In a real project, we might use a spy or Captor with Awaitility 
         // or refactor to use an ExecutorService that can be synchronous in tests.
@@ -122,7 +140,7 @@ class OrderApplicationServiceTest {
 
         ApiResponse<CartDto> emptyResponse = ApiResponse.success(
                 CartDto.builder().cartId("empty-cart").items(Collections.emptyList()).build(), "Success");
-        
+
         when(cartClient.getCart("empty-cart")).thenReturn(emptyResponse);
 
         // Act & Assert

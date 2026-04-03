@@ -1,6 +1,7 @@
 package com.monat.ecommerce.common.dto;
 
 import lombok.Builder;
+
 import java.time.LocalDateTime;
 
 /**
@@ -10,11 +11,11 @@ import java.time.LocalDateTime;
  */
 @Builder
 public record ApiResponse<T>(
-    boolean success,
-    String message,
-    T data,
-    LocalDateTime timestamp,
-    String traceId // Essential for distributed tracing correlation
+        boolean success,
+        String message,
+        T data,
+        LocalDateTime timestamp,
+        String traceId // Essential for distributed tracing correlation
 ) {
     public static <T> ApiResponse<T> success(T data) {
         return ApiResponse.<T>builder()

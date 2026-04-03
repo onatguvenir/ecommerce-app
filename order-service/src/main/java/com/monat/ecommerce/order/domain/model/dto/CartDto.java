@@ -7,9 +7,10 @@ import java.util.List;
 
 @Builder
 public record CartDto(
-    String cartId,
-    String userId,
-    List<CartItemDto> items,
-    BigDecimal totalAmount,
-    Integer totalItems
-) {}
+        String cartId,
+        String userId,
+        List<CartItemDto> items,
+        BigDecimal totalAmount,
+        Integer totalItems
+) {
+}

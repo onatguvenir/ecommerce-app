@@ -16,7 +16,7 @@ public record UserAccountSuspendedEvent(
         if (eventId == null) eventId = UUID.randomUUID();
         if (timestamp == null) timestamp = Instant.now();
     }
-    
+
     public static UserAccountSuspendedEvent create(String userId, String reason) {
         return new UserAccountSuspendedEvent(UUID.randomUUID(), userId, reason, Instant.now());
     }

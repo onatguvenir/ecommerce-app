@@ -7,10 +7,11 @@ import java.util.UUID;
 
 @Builder
 public record OrderItemResponse(
-    UUID id,
-    String productId,
-    String productName,
-    Integer quantity,
-    BigDecimal unitPrice,
-    BigDecimal subtotal
-) {}
+        UUID id,
+        String productId,
+        String productName,
+        Integer quantity,
+        BigDecimal unitPrice,
+        BigDecimal subtotal
+) {
+}

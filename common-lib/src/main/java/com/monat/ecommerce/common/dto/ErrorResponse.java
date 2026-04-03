@@ -11,11 +11,12 @@ import java.util.Map;
  */
 @Builder
 public record ErrorResponse(
-    String error,
-    String message,
-    int status,
-    String path,
-    LocalDateTime timestamp,
-    String traceId, // Correlates with Jaeger/Logback traces
-    Map<String, String> validationErrors // Specifically for @Valid / MethodArgumentNotValidException
-) {}
+        String error,
+        String message,
+        int status,
+        String path,
+        LocalDateTime timestamp,
+        String traceId, // Correlates with Jaeger/Logback traces
+        Map<String, String> validationErrors // Specifically for @Valid / MethodArgumentNotValidException
+) {
+}

@@ -2,18 +2,23 @@ package com.monat.ecommerce.order.domain.service;
 
 import com.monat.ecommerce.events.order.OrderCancelledEvent;
 import com.monat.ecommerce.events.order.OrderCompletedEvent;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.monat.ecommerce.grpc.inventory.*;
-import com.monat.ecommerce.grpc.payment.*;
-import com.monat.ecommerce.grpc.user.*;
+import com.monat.ecommerce.grpc.payment.PaymentServiceGrpc;
+import com.monat.ecommerce.grpc.payment.ProcessPaymentRequest;
+import com.monat.ecommerce.grpc.payment.ProcessPaymentResponse;
+import com.monat.ecommerce.grpc.payment.RefundPaymentRequest;
+import com.monat.ecommerce.grpc.user.UserServiceGrpc;
+import com.monat.ecommerce.grpc.user.ValidateUserRequest;
+import com.monat.ecommerce.grpc.user.ValidateUserResponse;
 import com.monat.ecommerce.order.domain.model.*;
 import com.monat.ecommerce.order.domain.repository.OrderRepository;
 import com.monat.ecommerce.order.domain.repository.OrderSagaStateRepository;
 import com.monat.ecommerce.order.domain.repository.OutboxEventRepository;
 import com.monat.ecommerce.order.infrastructure.config.OrderMetrics;
-import io.micrometer.core.instrument.Timer;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.grpc.StatusRuntimeException;
+import io.micrometer.core.instrument.Timer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.devh.boot.grpc.client.inject.GrpcClient;

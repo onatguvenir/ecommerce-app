@@ -6,6 +6,7 @@ import com.monat.ecommerce.order.domain.model.ShippingAddress;
 import com.monat.ecommerce.order.infrastructure.persistence.entity.OrderEntity;
 import com.monat.ecommerce.order.infrastructure.persistence.entity.OrderItemEntity;
 import com.monat.ecommerce.order.infrastructure.persistence.entity.ShippingAddressEmbeddable;
+
 import org.springframework.stereotype.Component;
 
 import java.util.Collections;

@@ -57,6 +57,12 @@ cd order-service
 mvn spring-boot:run
 ```
 - HTTP: http://localhost:8085
+- Swagger: http://localhost:8085/swagger-ui.html
+
+Order Service now includes:
+- Replica-backed order listing and user order history
+- Materialized view endpoints for daily sales and status distribution
+- Yearly partitioned analytics read model by `created_at`
 
 ---
 
@@ -404,10 +410,37 @@ curl http://localhost:8081/api/users/email/alice@example.com
 curl "http://localhost:8085/api/orders/user/{userId}?page=0&size=10"
 ```
 
+#### List Orders
+```bash
+curl "http://localhost:8085/api/orders?status=COMPLETED&page=0&size=20"
+```
+
 #### Get Order by Order Number
 ```bash
 curl http://localhost:8085/api/orders/number/ORD-1707091200000-A1B2C3D4
 ```
+
+#### Daily Sales Report
+```bash
+curl "http://localhost:8085/api/orders/reports/daily-sales?startDate=2026-03-01&endDate=2026-03-31"
+```
+
+#### Order Status Distribution
+```bash
+curl http://localhost:8085/api/orders/reports/status-distribution
+```
+
+## Refactoring Workflow
+
+OpenRewrite is configured for automated Java cleanup and formatting.
+
+```powershell
+mvn -pl order-service --also-make rewrite:run
+```
+
+Notes:
+- The recipe configuration is stored in `rewrite.yml`.
+- Because the command runs on the Maven reactor, dependent modules like `common-lib` and `event-models` may also receive import and format updates.
 
 ---
 

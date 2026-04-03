@@ -9,8 +9,8 @@
 
 ### 2. Order Service ✅  
 - **Port:** 8085 (HTTP)
-- **Features:** **Saga Orchestrator**, Order creation, Outbox pattern, gRPC client
-- **Status:** Production-ready with full Saga implementation
+- **Features:** **Saga Orchestrator**, Order creation, Outbox pattern, gRPC client, read replica queries, materialized reporting
+- **Status:** Production-ready with full Saga implementation and reporting read model
 
 ### 3. Inventory Service ✅
 - **Port:** 8083 (HTTP), 9083 (gRPC)
@@ -79,6 +79,12 @@
 - At-least-once delivery
 - Decoupled services
 
+### Order Analytics & Scale Reads ✅
+- Yearly `created_at` partitioned `orders_read_model`
+- Read replica path for order list and user order history
+- Materialized views for daily sales report and order status distribution
+- Scheduled refresh pipeline for reporting snapshots
+
 ---
 
 ## 🧪 Test It Now!
@@ -127,9 +133,17 @@ curl -X POST http://localhost:8085/api/orders ...
 - ✅ Optimistic Locking with retry
 - ✅ Idempotency for payments
 - ✅ Outbox Pattern for reliable events
+- ✅ Read replica query separation for order reads
+- ✅ Yearly partitioned read model for order analytics
+- ✅ Materialized view based reporting
 - ✅ Event-Driven Architecture
 - ✅ Domain-Driven Design
 - ✅ gRPC for inter-service calls
+
+**Refactoring Tooling:** enabled
+- ✅ OpenRewrite Maven plugin configured at root level
+- ✅ `rewrite.yml` recipe added for import cleanup and formatting
+- ✅ Initial refactor run applied through the Maven reactor
 
 **Infrastructure:** 100% ready
 - ✅ Docker Compose with all databases

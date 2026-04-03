@@ -3,8 +3,38 @@ spring:
     active: dev
   application:
     name: order-service
+  threads:
+    virtual:
+      enabled: true
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    locations: classpath:db/migration
+  kafka:
+    bootstrap-servers: localhost:9092
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      acks: all
+      retries: 3
+      properties:
+        enable.idempotence: true
+    consumer:
+      group-id: order-service-group
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: '*'
 
-# N+1 Detection Configuration
 nplus1:
   enabled: true
   threshold: 5
@@ -15,57 +45,6 @@ nplus1:
     - org.hibernate.
     - org.springframework.
 
-  # Virtual Threads (Project Loom) — JDK 21 + Spring Boot 3.2+
-  # Educational Note:
-  # Highly efficient for Saga coordination. Every HTTP request, 
-  # @KafkaListener, and gRPC client call runs on a virtual thread.
-  threads:
-    virtual:
-      enabled: true
-  
-  datasource:
-    url: jdbc:postgresql://localhost:5432/orderdb
-    username: postgres
-    password: postgres
-    driver-class-name: org.postgresql.Driver
-    hikari:
-      maximum-pool-size: 10
-      minimum-idle: 5
-  
-  jpa:
-    hibernate:
-      ddl-auto: validate
-    show-sql: false
-    properties:
-      hibernate:
-        dialect: org.hibernate.dialect.PostgreSQLDialect
-        format_sql: true
-  
-  flyway:
-    enabled: true
-    baseline-on-migrate: true
-    locations: classpath:db/migration
-  
-  kafka:
-    bootstrap-servers: localhost:9092
-    producer:
-      key-serializer: org.apache.kafka.common.serialization.StringSerializer
-      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
-      # Reliability settings
-      acks: all
-      retries: 3
-      properties:
-        # Ensures exactly-once delivery within a transaction
-        enable.idempotence: true
-    consumer:
-      group-id: order-service-group
-      auto-offset-reset: earliest
-      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
-      properties:
-        spring.json.trusted.packages: '*'
-
-# gRPC Clients
 grpc:
   client:
     inventory-service:
@@ -78,12 +57,10 @@ grpc:
       address: static://localhost:9081
       negotiationType: plaintext
 
-# Server Configuration
 server:
   port: 8085
   shutdown: graceful
 
-# Management & Actuator
 management:
   endpoints:
     web:
@@ -123,13 +100,11 @@ management:
       export:
         enabled: false
 
-# Logging
 logging:
   level:
     root: INFO
     com.monat.ecommerce: DEBUG
 
-# Resilience4j
 resilience4j:
   circuitbreaker:
     instances:
@@ -145,7 +120,6 @@ resilience4j:
         minimumNumberOfCalls: 5
         failureRateThreshold: 50
         waitDurationInOpenState: 10s
-  
   retry:
     instances:
       inventoryService:
@@ -154,7 +128,6 @@ resilience4j:
       paymentService:
         maxAttempts: 3
         waitDuration: 1000ms
-        
   bulkhead:
     instances:
       inventory-service:
@@ -167,11 +140,28 @@ resilience4j:
         maxConcurrentCalls: 100
         maxWaitDuration: 500ms
 
-
-# Application specific
 application:
+  datasource:
+    primary:
+      url: jdbc:postgresql://localhost:5432/orderdb
+      username: postgres
+      password: postgres
+      driver-class-name: org.postgresql.Driver
+      maximum-pool-size: 10
+      minimum-idle: 5
+      pool-name: order-primary-pool
+    replica:
+      url: jdbc:postgresql://localhost:5432/orderdb
+      username: postgres
+      password: postgres
+      driver-class-name: org.postgresql.Driver
+      maximum-pool-size: 10
+      minimum-idle: 5
+      pool-name: order-replica-pool
   saga:
     timeout-minutes: 15
   outbox:
     polling-interval-ms: 5000
     batch-size: 100
+  reporting:
+    materialized-view-refresh-ms: 300000

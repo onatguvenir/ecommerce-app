@@ -1,13 +1,13 @@
 package com.monat.ecommerce.order.infrastructure.grpc;
 
+import com.monat.ecommerce.grpc.payment.PaymentServiceGrpc;
 import com.monat.ecommerce.grpc.payment.PaymentStatus;
-
 import com.monat.ecommerce.grpc.payment.ProcessPaymentRequest;
 import com.monat.ecommerce.grpc.payment.ProcessPaymentResponse;
-import com.monat.ecommerce.grpc.payment.PaymentServiceGrpc;
+
+import io.github.resilience4j.bulkhead.annotation.Bulkhead;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.annotation.Retry;
-import io.github.resilience4j.bulkhead.annotation.Bulkhead;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import lombok.extern.slf4j.Slf4j;
@@ -56,7 +56,7 @@ public class PaymentServiceClient {
     @Retry(name = "payment-service")
     @Bulkhead(name = "payment-service", type = Bulkhead.Type.THREADPOOL, fallbackMethod = "processPaymentFallback")
     public ProcessPaymentResponse processPayment(String orderId, String userId, BigDecimal amount,
-            String currency, String paymentMethod, String idempotencyKey) {
+                                                 String currency, String paymentMethod, String idempotencyKey) {
         log.info("Calling Payment Service for order: {}", orderId);
 
         ProcessPaymentRequest request = ProcessPaymentRequest.newBuilder()
@@ -78,8 +78,8 @@ public class PaymentServiceClient {
      * Fallback method when payment service is unavailable
      */
     private ProcessPaymentResponse processPaymentFallback(String orderId, String userId, BigDecimal amount,
-            String currency, String paymentMethod, String idempotencyKey,
-            Exception ex) {
+                                                          String currency, String paymentMethod, String idempotencyKey,
+                                                          Exception ex) {
         log.error("Payment Service circuit breaker activated for order: {}. Error: {}",
                 orderId, ex.getMessage());
 

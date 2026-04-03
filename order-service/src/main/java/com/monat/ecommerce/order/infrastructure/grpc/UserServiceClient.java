@@ -3,9 +3,10 @@ package com.monat.ecommerce.order.infrastructure.grpc;
 import com.monat.ecommerce.grpc.user.GetUserRequest;
 import com.monat.ecommerce.grpc.user.GetUserResponse;
 import com.monat.ecommerce.grpc.user.UserServiceGrpc;
+
+import io.github.resilience4j.bulkhead.annotation.Bulkhead;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.annotation.Retry;
-import io.github.resilience4j.bulkhead.annotation.Bulkhead;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import lombok.extern.slf4j.Slf4j;

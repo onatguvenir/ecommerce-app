@@ -3,8 +3,12 @@ package com.monat.ecommerce.order.infrastructure.controller;
 import com.monat.ecommerce.common.dto.ApiResponse;
 import com.monat.ecommerce.common.dto.PagedResponse;
 import com.monat.ecommerce.order.application.dto.CreateOrderRequest;
+import com.monat.ecommerce.order.application.dto.DailySalesReportResponse;
 import com.monat.ecommerce.order.application.dto.OrderResponse;
+import com.monat.ecommerce.order.application.dto.OrderStatusDistributionResponse;
 import com.monat.ecommerce.order.application.service.OrderApplicationService;
+import com.monat.ecommerce.order.domain.model.OrderStatus;
+
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -15,6 +19,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -59,7 +65,7 @@ public class OrderController {
     }
 
     @GetMapping("/user/{userId}")
-    @Operation(summary = "Get orders for a user")
+    @Operation(summary = "Get user order history from read replica")
     public ResponseEntity<ApiResponse<PagedResponse<OrderResponse>>> getUserOrders(
             @PathVariable(name = "userId") UUID userId,
             @RequestParam(defaultValue = "0", name = "page") int page,
@@ -68,5 +74,32 @@ public class OrderController {
         Pageable pageable = PageRequest.of(page, size);
         PagedResponse<OrderResponse> response = orderApplicationService.getUserOrders(userId, pageable);
         return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @GetMapping
+    @Operation(summary = "List orders from read replica")
+    public ResponseEntity<ApiResponse<PagedResponse<OrderResponse>>> listOrders(
+            @RequestParam(required = false, name = "status") OrderStatus status,
+            @RequestParam(defaultValue = "0", name = "page") int page,
+            @RequestParam(defaultValue = "20", name = "size") int size) {
+
+        Pageable pageable = PageRequest.of(page, size);
+        PagedResponse<OrderResponse> response = orderApplicationService.listOrders(status, pageable);
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @GetMapping("/reports/daily-sales")
+    @Operation(summary = "Get daily sales report from materialized view")
+    public ResponseEntity<ApiResponse<List<DailySalesReportResponse>>> getDailySalesReport(
+            @RequestParam(required = false, name = "startDate") LocalDate startDate,
+            @RequestParam(required = false, name = "endDate") LocalDate endDate) {
+
+        return ResponseEntity.ok(ApiResponse.success(orderApplicationService.getDailySalesReport(startDate, endDate)));
+    }
+
+    @GetMapping("/reports/status-distribution")
+    @Operation(summary = "Get order status distribution from materialized view")
+    public ResponseEntity<ApiResponse<List<OrderStatusDistributionResponse>>> getOrderStatusDistribution() {
+        return ResponseEntity.ok(ApiResponse.success(orderApplicationService.getOrderStatusDistribution()));
     }
 }

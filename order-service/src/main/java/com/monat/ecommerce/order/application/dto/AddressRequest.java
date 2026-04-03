@@ -5,12 +5,13 @@ import lombok.Builder;
 
 @Builder
 public record AddressRequest(
-    @NotBlank
-    String street,
-    @NotBlank
-    String city,
-    String state,
-    String postalCode,
-    @NotBlank
-    String country
-) {}
+        @NotBlank
+        String street,
+        @NotBlank
+        String city,
+        String state,
+        String postalCode,
+        @NotBlank
+        String country
+) {
+}

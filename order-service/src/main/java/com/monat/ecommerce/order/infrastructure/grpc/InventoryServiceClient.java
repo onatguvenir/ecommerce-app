@@ -1,15 +1,10 @@
 package com.monat.ecommerce.order.infrastructure.grpc;
 
-import com.monat.ecommerce.grpc.inventory.StockItem;
+import com.monat.ecommerce.grpc.inventory.*;
 
-import com.monat.ecommerce.grpc.inventory.ReserveStockRequest;
-import com.monat.ecommerce.grpc.inventory.ReserveStockResponse;
-import com.monat.ecommerce.grpc.inventory.ReleaseStockRequest;
-import com.monat.ecommerce.grpc.inventory.ReleaseStockResponse;
-import com.monat.ecommerce.grpc.inventory.InventoryServiceGrpc;
+import io.github.resilience4j.bulkhead.annotation.Bulkhead;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.annotation.Retry;
-import io.github.resilience4j.bulkhead.annotation.Bulkhead;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import lombok.extern.slf4j.Slf4j;
@@ -99,7 +94,7 @@ public class InventoryServiceClient {
      * Fallback method when inventory service is unavailable
      */
     private ReserveStockResponse reserveStockFallback(String orderId, java.util.Map<String, Integer> productQuantities,
-            Exception ex) {
+                                                      Exception ex) {
         log.error("Inventory Service circuit breaker activated for reserve. Order: {}. Error: {}",
                 orderId, ex.getMessage());
 
@@ -113,7 +108,7 @@ public class InventoryServiceClient {
      * Fallback method for release stock
      */
     private ReleaseStockResponse releaseStockFallback(String reservationId, String orderId, String reason,
-            Exception ex) {
+                                                      Exception ex) {
         log.error("Inventory Service circuit breaker activated for release. Order: {}. Error: {}",
                 orderId, ex.getMessage());
 

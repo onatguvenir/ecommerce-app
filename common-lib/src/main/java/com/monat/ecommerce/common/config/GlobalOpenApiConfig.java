@@ -1,7 +1,7 @@
 package com.monat.ecommerce.common.config;
 
-import io.swagger.v3.oas.models.parameters.HeaderParameter;
 import io.swagger.v3.oas.models.media.StringSchema;
+import io.swagger.v3.oas.models.parameters.HeaderParameter;
 import org.springdoc.core.customizers.OpenApiCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -17,17 +17,17 @@ public class GlobalOpenApiConfig {
     public OpenApiCustomizer localizationHeaderCustomizer() {
         return openApi -> {
             if (openApi.getPaths() != null) {
-                openApi.getPaths().values().forEach(pathItem -> 
-                    pathItem.readOperations().forEach(operation -> 
-                        operation.addParametersItem(new HeaderParameter()
-                            .name("Accept-Language")
-                            .description("Language preference for the response messages (e.g. 'en', 'tr')")
-                            .schema(new StringSchema()
-                                ._default("en")
-                                .addEnumItem("en")
-                                .addEnumItem("tr"))
-                            .required(false))
-                    )
+                openApi.getPaths().values().forEach(pathItem ->
+                        pathItem.readOperations().forEach(operation ->
+                                operation.addParametersItem(new HeaderParameter()
+                                        .name("Accept-Language")
+                                        .description("Language preference for the response messages (e.g. 'en', 'tr')")
+                                        .schema(new StringSchema()
+                                                ._default("en")
+                                                .addEnumItem("en")
+                                                .addEnumItem("tr"))
+                                        .required(false))
+                        )
                 );
             }
         };

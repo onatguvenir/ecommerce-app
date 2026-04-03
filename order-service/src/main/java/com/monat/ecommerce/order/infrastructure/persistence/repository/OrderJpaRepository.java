@@ -2,6 +2,7 @@ package com.monat.ecommerce.order.infrastructure.persistence.repository;
 
 import com.monat.ecommerce.order.domain.model.OrderStatus;
 import com.monat.ecommerce.order.infrastructure.persistence.entity.OrderEntity;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;

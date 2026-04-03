@@ -1,6 +1,7 @@
 package com.monat.ecommerce.order.domain.model;
 
 import com.monat.ecommerce.common.model.AbstractOrderItem;
+
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.EqualsAndHashCode;

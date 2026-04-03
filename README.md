@@ -23,7 +23,7 @@ Production-ready e-commerce platform built with microservices architecture, even
 | Product Service | 8082 | MongoDB, ES | Product catalog, search |
 | Inventory Service | 8083 | PostgreSQL, Redis | Stock management, reservations |
 | Cart Service | 8084 | Redis | Shopping cart |
-| Order Service | 8085 | PostgreSQL | Order processing, Saga orchestration |
+| Order Service | 8085 | PostgreSQL | Order processing, Saga orchestration, read replica reporting |
 | Payment Service | 8086 | PostgreSQL | Payment processing |
 | Notification Service | 8087 | - | Email/SMS notifications |
 
@@ -105,6 +105,12 @@ curl -X POST http://localhost:8081/api/users/register \
 - **Outbox Pattern**: Ensures reliable event publishing
 - **Saga Pattern**: Distributed transaction coordination
 
+### Order Service Data Layer
+- **Partitioned read model**: `orders_read_model` is range-partitioned yearly by `created_at`
+- **Read replica ready**: order listing and user order history read from the replica datasource
+- **Materialized views**: daily sales report and order status distribution are pre-aggregated for fast analytics
+- **Scheduled refresh**: materialized views are refreshed from the primary datasource on a fixed delay
+
 ### Resilience
 - Circuit Breaker (Resilience4j)
 - Retry mechanisms
@@ -159,6 +165,13 @@ Analyze used/unused dependencies to reduce attack surface.
 ```bash
 mvn dependency:analyze
 ```
+
+### 5. OpenRewrite Refactoring
+Automated refactoring recipes are configured in the Maven build.
+```bash
+mvn -pl order-service --also-make rewrite:run
+```
+The recipe definition lives in `rewrite.yml`.
 
 ## 📦 Deployment
 

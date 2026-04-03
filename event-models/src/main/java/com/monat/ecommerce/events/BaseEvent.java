@@ -1,7 +1,6 @@
 package com.monat.ecommerce.events;
 
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 

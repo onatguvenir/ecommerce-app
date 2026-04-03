@@ -9,15 +9,16 @@ import java.math.BigDecimal;
 
 @Builder
 public record OrderItemRequest(
-    @NotBlank(message = "Product ID is required")
-    String productId,
+        @NotBlank(message = "Product ID is required")
+        String productId,
 
-    String productName,
+        String productName,
 
-    @NotNull(message = "Quantity is required")
-    @Min(value = 1, message = "Quantity must be at least 1")
-    Integer quantity,
+        @NotNull(message = "Quantity is required")
+        @Min(value = 1, message = "Quantity must be at least 1")
+        Integer quantity,
 
-    @NotNull(message = "Unit price is required")
-    BigDecimal unitPrice
-) {}
+        @NotNull(message = "Unit price is required")
+        BigDecimal unitPrice
+) {
+}

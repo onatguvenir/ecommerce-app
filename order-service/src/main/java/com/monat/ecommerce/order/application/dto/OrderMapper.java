@@ -1,10 +1,11 @@
 package com.monat.ecommerce.order.application.dto;
 
-import com.monat.ecommerce.order.domain.model.*;
+import com.monat.ecommerce.order.domain.model.Order;
+import com.monat.ecommerce.order.domain.model.OrderItem;
+import com.monat.ecommerce.order.domain.model.ShippingAddress;
+
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
-import org.mapstruct.MappingConstants;
-
 import org.mapstruct.ReportingPolicy;
 
 import java.util.List;
