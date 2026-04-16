@@ -3,7 +3,9 @@ package com.monat.ecommerce.notification.infrastructure.messaging;
 import com.monat.ecommerce.events.payment.PaymentCompletedEvent;
 import com.monat.ecommerce.events.payment.PaymentFailedEvent;
 import com.monat.ecommerce.notification.domain.model.ProcessedEvent;
+import com.monat.ecommerce.notification.infrastructure.config.NotificationMetrics;
 import com.monat.ecommerce.notification.infrastructure.persistence.ProcessedEventRepository;
+import io.micrometer.core.instrument.Timer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -15,8 +17,6 @@ import java.math.BigDecimal;
 import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -28,6 +28,17 @@ class PaymentEventConsumerTest {
     @Mock
     private ProcessedEventRepository processedEventRepository;
 
+    /**
+     * NotificationMetrics must be a @Mock so that @InjectMocks can wire it into
+     * PaymentEventConsumer. Without this the field is null and consumerTimer()
+     * throws NPE inside the finally block of every handler method.
+     */
+    @Mock
+    private NotificationMetrics notificationMetrics;
+
+    @Mock
+    private Timer mockTimer;
+
     private String paymentId;
     private String orderId;
 
@@ -35,6 +46,9 @@ class PaymentEventConsumerTest {
     void setUp() {
         paymentId = UUID.randomUUID().toString();
         orderId = UUID.randomUUID().toString();
+
+        // Provide a non-null Timer so that Timer.Sample.stop(timer) doesn't NPE.
+        when(notificationMetrics.consumerTimer()).thenReturn(mockTimer);
     }
 
     @Test

@@ -82,6 +82,7 @@ class PaymentApplicationServiceTest {
         void processPayment_Success() {
                 // Given
                 when(paymentRepository.findByIdempotencyKey("IDEM-123")).thenReturn(Optional.empty());
+                when(paymentMapper.toPayment(processPaymentRequest)).thenReturn(payment);
                 when(paymentRepository.save(any(Payment.class))).thenReturn(payment);
                 when(paymentMapper.toResponse(any(Payment.class))).thenReturn(paymentResponse);
 

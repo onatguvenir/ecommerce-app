@@ -1,5 +1,6 @@
 package com.monat.ecommerce.user.infrastructure.controller;
 
+import com.monat.ecommerce.common.util.LocalizationUtils;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.monat.ecommerce.user.application.dto.UserRegistrationRequest;
 import com.monat.ecommerce.user.application.dto.UserResponse;
@@ -35,6 +36,9 @@ class UserControllerTest {
 
     @MockBean
     private JpaMetamodelMappingContext jpaMetamodelMappingContext;
+
+    @MockBean
+    private LocalizationUtils localizationUtils;
 
     @Autowired
     private ObjectMapper objectMapper;

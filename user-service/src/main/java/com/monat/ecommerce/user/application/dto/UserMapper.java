@@ -11,7 +11,11 @@ import org.mapstruct.ReportingPolicy;
 /**
  * MapStruct mapper for User and Address entities
  */
-@Mapper(componentModel = "spring", unmappedTargetPolicy = ReportingPolicy.IGNORE)
+@Mapper(
+        componentModel = "spring",
+        unmappedTargetPolicy = ReportingPolicy.IGNORE,
+        implementationName = "UserDtoMapperImpl"
+)
 public interface UserMapper {
 
     @Mapping(target = "id", ignore = true)

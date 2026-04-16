@@ -5,7 +5,10 @@ import com.monat.ecommerce.product.infrastructure.persistence.document.ProductDo
 import org.mapstruct.Mapper;
 import org.mapstruct.MappingConstants;
 
-@Mapper(componentModel = MappingConstants.ComponentModel.SPRING)
+@Mapper(
+        componentModel = MappingConstants.ComponentModel.SPRING,
+        implementationName = "ProductPersistenceMapperImpl"
+)
 public interface ProductMapper {
 
     Product toDomain(ProductDocument document);

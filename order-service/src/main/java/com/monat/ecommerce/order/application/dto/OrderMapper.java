@@ -32,6 +32,7 @@ public interface OrderMapper {
     OrderItemResponse toOrderItemResponse(OrderItem item);
 
     @Mapping(target = "id", ignore = true)
+    @Mapping(target = "productName", expression = "java(resolveProductName(request))")
     @Mapping(target = "subtotal", ignore = true)
     OrderItem toOrderItem(OrderItemRequest request);
 
@@ -40,4 +41,11 @@ public interface OrderMapper {
     @Mapping(target = "street", source = "street")
     @Mapping(target = "city", source = "city")
     ShippingAddress toShippingAddress(AddressRequest request);
+
+    default String resolveProductName(OrderItemRequest request) {
+        if (request.productName() != null && !request.productName().isBlank()) {
+            return request.productName();
+        }
+        return request.productId();
+    }
 }

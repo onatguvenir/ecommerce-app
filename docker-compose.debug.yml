@@ -74,7 +74,7 @@ services:
 
   fraud-service:
     ports:
-      - "8088:8088"
+      - "8098:8098"
       - "5088:5088"     # Remote debug port
     environment:
       - JAVA_TOOL_OPTIONS=-javaagent:/skywalking/agent/skywalking-agent.jar -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5088

@@ -6,7 +6,12 @@ import org.mapstruct.CollectionMappingStrategy;
 import org.mapstruct.Mapper;
 import org.mapstruct.MappingConstants;
 
-@Mapper(componentModel = MappingConstants.ComponentModel.SPRING, uses = UserAddressMapper.class, collectionMappingStrategy = CollectionMappingStrategy.ADDER_PREFERRED)
+@Mapper(
+        componentModel = MappingConstants.ComponentModel.SPRING,
+        uses = UserAddressMapper.class,
+        collectionMappingStrategy = CollectionMappingStrategy.ADDER_PREFERRED,
+        implementationName = "UserPersistenceMapperImpl"
+)
 public interface UserMapper {
 
     User toDomain(UserEntity entity);

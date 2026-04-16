@@ -9,6 +9,8 @@ import com.monat.ecommerce.inventory.domain.model.ReservationStatus;
 import com.monat.ecommerce.inventory.domain.model.StockReservation;
 import com.monat.ecommerce.inventory.domain.repository.InventoryRepository;
 import com.monat.ecommerce.inventory.domain.repository.StockReservationRepository;
+import com.monat.ecommerce.inventory.infrastructure.config.InventoryMetrics;
+import io.micrometer.core.instrument.Timer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -39,6 +41,9 @@ class InventoryApplicationServiceTest {
     @Mock
     private InventoryMapper inventoryMapper;
 
+    @Mock
+    private InventoryMetrics inventoryMetrics;
+
     @InjectMocks
     private InventoryApplicationService inventoryApplicationService;
 
@@ -62,6 +67,27 @@ class InventoryApplicationServiceTest {
                 .quantity(10)
                 .orderId("ORDER-123")
                 .build();
+
+        lenient().when(inventoryMetrics.reservationTimer()).thenReturn(mock(Timer.class));
+        lenient().when(inventoryMetrics.adjustmentTimer()).thenReturn(mock(Timer.class));
+        lenient().when(inventoryMapper.toReservation(any(StockReservationRequest.class))).thenAnswer(invocation -> {
+            StockReservationRequest request = invocation.getArgument(0);
+            return StockReservation.builder()
+                    .productId(request.productId())
+                    .quantity(request.quantity())
+                    .orderId(request.orderId())
+                    .status(ReservationStatus.ACTIVE)
+                    .build();
+        });
+        lenient().when(inventoryMapper.toResponse(any(Inventory.class))).thenAnswer(invocation -> {
+            Inventory currentInventory = invocation.getArgument(0);
+            return InventoryResponse.builder()
+                    .productId(currentInventory.getProductId())
+                    .quantity(currentInventory.getTotalQuantity())
+                    .availableQuantity(currentInventory.getAvailableQuantity())
+                    .reservedQuantity(currentInventory.getReservedQuantity())
+                    .build();
+        });
     }
 
     @Test

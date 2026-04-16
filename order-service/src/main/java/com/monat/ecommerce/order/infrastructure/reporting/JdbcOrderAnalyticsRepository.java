@@ -4,7 +4,6 @@ import com.monat.ecommerce.order.application.dto.DailySalesReportResponse;
 import com.monat.ecommerce.order.application.dto.OrderStatusDistributionResponse;
 import com.monat.ecommerce.order.domain.model.OrderStatus;
 
-import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
@@ -21,7 +20,6 @@ import java.util.Objects;
 import java.util.UUID;
 
 @Repository
-@RequiredArgsConstructor
 public class JdbcOrderAnalyticsRepository implements OrderAnalyticsRepository {
 
     private static final RowMapper<OrderSummaryReadModel> ORDER_SUMMARY_MAPPER = new OrderSummaryRowMapper();
@@ -41,11 +39,16 @@ public class JdbcOrderAnalyticsRepository implements OrderAnalyticsRepository {
                     rs.getBigDecimal("total_sales"),
                     rs.getBigDecimal("share_percentage"));
 
-    @Qualifier("replicaNamedParameterJdbcTemplate")
     private final NamedParameterJdbcTemplate replicaJdbcTemplate;
 
-    @Qualifier("primaryJdbcTemplate")
     private final JdbcTemplate primaryJdbcTemplate;
+
+    public JdbcOrderAnalyticsRepository(
+            @Qualifier("replicaNamedParameterJdbcTemplate") NamedParameterJdbcTemplate replicaJdbcTemplate,
+            @Qualifier("primaryJdbcTemplate") JdbcTemplate primaryJdbcTemplate) {
+        this.replicaJdbcTemplate = replicaJdbcTemplate;
+        this.primaryJdbcTemplate = primaryJdbcTemplate;
+    }
 
     @Override
     public OrderReadPage<OrderSummaryReadModel> findOrders(OrderStatus status, int page, int size) {

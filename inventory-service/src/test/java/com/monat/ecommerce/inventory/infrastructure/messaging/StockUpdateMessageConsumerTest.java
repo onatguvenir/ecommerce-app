@@ -3,6 +3,7 @@ package com.monat.ecommerce.inventory.infrastructure.messaging;
 import com.monat.ecommerce.inventory.domain.dto.StockUpdateMessage;
 import com.monat.ecommerce.inventory.domain.model.Inventory;
 import com.monat.ecommerce.inventory.domain.repository.InventoryRepository;
+import com.monat.ecommerce.inventory.infrastructure.config.InventoryMetrics;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -25,6 +26,9 @@ class StockUpdateMessageConsumerTest {
 
     @Mock
     private InventoryRepository inventoryRepository;
+
+    @Mock
+    private InventoryMetrics inventoryMetrics;
 
     private Inventory inventory;
 

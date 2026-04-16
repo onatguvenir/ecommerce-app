@@ -1,5 +1,7 @@
 package com.monat.ecommerce.cart.domain.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.monat.ecommerce.common.model.AbstractOrder;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -16,6 +18,7 @@ import java.util.ArrayList;
  * Extends AbstractOrder to share common structure with Order.
  */
 @Data
+@JsonIgnoreProperties(ignoreUnknown = true)
 @EqualsAndHashCode(callSuper = true)
 @SuperBuilder
 @NoArgsConstructor
@@ -83,6 +86,7 @@ public class Cart extends AbstractOrder<CartItem> implements Serializable {
         }
     }
 
+    @JsonIgnore
     public boolean isEmpty() {
         return items == null || items.isEmpty();
     }

@@ -44,7 +44,7 @@ public class GetProductQueryHandler implements QueryHandler<GetProductQuery, Pro
      */
     @Override
     @Transactional(readOnly = true)
-    @Cacheable(value = "products", key = "#query.productId()", unless = "#result == null")
+    @Cacheable(value = "products", key = "#p0.productId()", unless = "#result == null")
     public ProductResponse handle(GetProductQuery query) {
         log.debug("Cache miss — fetching product from MongoDB: {}", query.productId());
 

@@ -19,6 +19,7 @@
     <properties>
         <repackage.skip>true</repackage.skip>
         <protobuf.temp.directory>${java.io.tmpdir}/monat-protobuf/${project.artifactId}</protobuf.temp.directory>
+        <checkstyle.skip>true</checkstyle.skip>
     </properties>
 
     <dependencies>

@@ -56,7 +56,7 @@ public class OrderMapper {
         }
 
         OrderEntity entity = OrderEntity.builder()
-                .id(domain.getId())
+                .id(domain.getId() != null ? domain.getId() : UUID.randomUUID())
                 .orderNumber(domain.getOrderNumber())
                 .userId(domain.getUserId() != null ? UUID.fromString(domain.getUserId()) : null)
                 .status(domain.getStatus())
@@ -116,7 +116,7 @@ public class OrderMapper {
 
     private OrderItemEntity toEntityItem(OrderItem domain) {
         return OrderItemEntity.builder()
-                .id(domain.getId())
+                .id(domain.getId() != null ? domain.getId() : UUID.randomUUID())
                 .productId(domain.getProductId())
                 .productName(domain.getProductName())
                 .quantity(domain.getQuantity())

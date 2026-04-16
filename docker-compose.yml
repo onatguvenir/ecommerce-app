@@ -1,4 +1,4 @@
-﻿# Monat E-Commerce Infrastructure & Monitoring
+# Monat E-Commerce Infrastructure & Monitoring
 # Removed deprecated version: '3.8' for Compose V2 compatibility
 
 services:
@@ -127,10 +127,11 @@ services:
     networks:
       - monat-network
     healthcheck:
-      test: ["CMD", "kafka-broker-api-versions", "--bootstrap-server", "localhost:9092"]
+      test: ["CMD-SHELL", "cub kafka-ready -b localhost:29092 1 30 || exit 1"]
       interval: 30s
-      timeout: 10s
-      retries: 5
+      timeout: 15s
+      retries: 10
+      start_period: 60s
 
   # AKHQ - Kafka UI
   akhq:
@@ -308,10 +309,11 @@ services:
     networks:
       - monat-network
     healthcheck:
-      test: ["CMD-SHELL", "curl -s http://localhost:12800/ > /dev/null || exit 1"]
+      test: ["CMD-SHELL", "curl -s http://localhost:12800/graphql > /dev/null || exit 1"]
       interval: 30s
       timeout: 10s
-      retries: 5
+      retries: 10
+      start_period: 150s
 
   # Skywalking UI - Dashboard for monitoring
   skywalking-ui:
@@ -333,7 +335,7 @@ services:
     container_name: monat-skywalking-agent-init
     volumes:
       - skywalking_agent:/agent_share
-    command: cp -rf /skywalking/agent/. /agent_share/
+    command: /bin/sh -c "cp -rf /skywalking/agent/. /agent_share/ && mkdir -p /agent_share/logs"
     networks:
       - monat-network
 
@@ -383,7 +385,8 @@ services:
       test: ["CMD-SHELL", "curl -f http://localhost:9600/_node/stats || exit 1"]
       interval: 30s
       timeout: 10s
-      retries: 5
+      retries: 10
+      start_period: 120s
 
   # Kibana - Log visualization and search UI
   kibana:
@@ -403,7 +406,8 @@ services:
       test: ["CMD-SHELL", "curl -f http://localhost:5601/api/status || exit 1"]
       interval: 30s
       timeout: 10s
-      retries: 5
+      retries: 10
+      start_period: 180s
 
   # Filebeat - Log shipper for Docker containers
   filebeat:
@@ -443,9 +447,10 @@ services:
       - SPRING_PROFILES_ACTIVE=docker
       - SPRING_DATA_REDIS_HOST=redis
       - SPRING_DATA_REDIS_PORT=6379
-      - JAVA_TOOL_OPTIONS=-javaagent:/skywalking/agent/skywalking-agent.jar
+      - JAVA_TOOL_OPTIONS=-Dfile.encoding=UTF-8
       - SW_AGENT_NAME=api-gateway
       - SW_AGENT_COLLECTOR_BACKEND_SERVICES=skywalking-oap:11800
+      - SW_AGENT_LOGGING_DIR=/skywalking/agent/logs
     volumes:
       - skywalking_agent:/skywalking/agent
     networks:
@@ -454,8 +459,8 @@ services:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/actuator/health"]
       interval: 30s
       timeout: 10s
-      retries: 3
-      start_period: 40s
+      retries: 5
+      start_period: 90s
 
   # User Service - User management (Port 8081 HTTP, 9081 gRPC)
   user-service:
@@ -469,15 +474,17 @@ services:
       skywalking-agent-init:
         condition: service_completed_successfully
     ports:
+      - "8081:8081"
       - "9081:9081"
     environment:
       - SPRING_PROFILES_ACTIVE=docker
       - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/userdb
       - SPRING_DATASOURCE_USERNAME=postgres
       - SPRING_DATASOURCE_PASSWORD=postgres
-      - JAVA_TOOL_OPTIONS=-javaagent:/skywalking/agent/skywalking-agent.jar
+      - JAVA_TOOL_OPTIONS=-Dfile.encoding=UTF-8
       - SW_AGENT_NAME=user-service
       - SW_AGENT_COLLECTOR_BACKEND_SERVICES=skywalking-oap:11800
+      - SW_AGENT_LOGGING_DIR=/skywalking/agent/logs
     volumes:
       - skywalking_agent:/skywalking/agent
     networks:
@@ -486,8 +493,8 @@ services:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8081/actuator/health"]
       interval: 30s
       timeout: 10s
-      retries: 3
-      start_period: 40s
+      retries: 5
+      start_period: 180s
 
   # Product Service - Product catalog (Port 8082)
   product-service:
@@ -504,14 +511,17 @@ services:
         condition: service_healthy
       skywalking-agent-init:
         condition: service_completed_successfully
-    # HTTP NOT exposed - use api-gateway:8080
+    ports:
+      - "8082:8082"
+    # HTTP exposed for local testing
     environment:
       - SPRING_PROFILES_ACTIVE=docker
       - SPRING_DATA_MONGODB_URI=mongodb://mongodb:27017/productdb?replicaSet=rs0&directConnection=true
       - SPRING_ELASTICSEARCH_URIS=http://elasticsearch:9200
-      - JAVA_TOOL_OPTIONS=-javaagent:/skywalking/agent/skywalking-agent.jar
+      - JAVA_TOOL_OPTIONS=-Dfile.encoding=UTF-8
       - SW_AGENT_NAME=product-service
       - SW_AGENT_COLLECTOR_BACKEND_SERVICES=skywalking-oap:11800
+      - SW_AGENT_LOGGING_DIR=/skywalking/agent/logs
     volumes:
       - skywalking_agent:/skywalking/agent
     networks:
@@ -520,8 +530,8 @@ services:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8082/actuator/health"]
       interval: 30s
       timeout: 10s
-      retries: 3
-      start_period: 120s
+      retries: 5
+      start_period: 240s
 
   # Inventory Service - Stock management (Port 8083 HTTP, 9083 gRPC)
   inventory-service:
@@ -537,6 +547,7 @@ services:
       skywalking-agent-init:
         condition: service_completed_successfully
     ports:
+      - "8083:8083"
       - "9083:9083"
     environment:
       - SPRING_PROFILES_ACTIVE=docker
@@ -545,9 +556,10 @@ services:
       - SPRING_DATASOURCE_PASSWORD=postgres
       - SPRING_DATA_REDIS_HOST=redis
       - SPRING_DATA_REDIS_PORT=6379
-      - JAVA_TOOL_OPTIONS=-javaagent:/skywalking/agent/skywalking-agent.jar
+      - JAVA_TOOL_OPTIONS=-Dfile.encoding=UTF-8
       - SW_AGENT_NAME=inventory-service
       - SW_AGENT_COLLECTOR_BACKEND_SERVICES=skywalking-oap:11800
+      - SW_AGENT_LOGGING_DIR=/skywalking/agent/logs
     volumes:
       - skywalking_agent:/skywalking/agent
     networks:
@@ -556,8 +568,8 @@ services:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8083/actuator/health"]
       interval: 30s
       timeout: 10s
-      retries: 3
-      start_period: 40s
+      retries: 5
+      start_period: 180s
 
   # Cart Service - Shopping cart (Port 8084)
   cart-service:
@@ -570,14 +582,17 @@ services:
         condition: service_healthy
       skywalking-agent-init:
         condition: service_completed_successfully
-    # HTTP NOT exposed - use api-gateway:8080
+    ports:
+      - "8084:8084"
+    # HTTP exposed for local testing
     environment:
       - SPRING_PROFILES_ACTIVE=docker
       - SPRING_DATA_REDIS_HOST=redis
       - SPRING_DATA_REDIS_PORT=6379
-      - JAVA_TOOL_OPTIONS=-javaagent:/skywalking/agent/skywalking-agent.jar
+      - JAVA_TOOL_OPTIONS=-Dfile.encoding=UTF-8
       - SW_AGENT_NAME=cart-service
       - SW_AGENT_COLLECTOR_BACKEND_SERVICES=skywalking-oap:11800
+      - SW_AGENT_LOGGING_DIR=/skywalking/agent/logs
     volumes:
       - skywalking_agent:/skywalking/agent
     networks:
@@ -586,8 +601,8 @@ services:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8084/actuator/health"]
       interval: 30s
       timeout: 10s
-      retries: 3
-      start_period: 40s
+      retries: 5
+      start_period: 90s
 
   # Order Service - Order management & Saga orchestrator (Port 8085)
   order-service:
@@ -608,7 +623,9 @@ services:
         condition: service_healthy
       skywalking-agent-init:
         condition: service_completed_successfully
-    # HTTP NOT exposed - use api-gateway:8080
+    ports:
+      - "8085:8085"
+    # HTTP exposed for local testing
     environment:
       - SPRING_PROFILES_ACTIVE=docker
       - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/orderdb
@@ -618,9 +635,10 @@ services:
       - GRPC_CLIENT_USER_SERVICE_ADDRESS=static://user-service:9081
       - GRPC_CLIENT_INVENTORY_SERVICE_ADDRESS=static://inventory-service:9083
       - GRPC_CLIENT_PAYMENT_SERVICE_ADDRESS=static://payment-service:9086
-      - JAVA_TOOL_OPTIONS=-javaagent:/skywalking/agent/skywalking-agent.jar
+      - JAVA_TOOL_OPTIONS=-Dfile.encoding=UTF-8
       - SW_AGENT_NAME=order-service
       - SW_AGENT_COLLECTOR_BACKEND_SERVICES=skywalking-oap:11800
+      - SW_AGENT_LOGGING_DIR=/skywalking/agent/logs
     volumes:
       - skywalking_agent:/skywalking/agent
     networks:
@@ -629,8 +647,8 @@ services:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8085/actuator/health"]
       interval: 30s
       timeout: 10s
-      retries: 3
-      start_period: 120s
+      retries: 5
+      start_period: 240s
 
   # Payment Service - Payment processing (Port 8086 HTTP, 9086 gRPC)
   payment-service:
@@ -646,6 +664,7 @@ services:
       skywalking-agent-init:
         condition: service_completed_successfully
     ports:
+      - "8086:8086"
       - "9086:9086"
     environment:
       - SPRING_PROFILES_ACTIVE=docker
@@ -653,9 +672,10 @@ services:
       - SPRING_DATASOURCE_USERNAME=postgres
       - SPRING_DATASOURCE_PASSWORD=postgres
       - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:29092
-      - JAVA_TOOL_OPTIONS=-javaagent:/skywalking/agent/skywalking-agent.jar
+      - JAVA_TOOL_OPTIONS=-Dfile.encoding=UTF-8
       - SW_AGENT_NAME=payment-service
       - SW_AGENT_COLLECTOR_BACKEND_SERVICES=skywalking-oap:11800
+      - SW_AGENT_LOGGING_DIR=/skywalking/agent/logs
     volumes:
       - skywalking_agent:/skywalking/agent
     networks:
@@ -664,8 +684,8 @@ services:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8086/actuator/health"]
       interval: 30s
       timeout: 10s
-      retries: 3
-      start_period: 40s
+      retries: 5
+      start_period: 180s
 
   # Notification Service - Email/SMS notifications (Port 8087)
   notification-service:
@@ -678,15 +698,18 @@ services:
         condition: service_healthy
       skywalking-agent-init:
         condition: service_completed_successfully
-    # HTTP NOT exposed - use api-gateway:8080
+    ports:
+      - "8087:8087"
+    # HTTP exposed for local testing
     environment:
       - SPRING_PROFILES_ACTIVE=docker
       - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:29092
       - SPRING_MAIL_HOST=maildev
       - SPRING_MAIL_PORT=1025
-      - JAVA_TOOL_OPTIONS=-javaagent:/skywalking/agent/skywalking-agent.jar
+      - JAVA_TOOL_OPTIONS=-Dfile.encoding=UTF-8
       - SW_AGENT_NAME=notification-service
       - SW_AGENT_COLLECTOR_BACKEND_SERVICES=skywalking-oap:11800
+      - SW_AGENT_LOGGING_DIR=/skywalking/agent/logs
     volumes:
       - skywalking_agent:/skywalking/agent
     networks:
@@ -695,8 +718,8 @@ services:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8087/actuator/health"]
       interval: 30s
       timeout: 10s
-      retries: 3
-      start_period: 40s
+      retries: 5
+      start_period: 120s
 
   fraud-service:
     build:
@@ -708,27 +731,30 @@ services:
         condition: service_healthy
       skywalking-agent-init:
         condition: service_completed_successfully
-    # HTTP NOT exposed - use api-gateway:8080
+    ports:
+      - "8098:8098"
+    # HTTP exposed for local testing (Uses 8098 to prevent conflict with skywalking-ui 8088)
     environment:
       - SPRING_PROFILES_ACTIVE=docker
       - KAFKA_BOOTSTRAP_SERVERS=kafka:29092
-      - KAFKA_STREAMS_STATE_DIR=/var/lib/fraud-service/kafka-streams
+      - KAFKA_STREAMS_STATE_DIR=/tmp/fraud-service/kafka-streams
       - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:29092
       - SPRING_KAFKA_STREAMS_BOOTSTRAP_SERVERS=kafka:29092
-      - JAVA_TOOL_OPTIONS=-javaagent:/skywalking/agent/skywalking-agent.jar
+      - JAVA_TOOL_OPTIONS=-Dfile.encoding=UTF-8
       - SW_AGENT_NAME=fraud-service
       - SW_AGENT_COLLECTOR_BACKEND_SERVICES=skywalking-oap:11800
+      - SW_AGENT_LOGGING_DIR=/skywalking/agent/logs
+      - SERVER_PORT=8098
     volumes:
       - skywalking_agent:/skywalking/agent
-      - fraud_streams_state:/var/lib/fraud-service/kafka-streams
     networks:
       - monat-network
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8088/actuator/health"]
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8098/actuator/health"]
       interval: 30s
       timeout: 10s
-      retries: 3
-      start_period: 40s
+      retries: 5
+      start_period: 120s
 
 
 networks:
@@ -749,5 +775,4 @@ volumes:
   sonarqube_extensions:
   sonarqube_logs:
   skywalking_agent:
-  fraud_streams_state:
 

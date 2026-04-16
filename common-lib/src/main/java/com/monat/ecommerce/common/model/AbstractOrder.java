@@ -1,5 +1,6 @@
 package com.monat.ecommerce.common.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.NoArgsConstructor;
@@ -91,6 +92,7 @@ public abstract class AbstractOrder<I> {
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
+    @JsonIgnore
     public Integer getTotalItems() {
         if (items == null) return 0;
         return items.stream()

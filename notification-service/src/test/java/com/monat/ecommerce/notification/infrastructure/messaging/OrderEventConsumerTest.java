@@ -6,8 +6,10 @@ import com.monat.ecommerce.events.order.OrderCreatedEvent;
 import com.monat.ecommerce.grpc.user.User;
 import com.monat.ecommerce.notification.domain.service.EmailService;
 import com.monat.ecommerce.notification.domain.service.SmsService;
+import com.monat.ecommerce.notification.infrastructure.config.NotificationMetrics;
 import com.monat.ecommerce.notification.infrastructure.grpc.UserServiceClient;
 import com.monat.ecommerce.notification.infrastructure.persistence.ProcessedEventRepository;
+import io.micrometer.core.instrument.Timer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -19,6 +21,7 @@ import java.math.BigDecimal;
 import java.util.Optional;
 import java.util.UUID;
 
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
@@ -41,6 +44,22 @@ class OrderEventConsumerTest {
     @Mock
     private ProcessedEventRepository processedEventRepository;
 
+    /**
+     * NotificationMetrics must be declared as @Mock so Mockito's @InjectMocks
+     * can inject it into OrderEventConsumer via constructor injection.
+     * Without this declaration the field remains null, causing NPE when
+     * notificationMetrics.consumerTimer() is called in the finally block.
+     */
+    @Mock
+    private NotificationMetrics notificationMetrics;
+
+    /**
+     * Timer.Sample returned by Timer.start() – mocked so sample.stop() won't
+     * throw when it receives the mocked Timer from notificationMetrics.consumerTimer().
+     */
+    @Mock
+    private Timer mockTimer;
+
     private String orderId;
     private String userId;
     private User testUser;
@@ -56,6 +75,10 @@ class OrderEventConsumerTest {
                 .setFirstName("John")
                 .setLastName("Doe")
                 .build();
+
+        // Wire notificationMetrics.consumerTimer() → a mock Timer so that
+        // sample.stop(timer) has a non-null argument and doesn't NPE.
+        when(notificationMetrics.consumerTimer()).thenReturn(mockTimer);
     }
 
     @Test

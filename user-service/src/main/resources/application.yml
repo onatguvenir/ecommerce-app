@@ -110,6 +110,10 @@ application:
     secret: MyDedicatedSecretKeyForJWTAuth2026MonatEcommercePlatform
     expiration: 86400000 # 24 hours
 
+jwt:
+  secret: MyDedicatedSecretKeyForJWTAuth2026MonatEcommercePlatform
+  expiration: 86400000
+
 # Logging
 logging:
   level:

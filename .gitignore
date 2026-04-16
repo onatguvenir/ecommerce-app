@@ -49,3 +49,4 @@ test_endpoints.py
 .claude/settings.local.json
 CLAUDE.local.md
 docs/superpowers/
+*.txt

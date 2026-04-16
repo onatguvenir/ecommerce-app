@@ -11,7 +11,10 @@ import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
  * - @EnableJpaAuditing: Enables automatic filling of fields like 'createdAt' 
  *   and 'updatedAt' in entities.
  */
-@SpringBootApplication
+@SpringBootApplication(scanBasePackages = {
+        "com.monat.ecommerce.user",
+        "com.monat.ecommerce.common"
+})
 @EnableJpaAuditing
 public class UserServiceApplication {
 

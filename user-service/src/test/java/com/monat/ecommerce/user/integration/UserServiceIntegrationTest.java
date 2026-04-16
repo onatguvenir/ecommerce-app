@@ -3,39 +3,56 @@ package com.monat.ecommerce.user.integration;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.monat.ecommerce.user.application.dto.UserRegistrationRequest;
 import com.monat.ecommerce.user.domain.repository.UserRepository;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.web.server.LocalServerPort;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.http.MediaType;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.cloud.contract.wiremock.AutoConfigureWireMock;
+import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+/**
+ * Integration tests for User Service using a real PostgreSQL container.
+ *
+ * <p>Skip Strategy:
+ * {@code @ExtendWith(DockerRequiredExtension.class)} runs as a JUnit 5 ExecutionCondition,
+ * which is evaluated BEFORE any BeforeAllCallback (including Testcontainers and Spring context
+ * loading). When Docker is not available, the entire test class is marked SKIPPED –
+ * no container start is attempted and no Spring context is loaded.
+ */
+@ExtendWith(DockerRequiredExtension.class)
+@SpringBootTest(
+    webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
+    properties = {
+        "spring.security.oauth2.resourceserver.jwt.issuer-uri=http://localhost:${wiremock.server.port}/realms/test",
+        "spring.security.oauth2.resourceserver.jwt.jwk-set-uri=http://localhost:${wiremock.server.port}/realms/test/protocol/openid-connect/certs"
+    }
+)
 @AutoConfigureMockMvc
-@Testcontainers
+@AutoConfigureWireMock(port = 0)
 class UserServiceIntegrationTest {
 
-    @Container
-    @ServiceConnection
-    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:15-alpine");
+    private static final String TEST_SCHEMA = "it_user_test";
+
+    // Lazy singleton — started once per JVM in @DynamicPropertySource (which only runs
+    // when DockerRequiredExtension allows: i.e. Docker IS available).
+    private static PostgreSQLContainer<?> postgres;
 
     @Autowired
     private MockMvc mockMvc;
@@ -46,40 +63,51 @@ class UserServiceIntegrationTest {
     @Autowired
     private ObjectMapper objectMapper;
 
-    @MockBean
-    private JwtDecoder jwtDecoder;
-
     @LocalServerPort
     private Integer port;
 
+    /**
+     * Spring invokes this static method during context initialization.
+     * At this point DockerRequiredExtension has already confirmed Docker is up,
+     * so starting the container here is safe.
+     */
     @DynamicPropertySource
     static void configureProperties(DynamicPropertyRegistry registry) {
-        // Disable Zipkin
+        // Lazy-start the container exactly once per JVM
+        if (postgres == null) {
+            postgres = new PostgreSQLContainer<>("postgres:15-alpine");
+            postgres.start();
+        }
+
+        registry.add("spring.datasource.url", postgres::getJdbcUrl);
+        registry.add("spring.datasource.username", postgres::getUsername);
+        registry.add("spring.datasource.password", postgres::getPassword);
+
+        // Disable distributed tracing to avoid network calls during tests
         registry.add("management.tracing.enabled", () -> "false");
-        registry.add("management.zipkin.tracing.endpoint", () -> "http://localhost:9411/api/v2/spans"); // Dummy
-                                                                                                        // endpoint
-
-        // Disable Eureka/Discovery if enabled (seems not enabled in user-service yml
-        // but common-lib might have it)
+        registry.add("management.zipkin.tracing.endpoint", () -> "http://localhost:9411/api/v2/spans");
         registry.add("spring.cloud.discovery.enabled", () -> "false");
-
-        // Mock OAuth2 (we will use @WithMockUser or rely on successful registration not
-        // checking token for this endpoint if public)
-        // Note: The registration endpoint usually allows public access, or we check
-        // SecurityConfig.
-
-        // Override issuer-uri to avoid startup failure if it tries to connect
-        registry.add("spring.security.oauth2.resourceserver.jwt.issuer-uri", () -> "http://localhost:8080/realms/test");
-        registry.add("spring.security.oauth2.resourceserver.jwt.jwk-set-uri",
-                () -> "http://localhost:8080/realms/test/protocol/openid-connect/certs");
-
-        // Use random gRPC port to avoid conflict
+        registry.add("spring.kafka.listener.auto-startup", () -> "false");
         registry.add("grpc.server.port", () -> "0");
+    }
+
+    @AfterAll
+    static void stopContainers() {
+        if (postgres != null && postgres.isRunning()) {
+            postgres.stop();
+            postgres = null;
+        }
     }
 
     @BeforeEach
     void setUp() {
         userRepository.deleteAll();
+
+        // Stub JWKS request just in case Spring Security requests it
+        stubFor(get(urlEqualTo("/realms/test/protocol/openid-connect/certs"))
+            .willReturn(aResponse()
+                .withHeader("Content-Type", "application/json")
+                .withBody("{\"keys\":[]}")));
     }
 
     @AfterEach
@@ -110,7 +138,7 @@ class UserServiceIntegrationTest {
                 .andExpect(jsonPath("$.data.email").value("integration@example.com"))
                 .andExpect(jsonPath("$.data.id").exists());
 
-        // Verify DB
-        assert userRepository.findByEmail("integration@example.com").isPresent();
+        // Verify DB persistence
+        assert userRepository.existsByEmail("integration@example.com");
     }
 }

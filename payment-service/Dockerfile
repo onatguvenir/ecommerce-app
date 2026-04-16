@@ -1,7 +1,7 @@
 # Multi-stage Dockerfile for Payment Service
 
 # Stage 1: Build
-FROM maven:3.9.6-eclipse-temurin-17 AS build
+FROM maven:3.9.6-eclipse-temurin-21 AS build
 WORKDIR /app
 
 # Copy entire project source
@@ -11,7 +11,7 @@ COPY . .
 RUN mvn clean package -pl payment-service -am -DskipTests
 
 # Stage 2: Runtime
-FROM eclipse-temurin:17-jre-alpine
+FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
 
 # Create non-root user

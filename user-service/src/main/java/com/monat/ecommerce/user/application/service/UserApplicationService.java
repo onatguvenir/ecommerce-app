@@ -87,6 +87,7 @@ public class UserApplicationService {
         log.info("User {} logged in successfully", request.username());
 
         return AuthResponse.builder()
+                .userId(user.getId())
                 .accessToken(token)
                 .username(user.getUsername())
                 .expiresIn(86400000 / 1000) // 24 hours in seconds

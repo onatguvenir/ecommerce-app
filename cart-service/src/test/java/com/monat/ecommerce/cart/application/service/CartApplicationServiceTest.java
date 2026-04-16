@@ -8,6 +8,9 @@ import com.monat.ecommerce.cart.application.dto.CartResponse;
 import com.monat.ecommerce.cart.domain.model.Cart;
 import com.monat.ecommerce.cart.domain.model.CartItem;
 import com.monat.ecommerce.cart.domain.repository.CartRepository;
+import com.monat.ecommerce.cart.infrastructure.config.CartLockService;
+import com.monat.ecommerce.cart.infrastructure.config.CartMetrics;
+import io.micrometer.core.instrument.Timer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -20,6 +23,7 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Supplier;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -39,6 +43,12 @@ class CartApplicationServiceTest {
     @Mock
     private CartMapper cartMapper;
 
+    @Mock
+    private CartMetrics cartMetrics;
+
+    @Mock
+    private CartLockService cartLockService;
+
     @InjectMocks
     private CartApplicationService cartApplicationService;
 
@@ -54,6 +64,14 @@ class CartApplicationServiceTest {
         cart.setUpdatedAt(java.time.LocalDateTime.now());
  
         ReflectionTestUtils.setField(cartApplicationService, "maxItems", 100);
+
+        lenient().when(cartMetrics.cartOperationTimer()).thenReturn(mock(Timer.class));
+        lenient().doAnswer(invocation -> ((Supplier<?>) invocation.getArgument(1)).get())
+                .when(cartLockService).executeWithLock(anyString(), any(Supplier.class));
+        lenient().doAnswer(invocation -> {
+            ((Runnable) invocation.getArgument(1)).run();
+            return null;
+        }).when(cartLockService).executeWithLock(anyString(), any(Runnable.class));
 
         addToCartRequest = AddToCartRequest.builder()
                 .productId("PROD-001")
