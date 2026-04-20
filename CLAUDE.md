@@ -1,5 +1,15 @@
 # Monat E-Commerce Project Guide
 
+
+## Wiki Path When you need information about me or my business: 
+1. Go to C:\Users\Monat\Documents\Obsidian Vault\monat-ecommerce\ 
+2. hot.md -> most recent info 
+3. index.md -> list of all pages 
+4. Read wiki pages as needed Do not read the wiki unless you actually need it.
+
+## Wiki update
+update the wiki when project changed and updating is needed
+
 ## 1. Mimariye Genel Bakış
 Monat E-Commerce Event-Driven, Microservices tabanlı, Spring Boot 3.x ve JDK 21 mimarisine sahip bir projedir.
 

@@ -99,11 +99,11 @@ class OrderServiceIntegrationTest {
         orderRepository.deleteAll();
 
         // Stub Cart Service globally for integration tests to prevent Feign timeouts
-        stubFor(get(urlPathMatching("/api/v1/carts/.*"))
+        stubFor(com.github.tomakehurst.wiremock.client.WireMock.get(urlPathMatching("/api/v1/carts/.*"))
             .willReturn(aResponse()
                 .withHeader("Content-Type", "application/json")
                 .withBody("{\"success\":true,\"message\":\"Ok\",\"data\":{\"cartId\":\"mock-cart\",\"items\":[],\"totalAmount\":0}}")));
-        stubFor(delete(urlPathMatching("/api/v1/carts/.*"))
+        stubFor(com.github.tomakehurst.wiremock.client.WireMock.delete(urlPathMatching("/api/v1/carts/.*"))
             .willReturn(aResponse()
                 .withHeader("Content-Type", "application/json")
                 .withBody("{\"success\":true,\"message\":\"Ok\",\"data\":null}")));

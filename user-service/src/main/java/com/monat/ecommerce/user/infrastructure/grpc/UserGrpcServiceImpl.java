@@ -8,6 +8,7 @@ import io.grpc.stub.StreamObserver;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.devh.boot.grpc.server.service.GrpcService;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.UUID;
@@ -24,12 +25,13 @@ public class UserGrpcServiceImpl extends UserServiceGrpc.UserServiceImplBase {
     private final UserRepository userRepository;
 
     @Override
+    @Transactional(readOnly = true)
     public void getUser(GetUserRequest request, StreamObserver<GetUserResponse> responseObserver) {
         log.debug("gRPC GetUser called for userId: {}", request.getUserId());
 
         try {
             UUID userId = UUID.fromString(request.getUserId());
-            User user = userRepository.findById(userId).orElse(null);
+            User user = userRepository.findByIdWithAddresses(userId).orElse(null);
 
             GetUserResponse.Builder responseBuilder = GetUserResponse.newBuilder();
 
@@ -50,12 +52,13 @@ public class UserGrpcServiceImpl extends UserServiceGrpc.UserServiceImplBase {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public void validateUser(ValidateUserRequest request, StreamObserver<ValidateUserResponse> responseObserver) {
         log.debug("gRPC ValidateUser called for userId: {}", request.getUserId());
 
         try {
             UUID userId = UUID.fromString(request.getUserId());
-            User user = userRepository.findById(userId).orElse(null);
+            User user = userRepository.findByIdWithAddresses(userId).orElse(null);
 
             ValidateUserResponse.Builder responseBuilder = ValidateUserResponse.newBuilder();
 

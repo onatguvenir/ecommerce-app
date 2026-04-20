@@ -4,6 +4,7 @@ import com.monat.ecommerce.events.notification.NotificationType;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.thymeleaf.TemplateEngine;
@@ -27,7 +28,7 @@ public class EmailService {
     private EmailService self; // Self-injection for @Async proxy
 
     @org.springframework.beans.factory.annotation.Autowired
-    public void setSelf(EmailService self) {
+    public void setSelf(@Lazy EmailService self) {
         this.self = self;
     }
 

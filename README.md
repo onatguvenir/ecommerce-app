@@ -1,267 +1,96 @@
-# Monat E-Commerce Microservices Platform
+# Monat E-Commerce Platform
 
-Production-ready e-commerce platform built with microservices architecture, event-driven design, and cloud-native technologies.
+Production-grade microservices e-commerce platform built with Spring Boot 3.x, Java 21, and event-driven architecture.
 
-## 🏗️ Architecture Overview
+## Tech Stack
 
-### Technology Stack
-- **Language:** Java 21 (Virtual Threads enabled)
-- **Framework:** Spring Boot 3.2.2, Spring Cloud 2023.0
-- **Databases:** PostgreSQL 16, MongoDB 7, Redis 7, Elasticsearch 8
-- **Messaging:** Apache Kafka 3.6
-- **Communication:** REST (external), gRPC (internal)
-- **Containerization:** Docker, Docker Compose
-- **Observability:** ELK Stack, Prometheus, Grafana, OpenTelemetry
-- **Security:** OAuth2/OIDC, JWT, Keycloak
+| Layer | Technology |
+|-------|-----------|
+| Language | Java 21 + Virtual Threads |
+| Framework | Spring Boot 3.x |
+| API | REST (JSON), GraphQL (product-service), gRPC (internal) |
+| Auth | JWT (HMAC-SHA256), validated at api-gateway |
+| Messaging | Apache Kafka (KRaft mode), Transactional Outbox Pattern |
+| Databases | PostgreSQL 16, MongoDB 7, Redis 7, Elasticsearch 8 |
+| Observability | ELK Stack, Prometheus + Grafana, OpenTelemetry + Jaeger, SkyWalking APM |
+| Build | Maven (multi-module) |
+| Container | Docker + Docker Compose |
+| Migrations | Flyway (PostgreSQL services) |
 
-### Microservices
+## Services
 
-| Service | Port | Database | Description |
-|---------|------|----------|-------------|
-| API Gateway | 8080 | Redis | Entry point, routing, rate limiting |
-| User Service | 8081 | PostgreSQL | User management, authentication |
-| Product Service | 8082 | MongoDB, ES | Product catalog, search |
-| Inventory Service | 8083 | PostgreSQL, Redis | Stock management, reservations |
-| Cart Service | 8084 | Redis | Shopping cart |
-| Order Service | 8085 | PostgreSQL | Order processing, Saga orchestration, read replica reporting |
-| Payment Service | 8086 | PostgreSQL | Payment processing |
-| Notification Service | 8087 | - | Email/SMS notifications |
+| Service | HTTP | gRPC | Storage |
+|---------|------|------|---------|
+| api-gateway | 8080 | — | Redis |
+| user-service | 8081 | 9081 | PostgreSQL |
+| product-service | 8082 | — | MongoDB + Elasticsearch + Redis |
+| inventory-service | 8083 | 9083 | PostgreSQL + Redis |
+| cart-service | 8084 | — | Redis |
+| order-service | 8085 | — | PostgreSQL + Kafka |
+| payment-service | 8086 | 9086 | PostgreSQL + Kafka |
+| notification-service | 8087 | — | Kafka |
+| fraud-service | 8098 | — | Kafka Streams |
 
-## 🚀 Quick Start
+## Infrastructure Ports
 
-### Prerequisites
-- Java 21
-- Maven 3.8+
-- Docker & Docker Compose
+| Service | Port |
+|---------|------|
+| PostgreSQL | 5432 |
+| MongoDB | 27017 |
+| Redis | 6379 |
+| Kafka | 9092 |
+| AKHQ (Kafka UI) | 9000 |
+| RedisInsight | 8001 |
+| Elasticsearch | 9200 |
+| Kibana | 5601 |
+| Prometheus | 9090 |
+| Grafana | 3000 |
+| Jaeger UI | 16686 |
+| SkyWalking UI | 8088 |
+| MailDev UI | 1080 |
+| SonarQube | 9005 |
 
-### Local Development with Docker Compose
-
-1. **Clone the repository:**
-```bash
-cd c:\Users\Monat\Desktop\Projects\monat-ecommerce
-```
-
-2. **Build all services:**
-```bash
-mvn clean package -DskipTests
-```
-
-3. **Start infrastructure (databases, Kafka, etc.):**
-```bash
-docker-compose up -d postgres mongodb redis elasticsearch kafka
-```
-
-4. **Start services:**
-```bash
-# Start each service individually or use IDE
-cd user-service && mvn spring-boot:run
-cd product-service && mvn spring-boot:run
-# ... etc
-```
-
-### Using Docker Compose (All-in-One)
+## Quick Start
 
 ```bash
-docker-compose up -d
+# Start all services
+docker compose up -d
+
+# Check service health
+docker compose ps
+
+# View logs for a specific service
+docker compose logs -f order-service
+
+# Rebuild a specific service after code changes
+docker compose build inventory-service && docker compose up -d inventory-service
 ```
 
-This will start:
-- PostgreSQL (port 5432)
-- MongoDB (port 27017)
-- Redis (port 6379)
-- Elasticsearch (port 9200)
-- Kafka (KRaft mode) (9092)
-- All microservices
+## API Access
 
-## 📝 API Documentation
+- **Swagger UI**: http://localhost:8080/swagger-ui.html (aggregated)
+- **GraphQL**: http://localhost:8080/graphql (product queries)
+- **GraphiQL**: http://localhost:8082/graphiql (product-service direct)
 
-Each service exposes Swagger UI:
-- User Service: http://localhost:8081/swagger-ui.html
-- Product Service: http://localhost:8082/swagger-ui.html
-- Order Service: http://localhost:8085/swagger-ui.html
+## Authentication
 
-## 🔐 Security
-
-### JWT Authentication
-Services use JWT for authentication. Obtain a token via User Service registration/login.
-
-### Example Registration:
 ```bash
-curl -X POST http://localhost:8081/api/users/register \
-  -H "Content-Type: application/json" \
-  -d '{
-    "email": "user@example.com",
-    "username": "johndoe",
-    "password": "securePassword123",
-    "firstName": "John",
-    "lastName": "Doe"
-  }'
+# Register
+POST http://localhost:8080/api/users/register
+
+# Login — returns JWT token
+POST http://localhost:8080/api/users/login
+
+# Use token in subsequent requests
+Authorization: Bearer {token}
 ```
 
-## 🎯 Key Features
+Routes requiring auth: `/api/orders/**`, `/api/payments/**`, `/api/inventory/**`
 
-### Event-Driven Architecture
-- **Kafka Topics**: order.created, payment.completed, stock.reserved, etc.
-- **Outbox Pattern**: Ensures reliable event publishing
-- **Saga Pattern**: Distributed transaction coordination
+## Architectural Patterns
 
-### Order Service Data Layer
-- **Partitioned read model**: `orders_read_model` is range-partitioned yearly by `created_at`
-- **Read replica ready**: order listing and user order history read from the replica datasource
-- **Materialized views**: daily sales report and order status distribution are pre-aggregated for fast analytics
-- **Scheduled refresh**: materialized views are refreshed from the primary datasource on a fixed delay
-
-### Resilience
-- Circuit Breaker (Resilience4j)
-- Retry mechanisms
-- Bulkhead isolation
-- Graceful degradation
-
-### Observability
-- **Metrics**: Services export metrics via OTLP to the OpenTelemetry Collector; Prometheus scrapes the collector
-- **Health Checks**: `/actuator/health` (liveness & readiness probes)
-- **Tracing**: OpenTelemetry integration
-- **Logging**: Structured logging with correlation IDs
-
-## 🧪 Testing
-
-### Run Unit Tests:
-```bash
-mvn test
-```
-
-### Run Integration Tests:
-```bash
-mvn verify
-```
-
-Integration tests use Testcontainers for PostgreSQL, MongoDB, Redis, and Kafka.
-
-## 🛡️ Security Scanning
-
-The project includes several tools to scan for vulnerabilities in dependencies:
-
-### 1. OWASP Dependency-Check
-Scans all dependencies for known CVEs.
-```bash
-mvn dependency-check:check
-```
-Reports are generated in `target/dependency-check-report.html`.
-
-### 2. Snyk
-Modern vulnerability scanner (requires Snyk API key).
-```bash
-mvn snyk:test
-```
-
-### 3. Sonatype OSS Index
-Fast audit against Sonatype's vulnerability database.
-```bash
-mvn ossindex:audit
-```
-
-### 4. Dependency Analysis
-Analyze used/unused dependencies to reduce attack surface.
-```bash
-mvn dependency:analyze
-```
-
-### 5. OpenRewrite Refactoring
-Automated refactoring recipes are configured in the Maven build.
-```bash
-mvn -pl order-service --also-make rewrite:run
-```
-The recipe definition lives in `rewrite.yml`.
-
-## 📦 Deployment
-
-### Docker Build
-```bash
-# Build Docker images for all services
-docker build -t monat-ecommerce/user-service:latest ./user-service
-docker build -t monat-ecommerce/product-service:latest ./product-service
-# ... etc
-```
-
-## 🔄 Saga Flow Example
-
-### Successful Order Flow:
-1. **Order Service**: Create order → Publish `OrderCreated`
-2. **Inventory Service**: Reserve stock via gRPC → Publish `StockReserved`
-3. **Payment Service**: Process payment via gRPC → Publish `PaymentCompleted`
-4. **Order Service**: Mark order complete → Publish `OrderCompleted`
-5. **Notification Service**: Send confirmation email
-
-### Failed Order Flow (Compensation):
-1. **Order Service**: Create order → Publish `OrderCreated`
-2. **Inventory Service**: Reserve stock → Publish `StockReserved`
-3. **Payment Service**: Payment fails → Publish `PaymentFailed`
-4. **Inventory Service**: Release stock → Publish `StockRollback`
-5. **Order Service**: Cancel order → Publish `OrderCancelled`
-6. **Notification Service**: Send cancellation notice
-
-## 📊 Monitoring
-
-### Prometheus Metrics
-Prometheus UI: `http://localhost:9090`
-
-Metrics flow:
-1. Services export metrics to the OpenTelemetry Collector via OTLP
-2. Collector exposes Prometheus-formatted metrics on `http://otel-collector:8889/metrics`
-3. Prometheus scrapes the collector instead of individual service `/actuator/prometheus` endpoints
-
-### Grafana Dashboards
-Access dashboards at: `http://localhost:3000`
-
-Default credentials: admin/admin
-
-## 🛠️ Development
-
-### Project Structure
-```
-monat-ecommerce/
-├── common-lib/              # Shared utilities, DTOs, exceptions
-├── event-models/            # Kafka event schemas
-├── grpc-proto/              # gRPC protocol definitions
-├── api-gateway/             # API Gateway service
-├── user-service/            # User management
-├── product-service/         # Product catalog
-├── inventory-service/       # Stock management
-├── cart-service/            # Shopping cart
-├── order-service/           # Order processing & Saga
-├── payment-service/         # Payment processing
-├── notification-service/    # Notifications
- ├── docker-compose.yml       # Local development setup
- └── docker/                  # Docker configuration files
-```
-
-### Adding a New Service
-1. Create module under parent POM
-2. Add dependencies (common-lib, event-models, grpc-proto)
-3. Implement domain layer (entities, repositories)
-4. Implement application layer (services, DTOs, mappers)
-5. Implement infrastructure layer (controllers, gRPC, config)
-6. Add database migrations (Flyway/Liquibase)
-7. Configure application.yml
-8. Add Dockerfile
-9. Write tests
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create feature branch
-3. Commit changes
-4. Push to branch
-5. Create Pull Request
-
-## 📄 License
-
-This project is licensed under the MIT License.
-
-## 📧 Contact
-
-For questions or support, contact the development team.
-
----
-
-**Built with ❤️ using Spring Boot and Cloud-Native technologies**
+- **Saga Orchestration**: order-service orchestrates distributed transactions across user, inventory, and payment services via gRPC
+- **Transactional Outbox**: order-service and payment-service publish Kafka events via outbox table to prevent dual-write issues
+- **CQRS**: product-service separates command and query handlers; order-service uses read model with materialized views
+- **Optimistic Locking**: `@Version` on inventory and order entities prevents overselling under concurrent load
+- **Circuit Breaker / Retry**: Resilience4j wired in user-service, order-service, and cart-service for gRPC calls

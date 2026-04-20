@@ -1,33 +1,18 @@
-# Multi-stage Dockerfile for Cart Service
-
-# Stage 1: Build
+# syntax=docker/dockerfile:1
 FROM maven:3.9.6-eclipse-temurin-21 AS build
 WORKDIR /app
-
-# Copy entire project source
+COPY docker/maven-settings.xml /root/.m2/settings.xml
 COPY . .
+RUN --mount=type=cache,target=/root/.m2/repository \
+    mvn clean package -pl cart-service -am -DskipTests
 
-# Build the application
-RUN mvn clean package -pl cart-service -am -DskipTests
-
-# Stage 2: Runtime
 FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
-
-# Create non-root user
 RUN addgroup -S spring && adduser -S spring -G spring
 USER spring:spring
-
-# Copy JAR from build stage
 COPY --from=build /app/cart-service/target/*.jar app.jar
-
-# Expose port
 EXPOSE 8084
-
-# Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
     CMD wget --no-verbose --tries=1 --spider http://localhost:8084/actuator/health || exit 1
-
-# Run application
 ENTRYPOINT ["java", "-jar", "app.jar"]
 CMD ["--spring.profiles.active=docker"]

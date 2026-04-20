@@ -19,7 +19,7 @@ import org.springframework.data.mongodb.repository.config.EnableMongoRepositorie
         "com.monat.ecommerce.common"
 })
 @EnableMongoAuditing
-@EnableMongoRepositories(basePackages = "com.monat.ecommerce.product.domain.repository")
+@EnableMongoRepositories(basePackages = "com.monat.ecommerce.product.infrastructure.persistence.repository")
 @EnableElasticsearchRepositories(basePackages = "com.monat.ecommerce.product.infrastructure.search")
 public class ProductServiceApplication {
 

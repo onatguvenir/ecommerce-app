@@ -171,6 +171,53 @@ public class UserApplicationService {
     }
 
     @Transactional
+    public AddressResponse updateAddress(UUID userId, UUID addressId, UpdateAddressRequest request) {
+        log.info("Updating address {} for user: {}", addressId, userId);
+
+        User user = userRepository.findByIdWithAddresses(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User", userId.toString()));
+
+        UserAddress address = user.getAddresses().stream()
+                .filter(a -> addressId.equals(a.getId()))
+                .findFirst()
+                .orElseThrow(() -> new ResourceNotFoundException("Address", addressId.toString()));
+
+        address.setAddressType(request.addressType());
+        address.setStreet(request.street());
+        address.setCity(request.city());
+        address.setState(request.state());
+        address.setPostalCode(request.postalCode());
+        address.setCountry(request.country());
+
+        if (Boolean.TRUE.equals(request.isDefault())) {
+            user.getAddresses().forEach(a -> a.setIsDefault(false));
+            address.setIsDefault(true);
+        }
+
+        userRepository.save(user);
+        log.info("Address {} updated successfully for user: {}", addressId, userId);
+
+        return userMapper.toAddressResponse(address);
+    }
+
+    @Transactional
+    public void deleteAddress(UUID userId, UUID addressId) {
+        log.info("Deleting address {} for user: {}", addressId, userId);
+
+        User user = userRepository.findByIdWithAddresses(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User", userId.toString()));
+
+        UserAddress address = user.getAddresses().stream()
+                .filter(a -> addressId.equals(a.getId()))
+                .findFirst()
+                .orElseThrow(() -> new ResourceNotFoundException("Address", addressId.toString()));
+
+        user.removeAddress(address);
+        userRepository.save(user);
+        log.info("Address {} deleted successfully for user: {}", addressId, userId);
+    }
+
+    @Transactional
     public void updateUserStatus(UUID userId, UserStatus status) {
         log.info("Updating user {} status to: {}", userId, status);
 

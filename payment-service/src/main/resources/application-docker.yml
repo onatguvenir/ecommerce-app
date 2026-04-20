@@ -1,0 +1,9 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://postgres:5432/paymentdb
+  kafka:
+    bootstrap-servers: kafka:9092
+
+grpc:
+  server:
+    port: 9086

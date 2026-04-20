@@ -84,7 +84,8 @@
          <ossindex.skip>true</ossindex.skip>
  
          <!-- Nplus1-Hunter -->
-         <nplus1-hunter.version>main-SNAPSHOT</nplus1-hunter.version>
+         <nplus1-hunter.version>main-d66a6750fc-1</nplus1-hunter.version>
+
      </properties>
  
      <repositories>

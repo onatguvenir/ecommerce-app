@@ -3,7 +3,7 @@ package com.monat.ecommerce.inventory.infrastructure.persistence.adapter;
 import com.monat.ecommerce.inventory.domain.model.Inventory;
 import com.monat.ecommerce.inventory.domain.repository.InventoryRepository;
 import com.monat.ecommerce.inventory.infrastructure.persistence.entity.InventoryEntity;
-import com.monat.ecommerce.inventory.infrastructure.persistence.mapper.InventoryMapper;
+import com.monat.ecommerce.inventory.infrastructure.persistence.mapper.InventoryEntityMapper;
 import com.monat.ecommerce.inventory.infrastructure.persistence.repository.InventoryJpaRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -18,7 +18,7 @@ import java.util.stream.Collectors;
 public class InventoryRepositoryImpl implements InventoryRepository {
 
     private final InventoryJpaRepository jpaRepository;
-    private final InventoryMapper mapper;
+    private final InventoryEntityMapper mapper;
 
     @Override
     public Inventory save(Inventory inventory) {

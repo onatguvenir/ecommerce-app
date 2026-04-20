@@ -7,14 +7,18 @@ import io.micrometer.core.instrument.DistributionSummary;
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import java.time.Duration;
+import java.util.concurrent.atomic.AtomicLong;
 
 @Component
 public class PaymentMetrics {
 
     private final MeterRegistry meterRegistry;
+    private final PaymentOutboxEventJpaRepository outboxRepository;
+    private final AtomicLong pendingOutboxCount = new AtomicLong(0);
     private final Timer paymentProcessingTimer;
     private final Timer refundProcessingTimer;
     private final Timer outboxPublishTimer;
@@ -24,6 +28,7 @@ public class PaymentMetrics {
 
     public PaymentMetrics(MeterRegistry meterRegistry, PaymentOutboxEventJpaRepository outboxRepository) {
         this.meterRegistry = meterRegistry;
+        this.outboxRepository = outboxRepository;
         this.paymentProcessingTimer = MetricUtils.timer(
                 meterRegistry,
                 "payment_processing_duration",
@@ -68,9 +73,14 @@ public class PaymentMetrics {
                 "events",
                 new double[]{1, 10, 25, 50, 100});
 
-        Gauge.builder("payment_outbox_pending_events", outboxRepository, PaymentOutboxEventJpaRepository::countByProcessedFalse)
+        Gauge.builder("payment_outbox_pending_events", pendingOutboxCount, AtomicLong::get)
                 .description("Pending payment outbox events waiting to be published")
                 .register(meterRegistry);
+    }
+
+    @Scheduled(fixedDelay = 60_000)
+    public void refreshPendingOutboxCount() {
+        pendingOutboxCount.set(outboxRepository.countByProcessedFalse());
     }
 
     public Timer paymentProcessingTimer() {

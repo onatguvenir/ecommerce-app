@@ -45,7 +45,7 @@ services:
       test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
       interval: 10s
       timeout: 5s
-      retries: 10
+      retries: 5
       start_period: 20s
 
   # MongoDB Init - Initiates the replica set (Required for MongoDB 7+ with replSet)
@@ -130,7 +130,7 @@ services:
       test: ["CMD-SHELL", "cub kafka-ready -b localhost:29092 1 30 || exit 1"]
       interval: 30s
       timeout: 15s
-      retries: 10
+      retries: 5
       start_period: 60s
 
   # AKHQ - Kafka UI
@@ -299,26 +299,32 @@ services:
   skywalking-oap:
     image: apache/skywalking-oap-server:10.0.0
     container_name: monat-skywalking-oap
+    restart: unless-stopped
     environment:
       SW_STORAGE: elasticsearch
       SW_STORAGE_ES_CLUSTER_NODES: elasticsearch:9200
-      JAVA_OPTS: "-Xms512m -Xmx512m"
+      JAVA_OPTS: "-Xms1g -Xmx1g"
     depends_on:
       elasticsearch:
         condition: service_healthy
     networks:
       - monat-network
+    deploy:
+      resources:
+        limits:
+          memory: 1536m
     healthcheck:
       test: ["CMD-SHELL", "curl -s http://localhost:12800/graphql > /dev/null || exit 1"]
       interval: 30s
       timeout: 10s
-      retries: 10
+      retries: 5
       start_period: 150s
 
   # Skywalking UI - Dashboard for monitoring
   skywalking-ui:
     image: apache/skywalking-ui:10.0.0
     container_name: monat-skywalking-ui
+    restart: unless-stopped
     depends_on:
       skywalking-oap:
         condition: service_healthy
@@ -361,9 +367,10 @@ services:
       - monat-network
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1"]
-      interval: 30s
+      interval: 15s
       timeout: 10s
-      retries: 5
+      retries: 10
+      start_period: 60s
 
   # Logstash - Log processing pipeline
   logstash:
@@ -385,7 +392,7 @@ services:
       test: ["CMD-SHELL", "curl -f http://localhost:9600/_node/stats || exit 1"]
       interval: 30s
       timeout: 10s
-      retries: 10
+      retries: 5
       start_period: 120s
 
   # Kibana - Log visualization and search UI
@@ -406,7 +413,7 @@ services:
       test: ["CMD-SHELL", "curl -f http://localhost:5601/api/status || exit 1"]
       interval: 30s
       timeout: 10s
-      retries: 10
+      retries: 5
       start_period: 180s
 
   # Filebeat - Log shipper for Docker containers
@@ -518,6 +525,9 @@ services:
       - SPRING_PROFILES_ACTIVE=docker
       - SPRING_DATA_MONGODB_URI=mongodb://mongodb:27017/productdb?replicaSet=rs0&directConnection=true
       - SPRING_ELASTICSEARCH_URIS=http://elasticsearch:9200
+      - SPRING_DATA_REDIS_HOST=redis
+      - SPRING_DATA_REDIS_PORT=6379
+      - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:29092
       - JAVA_TOOL_OPTIONS=-Dfile.encoding=UTF-8
       - SW_AGENT_NAME=product-service
       - SW_AGENT_COLLECTOR_BACKEND_SERVICES=skywalking-oap:11800
@@ -694,6 +704,8 @@ services:
       dockerfile: notification-service/Dockerfile
     container_name: monat-notification-service
     depends_on:
+      postgres:
+        condition: service_healthy
       kafka:
         condition: service_healthy
       skywalking-agent-init:
@@ -703,6 +715,9 @@ services:
     # HTTP exposed for local testing
     environment:
       - SPRING_PROFILES_ACTIVE=docker
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/notificationdb
+      - SPRING_DATASOURCE_USERNAME=postgres
+      - SPRING_DATASOURCE_PASSWORD=postgres
       - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:29092
       - SPRING_MAIL_HOST=maildev
       - SPRING_MAIL_PORT=1025

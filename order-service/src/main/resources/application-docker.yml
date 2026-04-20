@@ -1,0 +1,22 @@
+application:
+  datasource:
+    primary:
+      url: jdbc:postgresql://postgres:5432/orderdb
+    replica:
+      url: jdbc:postgresql://postgres:5432/orderdb
+
+spring:
+  kafka:
+    bootstrap-servers: kafka:9092
+
+grpc:
+  client:
+    inventory-service:
+      address: static://inventory-service:9083
+      negotiationType: plaintext
+    payment-service:
+      address: static://payment-service:9086
+      negotiationType: plaintext
+    user-service:
+      address: static://user-service:9081
+      negotiationType: plaintext

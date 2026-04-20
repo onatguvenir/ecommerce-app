@@ -4,6 +4,7 @@ import org.springframework.amqp.core.*;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -78,14 +79,16 @@ public class RabbitMQConfig {
     // --- Bindings ---
 
     @Bean
-    public Binding bindingStockUpdateQueue(Queue stockUpdateQueue, DirectExchange inventoryExchange) {
+    public Binding bindingStockUpdateQueue(@Qualifier("stockUpdateQueue") Queue stockUpdateQueue,
+                                           DirectExchange inventoryExchange) {
         return BindingBuilder.bind(stockUpdateQueue)
                 .to(inventoryExchange)
                 .with(STOCK_UPDATE_ROUTING_KEY);
     }
 
     @Bean
-    public Binding bindingStockUpdateDlq(Queue stockUpdateDlq, DirectExchange inventoryExchange) {
+    public Binding bindingStockUpdateDlq(@Qualifier("stockUpdateDlq") Queue stockUpdateDlq,
+                                          DirectExchange inventoryExchange) {
         return BindingBuilder.bind(stockUpdateDlq)
                 .to(inventoryExchange)
                 .with(STOCK_UPDATE_DLQ_ROUTING_KEY);

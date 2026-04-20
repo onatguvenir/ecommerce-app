@@ -1,0 +1,9 @@
+spring:
+  data:
+    mongodb:
+      uri: mongodb://admin:admin@mongodb:27017/productdb?authSource=admin
+      database: productdb
+    redis:
+      host: redis
+  elasticsearch:
+    uris: http://elasticsearch:9200

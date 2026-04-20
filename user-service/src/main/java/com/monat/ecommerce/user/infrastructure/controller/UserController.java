@@ -108,6 +108,28 @@ public class UserController {
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
+    @PutMapping("/{userId}/addresses/{addressId}")
+    @Operation(summary = "Update user address")
+    public ResponseEntity<ApiResponse<AddressResponse>> updateAddress(
+            @PathVariable(name = "userId") UUID userId,
+            @PathVariable(name = "addressId") UUID addressId,
+            @Valid @RequestBody UpdateAddressRequest request) {
+
+        AddressResponse response = userApplicationService.updateAddress(userId, addressId, request);
+        return ResponseEntity.ok(ApiResponse.success(response, "Address updated successfully"));
+    }
+
+    @DeleteMapping("/{userId}/addresses/{addressId}")
+    @Operation(summary = "Delete user address")
+    public ResponseEntity<ApiResponse<Void>> deleteAddress(
+            @PathVariable(name = "userId") UUID userId,
+            @PathVariable(name = "addressId") UUID addressId) {
+
+        userApplicationService.deleteAddress(userId, addressId);
+        return ResponseEntity.status(HttpStatus.NO_CONTENT)
+                .body(ApiResponse.success(null, "Address deleted successfully"));
+    }
+
     @GetMapping("/{userId}/validate")
     @Operation(summary = "Validate if user is active")
     public ResponseEntity<ApiResponse<Boolean>> validateUser(@PathVariable(name = "userId") UUID userId) {
