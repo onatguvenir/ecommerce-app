@@ -14,7 +14,7 @@ update the wiki when project changed and updating is needed
 Monat E-Commerce Event-Driven, Microservices tabanlı, Spring Boot 3.x ve JDK 21 mimarisine sahip bir projedir.
 
 ## 2. Port ve Servis Haritası
-Herhangi bir **Port Çakışması (Conflict) YÖKTÜR**. Tüm HTTP ve gRPC portları benzersiz atanmıştır:
+Herhangi bir **Port Çakışması (Conflict) YOKTUR**. Tüm HTTP ve gRPC portları benzersiz atanmıştır:
 
 ### Altyapı (Infrastructure)
 - **PostgreSQL**: 5432

@@ -101,6 +101,28 @@ services:
       timeout: 5s
       retries: 5
 
+  # RabbitMQ - Message broker for inventory bulk updates (Spring Batch)
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    container_name: monat-rabbitmq
+    hostname: rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - monat-network
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+
   # Kafka - Event streaming (KRaft mode, no ZooKeeper)
   kafka:
     image: confluentinc/cp-kafka:7.5.0
@@ -135,7 +157,7 @@ services:
 
   # AKHQ - Kafka UI
   akhq:
-    image: tchiotludo/akhq:latest
+    image: tchiotludo/akhq:0.24.0
     container_name: monat-akhq
     depends_on:
       kafka:
@@ -152,6 +174,12 @@ services:
                 bootstrap.servers: "kafka:29092"
     networks:
       - monat-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:28081/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
 
   # Debezium Connect - Change Data Capture (CDC)
   debezium-connect:
@@ -172,6 +200,29 @@ services:
         condition: service_healthy
     networks:
       - monat-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8083/connectors || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  # Connector Init - Registers Debezium connectors after Connect is ready
+  connector-init:
+    image: curlimages/curl:latest
+    container_name: monat-connector-init
+    depends_on:
+      debezium-connect:
+        condition: service_healthy
+    entrypoint: ["/bin/sh"]
+    command:
+      - -c
+      - "echo 'Registering inventory connector...' && curl -sf -X POST http://debezium-connect:8083/connectors -H 'Content-Type: application/json' -d @/connectors/inventory-connector.json && echo 'Registering product connector...' && curl -sf -X POST http://debezium-connect:8083/connectors -H 'Content-Type: application/json' -d @/connectors/product-connector.json && echo 'All connectors registered.'"
+    volumes:
+      - ./docker:/connectors:ro
+    networks:
+      - monat-network
+    restart: on-failure:3
 
   # RedisInsight - Redis UI
   redisinsight:
@@ -554,6 +605,10 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
       skywalking-agent-init:
         condition: service_completed_successfully
     ports:
@@ -566,6 +621,8 @@ services:
       - SPRING_DATASOURCE_PASSWORD=postgres
       - SPRING_DATA_REDIS_HOST=redis
       - SPRING_DATA_REDIS_PORT=6379
+      - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:29092
+      - SPRING_RABBITMQ_HOST=rabbitmq
       - JAVA_TOOL_OPTIONS=-Dfile.encoding=UTF-8
       - SW_AGENT_NAME=inventory-service
       - SW_AGENT_COLLECTOR_BACKEND_SERVICES=skywalking-oap:11800
@@ -590,6 +647,8 @@ services:
     depends_on:
       redis:
         condition: service_healthy
+      inventory-service:
+        condition: service_healthy
       skywalking-agent-init:
         condition: service_completed_successfully
     ports:
@@ -599,6 +658,7 @@ services:
       - SPRING_PROFILES_ACTIVE=docker
       - SPRING_DATA_REDIS_HOST=redis
       - SPRING_DATA_REDIS_PORT=6379
+      - GRPC_CLIENT_INVENTORY_SERVICE_ADDRESS=static://inventory-service:9083
       - JAVA_TOOL_OPTIONS=-Dfile.encoding=UTF-8
       - SW_AGENT_NAME=cart-service
       - SW_AGENT_COLLECTOR_BACKEND_SERVICES=skywalking-oap:11800
@@ -790,4 +850,5 @@ volumes:
   sonarqube_extensions:
   sonarqube_logs:
   skywalking_agent:
+  rabbitmq_data:
 

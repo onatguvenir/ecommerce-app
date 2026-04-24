@@ -3,15 +3,21 @@ package com.monat.ecommerce.cart.application.service;
 import com.monat.ecommerce.cart.application.dto.AddToCartRequest;
 import com.monat.ecommerce.cart.application.dto.CartResponse;
 import com.monat.ecommerce.cart.application.mapper.CartMapper;
+import com.monat.ecommerce.cart.domain.exception.InsufficientStockException;
 import com.monat.ecommerce.cart.domain.model.Cart;
 import com.monat.ecommerce.cart.domain.model.CartItem;
 import com.monat.ecommerce.cart.domain.repository.CartRepository;
 import com.monat.ecommerce.cart.infrastructure.config.CartLockService;
 import com.monat.ecommerce.cart.infrastructure.config.CartMetrics;
+import com.monat.ecommerce.grpc.inventory.CheckStockRequest;
+import com.monat.ecommerce.grpc.inventory.CheckStockResponse;
+import com.monat.ecommerce.grpc.inventory.InventoryServiceGrpc;
+import io.grpc.StatusRuntimeException;
 import io.micrometer.core.instrument.Timer;
 import io.micrometer.observation.annotation.Observed;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import net.devh.boot.grpc.client.inject.GrpcClient;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -45,6 +51,9 @@ public class CartApplicationService {
     private final CartMetrics cartMetrics;
     private final CartLockService cartLockService;
 
+    @GrpcClient("inventory-service")
+    private InventoryServiceGrpc.InventoryServiceBlockingStub inventoryStub;
+
     @Value("${application.cart.max-items:100}")
     private Integer maxItems;
 
@@ -68,6 +77,7 @@ public class CartApplicationService {
      * overwriting each other's updates (classic lost update).
      */
     public CartResponse addToCart(String cartId, AddToCartRequest request) {
+        checkStockAvailability(request.productId(), request.quantity());
         Timer.Sample sample = Timer.start();
         log.info("Adding item to cart: {} - Product: {}", cartId, request.productId());
         try {
@@ -241,6 +251,21 @@ public class CartApplicationService {
             throw ex;
         } finally {
             sample.stop(cartMetrics.cartOperationTimer());
+        }
+    }
+
+    private void checkStockAvailability(String productId, int requestedQuantity) {
+        try {
+            CheckStockResponse stock = inventoryStub.checkStock(
+                    CheckStockRequest.newBuilder().setProductId(productId).build());
+            if (stock.getAvailableQuantity() < requestedQuantity) {
+                throw new InsufficientStockException(productId, stock.getAvailableQuantity());
+            }
+        } catch (InsufficientStockException ex) {
+            throw ex;
+        } catch (StatusRuntimeException ex) {
+            // Fail-open: inventory service unavailable, stock enforced at order time
+            log.warn("Stock check unavailable for product {}, proceeding: {}", productId, ex.getStatus().getCode());
         }
     }
 

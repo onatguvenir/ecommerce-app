@@ -79,6 +79,12 @@ logging:
     com.monat.ecommerce: DEBUG
 
 
+grpc:
+  client:
+    inventory-service:
+      address: static://localhost:9083
+      negotiationType: plaintext
+
 # Application specific
 application:
   cart:

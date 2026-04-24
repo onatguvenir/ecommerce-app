@@ -1,6 +1,8 @@
 package com.monat.ecommerce.cart.application.service;
 
 import com.monat.ecommerce.cart.application.mapper.CartMapper;
+import com.monat.ecommerce.grpc.inventory.CheckStockResponse;
+import com.monat.ecommerce.grpc.inventory.InventoryServiceGrpc;
 
 import com.monat.ecommerce.cart.application.dto.AddToCartRequest;
 import com.monat.ecommerce.cart.application.dto.CartItemResponse;
@@ -49,6 +51,9 @@ class CartApplicationServiceTest {
     @Mock
     private CartLockService cartLockService;
 
+    @Mock
+    private InventoryServiceGrpc.InventoryServiceBlockingStub inventoryStub;
+
     @InjectMocks
     private CartApplicationService cartApplicationService;
 
@@ -64,6 +69,10 @@ class CartApplicationServiceTest {
         cart.setUpdatedAt(java.time.LocalDateTime.now());
  
         ReflectionTestUtils.setField(cartApplicationService, "maxItems", 100);
+        ReflectionTestUtils.setField(cartApplicationService, "inventoryStub", inventoryStub);
+
+        lenient().when(inventoryStub.checkStock(any())).thenReturn(
+                CheckStockResponse.newBuilder().setAvailableQuantity(1000).build());
 
         lenient().when(cartMetrics.cartOperationTimer()).thenReturn(mock(Timer.class));
         lenient().doAnswer(invocation -> ((Supplier<?>) invocation.getArgument(1)).get())

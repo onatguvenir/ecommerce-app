@@ -2,3 +2,9 @@ spring:
   data:
     redis:
       host: redis
+
+grpc:
+  client:
+    inventory-service:
+      address: static://inventory-service:9083
+      negotiationType: plaintext

@@ -63,7 +63,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics
+        include: health,info,metrics,circuitbreakers,retries
   endpoint:
     health:
       show-details: always
@@ -74,6 +74,8 @@ management:
       enabled: true
     readinessState:
       enabled: true
+    circuitbreakers:
+      enabled: true
   metrics:
     export:
       otlp:
@@ -81,6 +83,7 @@ management:
     distribution:
       percentiles-histogram:
         http.server.requests: true
+        resilience4j.circuitbreaker.calls: true
     tags:
       application: ${spring.application.name}
   otlp:
@@ -105,38 +108,78 @@ logging:
 
 resilience4j:
   circuitbreaker:
-    instances:
-      inventoryService:
+    configs:
+      default:
         registerHealthIndicator: true
         slidingWindowSize: 10
         minimumNumberOfCalls: 5
-        failureRateThreshold: 50
+        permittedNumberOfCallsInHalfOpenState: 3
+        automaticTransitionFromOpenToHalfOpenEnabled: true
         waitDurationInOpenState: 10s
-      paymentService:
-        registerHealthIndicator: true
-        slidingWindowSize: 10
-        minimumNumberOfCalls: 5
+        failureRateThreshold: 50
+        eventConsumerBufferSize: 10
+        recordExceptions:
+          - org.springframework.web.client.HttpServerErrorException
+          - java.io.IOException
+          - java.util.concurrent.TimeoutException
+        ignoreExceptions:
+          - com.monat.ecommerce.common.exception.ResourceNotFoundException
+    instances:
+      payment-service:
+        baseConfig: default
+        failureRateThreshold: 60
+        waitDurationInOpenState: 30s
+      inventory-service:
+        baseConfig: default
+        failureRateThreshold: 40
+        waitDurationInOpenState: 5s
+      user-service:
+        baseConfig: default
         failureRateThreshold: 50
         waitDurationInOpenState: 10s
   retry:
-    instances:
-      inventoryService:
+    configs:
+      default:
         maxAttempts: 3
-        waitDuration: 1000ms
-      paymentService:
-        maxAttempts: 3
-        waitDuration: 1000ms
-  bulkhead:
+        waitDuration: 1s
+        enableExponentialBackoff: true
+        exponentialBackoffMultiplier: 2
+        retryExceptions:
+          - org.springframework.web.client.HttpServerErrorException
+          - java.io.IOException
     instances:
-      inventory-service:
-        maxConcurrentCalls: 50
-        maxWaitDuration: 500ms
       payment-service:
-        maxConcurrentCalls: 50
-        maxWaitDuration: 500ms
+        maxAttempts: 2
+        waitDuration: 2s
+      inventory-service:
+        maxAttempts: 3
+        waitDuration: 500ms
       user-service:
-        maxConcurrentCalls: 100
-        maxWaitDuration: 500ms
+        maxAttempts: 3
+        waitDuration: 1s
+  bulkhead:
+    configs:
+      default:
+        maxConcurrentCalls: 10
+        maxWaitDuration: 1s
+    instances:
+      payment-service:
+        maxConcurrentCalls: 5
+      inventory-service:
+        maxConcurrentCalls: 15
+      user-service:
+        maxConcurrentCalls: 10
+  timelimiter:
+    configs:
+      default:
+        timeoutDuration: 10s
+    instances:
+      payment-service:
+        timeoutDuration: 15s
+      inventory-service:
+        timeoutDuration: 5s
+      user-service:
+        timeoutDuration: 10s
 
 application:
   datasource:

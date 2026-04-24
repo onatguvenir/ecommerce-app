@@ -1,5 +1,6 @@
 package com.monat.ecommerce.cart.infrastructure.config;
 
+import com.monat.ecommerce.cart.domain.exception.InsufficientStockException;
 import com.monat.ecommerce.common.dto.ErrorResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
@@ -57,5 +58,24 @@ public class CartExceptionHandler {
                 .status(HttpStatus.TOO_MANY_REQUESTS)
                 .header("Retry-After", "1")         // hint to client: retry after 1 second
                 .body(error);
+    }
+
+    @ExceptionHandler(InsufficientStockException.class)
+    public ResponseEntity<ErrorResponse> handleInsufficientStock(
+            InsufficientStockException ex,
+            HttpServletRequest request) {
+
+        log.warn("Insufficient stock: productId={}, available={}", ex.getProductId(), ex.getAvailableQuantity());
+
+        ErrorResponse error = ErrorResponse.builder()
+                .error("Insufficient Stock")
+                .message(ex.getMessage())
+                .status(HttpStatus.CONFLICT.value())
+                .path(request.getRequestURI())
+                .timestamp(LocalDateTime.now())
+                .traceId(UUID.randomUUID().toString())
+                .build();
+
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(error);
     }
 }
