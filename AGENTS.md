@@ -1,55 +1,116 @@
-# Monat E-Commerce Project Guide
+# Monat E-Commerce — AI Agent Guide
 
-## 1. Mimariye Genel Bakış
-Monat E-Commerce Event-Driven, Microservices tabanlı, Spring Boot 3.x ve JDK 21 mimarisine sahip bir projedir.
+## Context
+Event-driven microservices platform. Java 21, Spring Boot 3.2, JDK Virtual Threads. 9 services: api-gateway, user, product, inventory, cart, order, payment, notification, fraud.
 
-## 2. Port ve Servis Haritası
-Herhangi bir **Port Çakışması (Conflict) YÖKTÜR**. Tüm HTTP ve gRPC portları benzersiz atanmıştır:
+## Before Starting Any Task
 
-### Altyapı (Infrastructure)
-- **PostgreSQL**: 5432
-- **MongoDB**: 27017
-- **Redis**: 6379 
-- **Kafka**: 9092
-- **AKHQ (Kafka UI)**: 9000
-- **RedisInsight (Redis UI)**: 8001
-- **Prometheus**: 9090
-- **Grafana**: 3000
-- **Jaeger**: 16686 (UI)
-- **ELK Stack**: 9200 (ES), 5044 (Logstash), 5601 (Kibana)
+1. Read `.ai/hooks/pre-task.md`
+2. Read the relevant `docs/ai/domain-specs/<service>.md`
+3. Check `docs/ai/remaining-issues.md` for known bugs before touching related code
+4. Cross-service work → read `docs/ai/business-boundaries.md`
 
-### Mikroservisler
-| Servis Adı | HTTP Portu | gRPC Portu | DB / Cache / Event |
-|---|---|---|---|
-| **api-gateway** | `8080` | - | Redis (Rate limiting) |
-| **user-service** | `8081` | `9081` | PostgreSQL |
-| **product-service**| `8082` | - | MongoDB, Elastic, Redis |
-| **inventory-service**| `8083`| `9083` | PostgreSQL, Redis |
-| **cart-service** | `8084` | - | Redis |
-| **order-service** | `8085` | - | PostgreSQL, Kafka (Outbox) |
-| **payment-service**| `8086` | `9086` | PostgreSQL, Kafka (Outbox)|
-| **notification-service**| `8087`|- | Kafka (Listener) |
+## Build Commands
 
-## 3. Kodlama Standartları ve Prensipleri
-Aşağıdaki kurallar Agent prompt maliyetlerini düşürmek ve sistem sağlığını korumak için sıkı bir şekilde uygulanmalıdır:
-- **Teknoloji**: Java 21, Spring Boot 3.x, Virtual Threads (`spring.threads.virtual.enabled=true`).
-- **Idempotency & Concurrency**: Finansal ve kritik veritabanı işlemlerinde `@Lock(LockModeType.PESSIMISTIC_WRITE)` kullanılmalıdır.  Gerekmediği durumlarda (sadece update) JPA `@Version` optimistic kilidi standarttır.
-- **Event-Driven İletişimi**: `KafkaTemplate` ile _doğrudan_ veri aktarımı yasaktır. Çift yazma (dual-write) problemini çözmek için **Transactional Outbox Pattern** ve `@Scheduled` tablolar kullanılacaktır.
-- **Null Safety**: Hata fırlatmalar izolasyonlu (Guard Clauses, `Optional`, `@NotNull`), nesneler mümkünse **Immutable** veya `Record` olmalıdır. 
+```bash
+# Single service
+mvn compile -pl order-service --also-make -q
 
-## 4. Kullanışlı Komutlar
-- Sadece `payment-service` build: `mvn compile -pl payment-service --also-make -q`
-- Tüm Docker mimarisini kurma: `docker compose up -d`
-- Log inceleme: `docker compose logs -f [service_name]`
+# Single service tests
+mvn test -pl order-service -q
 
-## 5. Detaylı Kurallar
+# Full build (no tests)
+mvn install -DskipTests -q
 
-Aşağıdaki kural dosyaları bu projeye uygulanır:
+# Docker stack
+docker compose up -d
+```
 
-@.claude/rules/coding-standards.md
-@.claude/rules/concurrency.md
-@.claude/rules/null-safety.md
-@.claude/rules/outbox-pattern.md
-@.claude/rules/grpc-conventions.md
-@.claude/rules/api-conventions.md
-@.claude/rules/infrastructure.md
+## Port Map
+
+| Service            | HTTP  | gRPC  |
+|--------------------|-------|-------|
+| api-gateway        | 8080  | —     |
+| user-service       | 8081  | 9081  |
+| product-service    | 8082  | —     |
+| inventory-service  | 8083  | 9083  |
+| cart-service       | 8084  | —     |
+| order-service      | 8085  | —     |
+| payment-service    | 8086  | 9086  |
+| notification-service| 8087 | —     |
+
+## Architecture Rules (Non-negotiable)
+
+### Transactional Outbox — MANDATORY
+Never call `KafkaTemplate.send()` directly from a `@Transactional` method that also writes to the DB. Always write to `outbox_events` table in the same transaction. A `@Scheduled` poller publishes to Kafka. See `docs/ai/examples/outbox-implementation.md`.
+
+### Locking
+- Inventory stock, payment amounts, order status transitions → `@Lock(LockModeType.PESSIMISTIC_WRITE)`
+- Product/user metadata concurrent updates → `@Version` (optimistic)
+- No `synchronized` keyword — virtual threads; use `ReentrantLock`
+
+### DTOs
+- All request/response types must be Java `record`
+- Never expose JPA entities from controllers
+- `@Valid` on all `@RequestBody` parameters
+
+### Null Safety
+- Packages annotated `@NullMarked` (JSpecify) treat all types as non-null by default
+- Use `@Nullable` from `org.jspecify.annotations` for optional fields
+- Return `Optional<T>` or throw — never return `null`
+- Never call `.get()` on Optional without `.isPresent()` — use `.orElseThrow()`
+
+### Spring
+- Constructor injection only — no `@Autowired` field injection
+- `@Transactional` on service layer, not repository
+- No `@Transactional(REQUIRES_NEW)` inside a pessimistic-locked transaction
+
+## Code Style
+
+- Methods under 20 lines; extract helpers for complex logic
+- No magic numbers — define constants
+- No comments explaining WHAT the code does; only WHY (non-obvious constraints)
+- Delete dead code; don't comment it out
+- Kafka topics: `kebab-case` (e.g., `order.created`)
+- Classes: `PascalCase`, methods/fields: `camelCase`, constants: `UPPER_SNAKE_CASE`
+
+## Domain Boundaries
+
+| Domain     | Owns                        | Never reads from              |
+|------------|-----------------------------|-------------------------------|
+| order      | Order, OrderItem, Saga      | Payment table directly        |
+| payment    | Payment, PaymentEvent       | Order table directly          |
+| inventory  | Inventory, StockReservation | Cart directly                 |
+| cart       | CartItem (Redis)            | Inventory DB directly         |
+| user       | User, UserRole              | Order/payment data            |
+| notification| ProcessedEvent             | Business domain tables        |
+
+## Active Simulations (Not Production-Ready)
+
+- **Payment**: Always returns SUCCESS. No real gateway.
+- **Email**: `simulate-email=true` → logs to console
+- **SMS**: `sms-provider=console` → logs to console (TextBelt wired, needs real key)
+- **Fraud**: KafkaStreams skeleton — detection non-functional
+
+## Known Issues
+
+See `docs/ai/remaining-issues.md`. Key items:
+- Issues #1-#3 (saga threading, detached entity, missing order.created event) → **FIXED 2026-05-04**
+- Issues #4-#15: payment simulation, fraud skeleton, gRPC test gaps, etc.
+
+## Anti-Patterns to Avoid
+
+- `new Thread(...)` → use `@Async` with configured executor
+- Calling `KafkaTemplate` inside `@Transactional` service method
+- Returning `null` from service methods
+- JPA entity in REST response
+- `synchronized` blocks (breaks virtual threads)
+- `@Transactional` on repository layer
+- Modifying unrelated code while fixing a bug
+
+## Playbooks
+
+- Add Kafka event → `docs/ai/playbooks/add-kafka-event.md`
+- Add gRPC method → `docs/ai/playbooks/add-grpc-method.md`
+- Debug saga → `docs/ai/playbooks/debug-saga.md`
+- Add new service → `docs/ai/playbooks/add-service.md`

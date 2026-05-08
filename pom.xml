@@ -85,6 +85,7 @@
  
          <!-- Nplus1-Hunter -->
          <nplus1-hunter.version>main-d66a6750fc-1</nplus1-hunter.version>
+         <jspecify.version>1.0.0</jspecify.version>
 
      </properties>
  
@@ -233,6 +234,13 @@
                 <groupId>com.github.yunusbaydarr</groupId>
                 <artifactId>Nplus1-Hunter</artifactId>
                 <version>${nplus1-hunter.version}</version>
+            </dependency>
+
+            <!-- JSpecify — null safety annotations -->
+            <dependency>
+                <groupId>org.jspecify</groupId>
+                <artifactId>jspecify</artifactId>
+                <version>${jspecify.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

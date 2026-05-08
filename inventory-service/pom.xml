@@ -54,6 +54,12 @@
             <artifactId>spring-boot-starter-cache</artifactId>
         </dependency>
 
+        <!-- Caffeine L1 local cache -->
+        <dependency>
+            <groupId>com.github.ben-manes.caffeine</groupId>
+            <artifactId>caffeine</artifactId>
+        </dependency>
+
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-validation</artifactId>
@@ -147,6 +153,12 @@
         <dependency>
             <groupId>com.github.yunusbaydarr</groupId>
             <artifactId>Nplus1-Hunter</artifactId>
+        </dependency>
+
+        <!-- JSpecify — null safety annotations -->
+        <dependency>
+            <groupId>org.jspecify</groupId>
+            <artifactId>jspecify</artifactId>
         </dependency>
 
         <!-- Testing -->

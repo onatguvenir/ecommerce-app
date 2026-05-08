@@ -1,14 +1,19 @@
 package com.monat.ecommerce.order.application.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.monat.ecommerce.common.dto.ApiResponse;
 import com.monat.ecommerce.common.dto.PagedResponse;
 import com.monat.ecommerce.common.exception.ResourceNotFoundException;
+import com.monat.ecommerce.events.order.OrderCreatedEvent;
 import com.monat.ecommerce.order.application.dto.*;
 import com.monat.ecommerce.order.domain.model.Order;
 import com.monat.ecommerce.order.domain.model.OrderItem;
 import com.monat.ecommerce.order.domain.model.OrderStatus;
+import com.monat.ecommerce.order.domain.model.OutboxEvent;
 import com.monat.ecommerce.order.domain.model.dto.CartDto;
 import com.monat.ecommerce.order.domain.repository.OrderRepository;
+import com.monat.ecommerce.order.domain.repository.OutboxEventRepository;
 import com.monat.ecommerce.order.domain.service.OrderSagaOrchestrator;
 import com.monat.ecommerce.order.infrastructure.client.CartClient;
 import com.monat.ecommerce.order.infrastructure.config.OrderMetrics;
@@ -58,6 +63,8 @@ public class OrderApplicationService {
     private final CartClient cartClient;
     private final OrderMetrics orderMetrics;
     private final OrderAnalyticsRepository orderAnalyticsRepository;
+    private final OutboxEventRepository outboxEventRepository;
+    private final ObjectMapper objectMapper;
 
     @Transactional
     public OrderResponse createOrder(CreateOrderRequest request) {
@@ -107,18 +114,8 @@ public class OrderApplicationService {
             orderMetrics.recordOrderCreated(orderItems.size(), totalAmount.doubleValue(),
                     request.cartId() != null && !request.cartId().isBlank() ? "cart" : "direct");
 
-            if (request.cartId() != null && !request.cartId().isBlank()) {
-                try {
-                    cartClient.deleteCart(request.cartId());
-                    log.info("Cart deleted: {}", request.cartId());
-                } catch (Exception e) {
-                    log.warn("Failed to delete cart: {}", request.cartId(), e);
-                    orderMetrics.incrementOrderCreationFailure("cart_delete_failed");
-                }
-            }
-
-            Order finalOrder = order;
-            new Thread(() -> sagaOrchestrator.executeOrderSaga(finalOrder)).start();
+            publishOrderCreatedEvent(order, orderItems);
+            sagaOrchestrator.executeOrderSaga(order.getId(), request.cartId());
 
             return orderMapper.toOrderResponse(order);
         } catch (RuntimeException ex) {
@@ -217,6 +214,39 @@ public class OrderApplicationService {
                 .createdAt(order.createdAt())
                 .updatedAt(order.updatedAt())
                 .build();
+    }
+
+    private void publishOrderCreatedEvent(Order order, List<OrderItemRequest> orderItems) {
+        try {
+            List<OrderCreatedEvent.OrderItemDto> itemDtos = orderItems.stream()
+                    .map(item -> OrderCreatedEvent.OrderItemDto.builder()
+                            .productId(item.productId())
+                            .quantity(item.quantity())
+                            .unitPrice(item.unitPrice())
+                            .subtotal(item.unitPrice().multiply(BigDecimal.valueOf(item.quantity())))
+                            .build())
+                    .toList();
+
+            OrderCreatedEvent event = OrderCreatedEvent.builder()
+                    .orderId(order.getId().toString())
+                    .orderNumber(order.getOrderNumber())
+                    .userId(order.getUserId().toString())
+                    .items(itemDtos)
+                    .totalAmount(order.getTotalAmount())
+                    .currency(order.getCurrency())
+                    .build();
+
+            String payload = objectMapper.writeValueAsString(event);
+
+            outboxEventRepository.save(OutboxEvent.builder()
+                    .aggregateType("Order")
+                    .aggregateId(order.getId().toString())
+                    .eventType("OrderCreated")
+                    .payload(payload)
+                    .build());
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException("Failed to serialize OrderCreatedEvent for order " + order.getId(), e);
+        }
     }
 
     private String generateOrderNumber() {

@@ -106,6 +106,12 @@
             <optional>true</optional>
         </dependency>
 
+        <!-- JSpecify — null safety annotations -->
+        <dependency>
+            <groupId>org.jspecify</groupId>
+            <artifactId>jspecify</artifactId>
+        </dependency>
+
         <!-- Testing -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

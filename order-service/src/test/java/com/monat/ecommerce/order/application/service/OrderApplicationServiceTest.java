@@ -9,7 +9,9 @@ import com.monat.ecommerce.order.domain.model.Order;
 import com.monat.ecommerce.order.domain.model.OrderItem;
 import com.monat.ecommerce.order.domain.model.dto.CartDto;
 import com.monat.ecommerce.order.domain.model.dto.CartItemDto;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.monat.ecommerce.order.domain.repository.OrderRepository;
+import com.monat.ecommerce.order.domain.repository.OutboxEventRepository;
 import com.monat.ecommerce.order.domain.service.OrderSagaOrchestrator;
 import com.monat.ecommerce.order.infrastructure.client.CartClient;
 import com.monat.ecommerce.order.infrastructure.config.OrderMetrics;
@@ -65,6 +67,12 @@ class OrderApplicationServiceTest {
     @Mock
     private OrderAnalyticsRepository orderAnalyticsRepository;
 
+    @Mock
+    private OutboxEventRepository outboxEventRepository;
+
+    @Mock
+    private ObjectMapper objectMapper;
+
     @InjectMocks
     private OrderApplicationService orderApplicationService;
 
@@ -106,6 +114,7 @@ class OrderApplicationServiceTest {
 
         Order order = new Order();
         order.setId(UUID.randomUUID());
+        order.setUserId(userId.toString());
         order.setOrderNumber("ORD-TEST-001");
 
         when(orderMapper.toOrder(any())).thenReturn(order);
@@ -121,12 +130,12 @@ class OrderApplicationServiceTest {
         assertThat(response.orderNumber()).isEqualTo("ORD-TEST-001");
 
         verify(cartClient, times(1)).getCart("cart-123");
-        verify(cartClient, times(1)).deleteCart("cart-123");
+        verify(cartClient, never()).deleteCart(any()); // cart deletion moved to saga completeOrder step
         verify(orderRepository, times(1)).save(any());
 
-        // Note: sagaOrchestrator is called in a separate thread. 
-        // In a real project, we might use a spy or Captor with Awaitility 
-        // or refactor to use an ExecutorService that can be synchronous in tests.
+        verify(sagaOrchestrator, times(1)).executeOrderSaga(order.getId(), "cart-123");
+        verify(outboxEventRepository, times(1)).save(any());
+        // Cart is deleted inside saga.completeOrder() only when order succeeds.
     }
 
     @Test

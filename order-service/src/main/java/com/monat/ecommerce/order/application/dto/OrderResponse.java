@@ -1,6 +1,7 @@
 package com.monat.ecommerce.order.application.dto;
 
 import lombok.Builder;
+import org.jspecify.annotations.Nullable;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -16,10 +17,10 @@ public record OrderResponse(
         BigDecimal totalAmount,
         String currency,
         List<OrderItemResponse> items,
-        AddressResponse shippingAddress,
-        String paymentReference,
-        String cancellationReason,
+        @Nullable AddressResponse shippingAddress,
+        @Nullable String paymentReference,
+        @Nullable String cancellationReason,
         LocalDateTime createdAt,
-        LocalDateTime updatedAt
+        @Nullable LocalDateTime updatedAt
 ) {
 }

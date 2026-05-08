@@ -14,18 +14,23 @@ import com.monat.ecommerce.order.domain.model.*;
 import com.monat.ecommerce.order.domain.repository.OrderRepository;
 import com.monat.ecommerce.order.domain.repository.OrderSagaStateRepository;
 import com.monat.ecommerce.order.domain.repository.OutboxEventRepository;
+import com.monat.ecommerce.order.infrastructure.client.CartClient;
 import com.monat.ecommerce.order.infrastructure.config.OrderMetrics;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.grpc.StatusRuntimeException;
 import io.micrometer.core.instrument.Timer;
+import io.micrometer.observation.Observation;
+import io.micrometer.observation.ObservationRegistry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.devh.boot.grpc.client.inject.GrpcClient;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 /**
@@ -41,6 +46,8 @@ public class OrderSagaOrchestrator {
     private final OutboxEventRepository outboxEventRepository;
     private final ObjectMapper objectMapper;
     private final OrderMetrics orderMetrics;
+    private final CartClient cartClient;
+    private final ObservationRegistry observationRegistry;
 
     @GrpcClient("inventory-service")
     private InventoryServiceGrpc.InventoryServiceBlockingStub inventoryService;
@@ -51,12 +58,15 @@ public class OrderSagaOrchestrator {
     @GrpcClient("user-service")
     private UserServiceGrpc.UserServiceBlockingStub userService;
 
+    @Async("sagaTaskExecutor")
     @Transactional
-    public void executeOrderSaga(Order order) {
+    public void executeOrderSaga(UUID orderId, String cartId) {
         Timer.Sample sample = Timer.start();
-        log.info("Starting Saga for order: {}", order.getId());
+        log.info("Starting Saga for order: {}", orderId);
 
-        // Create Saga state
+        Order order = orderRepository.findByIdWithItems(orderId)
+                .orElseThrow(() -> new IllegalArgumentException("Order not found: " + orderId));
+
         OrderSagaState sagaState = OrderSagaState.builder()
                 .orderId(order.getId())
                 .currentStep(SagaStep.ORDER_CREATED)
@@ -64,26 +74,55 @@ public class OrderSagaOrchestrator {
                 .build();
         sagaStateRepository.save(sagaState);
 
+        Observation sagaObs = Observation.createNotStarted("order.saga", observationRegistry)
+                .lowCardinalityKeyValue("orderId", order.getId().toString())
+                .lowCardinalityKeyValue("userId", order.getUserId().toString())
+                .start();
         try {
-            // Step 1: Validate User
-            validateUser(order, sagaState);
+            observeStep("order.saga.validate-user", order.getId().toString(),
+                    () -> validateUser(order, sagaState));
 
-            // Step 2: Reserve Stock
-            reserveStock(order, sagaState);
+            observeStep("order.saga.reserve-stock", order.getId().toString(),
+                    () -> reserveStock(order, sagaState));
 
-            // Step 3: Process Payment
-            processPayment(order, sagaState);
+            observeStep("order.saga.process-payment", order.getId().toString(),
+                    () -> processPayment(order, sagaState));
 
-            // Step 4: Complete Order
-            completeOrder(order, sagaState);
+            observeStep("order.saga.complete", order.getId().toString(),
+                    () -> completeOrder(order, sagaState, cartId));
+
             orderMetrics.incrementSagaResult("success");
-
+            sagaObs.stop();
         } catch (Exception e) {
             log.error("Saga failed for order: {}", order.getId(), e);
             orderMetrics.incrementSagaResult("failed");
-            compensateSaga(order, sagaState, e.getMessage());
+            sagaObs.error(e).stop();
+
+            Observation compensateObs = Observation.createNotStarted("order.saga.compensate", observationRegistry)
+                    .lowCardinalityKeyValue("orderId", order.getId().toString())
+                    .lowCardinalityKeyValue("reason", e.getClass().getSimpleName())
+                    .start();
+            try {
+                compensateSaga(order, sagaState, e.getMessage());
+                compensateObs.stop();
+            } catch (Exception ce) {
+                compensateObs.error(ce).stop();
+            }
         } finally {
             sample.stop(orderMetrics.sagaExecutionTimer());
+        }
+    }
+
+    private void observeStep(String name, String orderId, Runnable step) {
+        Observation obs = Observation.createNotStarted(name, observationRegistry)
+                .lowCardinalityKeyValue("orderId", orderId)
+                .start();
+        try {
+            step.run();
+            obs.stop();
+        } catch (Exception e) {
+            obs.error(e).stop();
+            throw e;
         }
     }
 
@@ -186,7 +225,7 @@ public class OrderSagaOrchestrator {
         }
     }
 
-    private void completeOrder(Order order, OrderSagaState sagaState) {
+    private void completeOrder(Order order, OrderSagaState sagaState, String cartId) {
         log.debug("Completing order: {}", order.getId());
 
         // Commit stock reservation
@@ -218,6 +257,16 @@ public class OrderSagaOrchestrator {
 
         // Publish OrderCompletedEvent via outbox
         publishOrderCompletedEvent(order);
+
+        // Delete cart only after order is confirmed complete
+        if (cartId != null && !cartId.isBlank()) {
+            try {
+                cartClient.deleteCart(cartId);
+                log.info("Cart deleted after successful order: {}", cartId);
+            } catch (Exception e) {
+                log.warn("Failed to delete cart {} after order completion: {}", cartId, e.getMessage());
+            }
+        }
     }
 
     private void compensateSaga(Order order, OrderSagaState sagaState, String errorMessage) {

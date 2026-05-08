@@ -346,56 +346,6 @@ services:
     networks:
       - monat-network
 
-  # Skywalking OAP - Backend for Skywalking APM
-  skywalking-oap:
-    image: apache/skywalking-oap-server:10.0.0
-    container_name: monat-skywalking-oap
-    restart: unless-stopped
-    environment:
-      SW_STORAGE: elasticsearch
-      SW_STORAGE_ES_CLUSTER_NODES: elasticsearch:9200
-      JAVA_OPTS: "-Xms1g -Xmx1g"
-    depends_on:
-      elasticsearch:
-        condition: service_healthy
-    networks:
-      - monat-network
-    deploy:
-      resources:
-        limits:
-          memory: 1536m
-    healthcheck:
-      test: ["CMD-SHELL", "curl -s http://localhost:12800/graphql > /dev/null || exit 1"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 150s
-
-  # Skywalking UI - Dashboard for monitoring
-  skywalking-ui:
-    image: apache/skywalking-ui:10.0.0
-    container_name: monat-skywalking-ui
-    restart: unless-stopped
-    depends_on:
-      skywalking-oap:
-        condition: service_healthy
-    ports:
-      - "8088:8080"
-    environment:
-      SW_OAP_ADDRESS: http://skywalking-oap:12800
-    networks:
-      - monat-network
-
-  # Skywalking Agent Init - Provides the agent jar to services
-  skywalking-agent-init:
-    image: apache/skywalking-java-agent:9.2.0-java21
-    container_name: monat-skywalking-agent-init
-    volumes:
-      - skywalking_agent:/agent_share
-    command: /bin/sh -c "cp -rf /skywalking/agent/. /agent_share/ && mkdir -p /agent_share/logs"
-    networks:
-      - monat-network
-
   # ============================================
   # LOGGING STACK (ELK)
   # ============================================
@@ -497,8 +447,6 @@ services:
     depends_on:
       redis:
         condition: service_healthy
-      skywalking-agent-init:
-        condition: service_completed_successfully
     ports:
       - "8080:8080"
     environment:
@@ -506,11 +454,6 @@ services:
       - SPRING_DATA_REDIS_HOST=redis
       - SPRING_DATA_REDIS_PORT=6379
       - JAVA_TOOL_OPTIONS=-Dfile.encoding=UTF-8
-      - SW_AGENT_NAME=api-gateway
-      - SW_AGENT_COLLECTOR_BACKEND_SERVICES=skywalking-oap:11800
-      - SW_AGENT_LOGGING_DIR=/skywalking/agent/logs
-    volumes:
-      - skywalking_agent:/skywalking/agent
     networks:
       - monat-network
     healthcheck:
@@ -529,22 +472,12 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-      skywalking-agent-init:
-        condition: service_completed_successfully
-    ports:
-      - "8081:8081"
-      - "9081:9081"
     environment:
       - SPRING_PROFILES_ACTIVE=docker
       - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/userdb
       - SPRING_DATASOURCE_USERNAME=postgres
       - SPRING_DATASOURCE_PASSWORD=postgres
       - JAVA_TOOL_OPTIONS=-Dfile.encoding=UTF-8
-      - SW_AGENT_NAME=user-service
-      - SW_AGENT_COLLECTOR_BACKEND_SERVICES=skywalking-oap:11800
-      - SW_AGENT_LOGGING_DIR=/skywalking/agent/logs
-    volumes:
-      - skywalking_agent:/skywalking/agent
     networks:
       - monat-network
     healthcheck:
@@ -567,11 +500,6 @@ services:
         condition: service_completed_successfully
       elasticsearch:
         condition: service_healthy
-      skywalking-agent-init:
-        condition: service_completed_successfully
-    ports:
-      - "8082:8082"
-    # HTTP exposed for local testing
     environment:
       - SPRING_PROFILES_ACTIVE=docker
       - SPRING_DATA_MONGODB_URI=mongodb://mongodb:27017/productdb?replicaSet=rs0&directConnection=true
@@ -580,11 +508,6 @@ services:
       - SPRING_DATA_REDIS_PORT=6379
       - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:29092
       - JAVA_TOOL_OPTIONS=-Dfile.encoding=UTF-8
-      - SW_AGENT_NAME=product-service
-      - SW_AGENT_COLLECTOR_BACKEND_SERVICES=skywalking-oap:11800
-      - SW_AGENT_LOGGING_DIR=/skywalking/agent/logs
-    volumes:
-      - skywalking_agent:/skywalking/agent
     networks:
       - monat-network
     healthcheck:
@@ -609,11 +532,6 @@ services:
         condition: service_healthy
       kafka:
         condition: service_healthy
-      skywalking-agent-init:
-        condition: service_completed_successfully
-    ports:
-      - "8083:8083"
-      - "9083:9083"
     environment:
       - SPRING_PROFILES_ACTIVE=docker
       - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/inventorydb
@@ -624,11 +542,6 @@ services:
       - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:29092
       - SPRING_RABBITMQ_HOST=rabbitmq
       - JAVA_TOOL_OPTIONS=-Dfile.encoding=UTF-8
-      - SW_AGENT_NAME=inventory-service
-      - SW_AGENT_COLLECTOR_BACKEND_SERVICES=skywalking-oap:11800
-      - SW_AGENT_LOGGING_DIR=/skywalking/agent/logs
-    volumes:
-      - skywalking_agent:/skywalking/agent
     networks:
       - monat-network
     healthcheck:
@@ -649,22 +562,12 @@ services:
         condition: service_healthy
       inventory-service:
         condition: service_healthy
-      skywalking-agent-init:
-        condition: service_completed_successfully
-    ports:
-      - "8084:8084"
-    # HTTP exposed for local testing
     environment:
       - SPRING_PROFILES_ACTIVE=docker
       - SPRING_DATA_REDIS_HOST=redis
       - SPRING_DATA_REDIS_PORT=6379
       - GRPC_CLIENT_INVENTORY_SERVICE_ADDRESS=static://inventory-service:9083
       - JAVA_TOOL_OPTIONS=-Dfile.encoding=UTF-8
-      - SW_AGENT_NAME=cart-service
-      - SW_AGENT_COLLECTOR_BACKEND_SERVICES=skywalking-oap:11800
-      - SW_AGENT_LOGGING_DIR=/skywalking/agent/logs
-    volumes:
-      - skywalking_agent:/skywalking/agent
     networks:
       - monat-network
     healthcheck:
@@ -691,11 +594,6 @@ services:
         condition: service_healthy
       payment-service:
         condition: service_healthy
-      skywalking-agent-init:
-        condition: service_completed_successfully
-    ports:
-      - "8085:8085"
-    # HTTP exposed for local testing
     environment:
       - SPRING_PROFILES_ACTIVE=docker
       - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/orderdb
@@ -706,11 +604,6 @@ services:
       - GRPC_CLIENT_INVENTORY_SERVICE_ADDRESS=static://inventory-service:9083
       - GRPC_CLIENT_PAYMENT_SERVICE_ADDRESS=static://payment-service:9086
       - JAVA_TOOL_OPTIONS=-Dfile.encoding=UTF-8
-      - SW_AGENT_NAME=order-service
-      - SW_AGENT_COLLECTOR_BACKEND_SERVICES=skywalking-oap:11800
-      - SW_AGENT_LOGGING_DIR=/skywalking/agent/logs
-    volumes:
-      - skywalking_agent:/skywalking/agent
     networks:
       - monat-network
     healthcheck:
@@ -731,11 +624,6 @@ services:
         condition: service_healthy
       kafka:
         condition: service_healthy
-      skywalking-agent-init:
-        condition: service_completed_successfully
-    ports:
-      - "8086:8086"
-      - "9086:9086"
     environment:
       - SPRING_PROFILES_ACTIVE=docker
       - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/paymentdb
@@ -743,11 +631,6 @@ services:
       - SPRING_DATASOURCE_PASSWORD=postgres
       - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:29092
       - JAVA_TOOL_OPTIONS=-Dfile.encoding=UTF-8
-      - SW_AGENT_NAME=payment-service
-      - SW_AGENT_COLLECTOR_BACKEND_SERVICES=skywalking-oap:11800
-      - SW_AGENT_LOGGING_DIR=/skywalking/agent/logs
-    volumes:
-      - skywalking_agent:/skywalking/agent
     networks:
       - monat-network
     healthcheck:
@@ -768,11 +651,6 @@ services:
         condition: service_healthy
       kafka:
         condition: service_healthy
-      skywalking-agent-init:
-        condition: service_completed_successfully
-    ports:
-      - "8087:8087"
-    # HTTP exposed for local testing
     environment:
       - SPRING_PROFILES_ACTIVE=docker
       - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/notificationdb
@@ -781,12 +659,11 @@ services:
       - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:29092
       - SPRING_MAIL_HOST=maildev
       - SPRING_MAIL_PORT=1025
+      - APPLICATION_NOTIFICATION_SIMULATE_EMAIL=false
+      - APPLICATION_NOTIFICATION_FROM_EMAIL=m.onat.65@gmail.com
+      - APPLICATION_NOTIFICATION_SMS_PROVIDER=${SMS_PROVIDER:-console}
+      - TEXTBELT_API_KEY=${TEXTBELT_API_KEY:-textbelt_test}
       - JAVA_TOOL_OPTIONS=-Dfile.encoding=UTF-8
-      - SW_AGENT_NAME=notification-service
-      - SW_AGENT_COLLECTOR_BACKEND_SERVICES=skywalking-oap:11800
-      - SW_AGENT_LOGGING_DIR=/skywalking/agent/logs
-    volumes:
-      - skywalking_agent:/skywalking/agent
     networks:
       - monat-network
     healthcheck:
@@ -804,11 +681,6 @@ services:
     depends_on:
       kafka:
         condition: service_healthy
-      skywalking-agent-init:
-        condition: service_completed_successfully
-    ports:
-      - "8098:8098"
-    # HTTP exposed for local testing (Uses 8098 to prevent conflict with skywalking-ui 8088)
     environment:
       - SPRING_PROFILES_ACTIVE=docker
       - KAFKA_BOOTSTRAP_SERVERS=kafka:29092
@@ -816,12 +688,7 @@ services:
       - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:29092
       - SPRING_KAFKA_STREAMS_BOOTSTRAP_SERVERS=kafka:29092
       - JAVA_TOOL_OPTIONS=-Dfile.encoding=UTF-8
-      - SW_AGENT_NAME=fraud-service
-      - SW_AGENT_COLLECTOR_BACKEND_SERVICES=skywalking-oap:11800
-      - SW_AGENT_LOGGING_DIR=/skywalking/agent/logs
       - SERVER_PORT=8098
-    volumes:
-      - skywalking_agent:/skywalking/agent
     networks:
       - monat-network
     healthcheck:
@@ -849,6 +716,4 @@ volumes:
   sonarqube_data:
   sonarqube_extensions:
   sonarqube_logs:
-  skywalking_agent:
   rabbitmq_data:
-

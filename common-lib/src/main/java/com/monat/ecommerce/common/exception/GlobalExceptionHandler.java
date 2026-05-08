@@ -103,9 +103,14 @@ public class GlobalExceptionHandler {
             validationErrors.put(fieldName, errorMessage);
         });
 
+        String message = validationErrors.size() == 1
+                ? validationErrors.values().iterator().next()
+                : localizationUtils.getMessage("generic.validation-error.multiple",
+                        String.valueOf(validationErrors.size()));
+
         ErrorResponse error = ErrorResponse.builder()
                 .error(localizationUtils.getMessage("generic.validation-error"))
-                .message(localizationUtils.getMessage("generic.validation-error"))
+                .message(message)
                 .status(400)
                 .path(request.getRequestURI())
                 .timestamp(LocalDateTime.now())

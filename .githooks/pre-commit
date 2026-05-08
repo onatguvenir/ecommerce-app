@@ -1,0 +1,21 @@
+#!/bin/sh
+# Gitleaks: scan staged files for secrets before commit
+
+if ! command -v gitleaks > /dev/null 2>&1; then
+  echo "⚠️  gitleaks not installed. Install it first:"
+  echo "    winget install gitleaks"
+  echo "    or: https://github.com/gitleaks/gitleaks/releases"
+  exit 0
+fi
+
+gitleaks protect --staged --config .gitleaks.toml --redact
+STATUS=$?
+
+if [ $STATUS -ne 0 ]; then
+  echo ""
+  echo "🚫 Commit blocked: gitleaks found potential secrets."
+  echo "   Review the output above and remove secrets before committing."
+  exit 1
+fi
+
+exit 0

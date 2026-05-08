@@ -1,0 +1,16 @@
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Test and dev placeholder credentials"
+regexes = [
+  '''changeme''',
+  '''postgres''',
+  '''noreply@monat-ecommerce\.com''',
+  '''smtp\.example\.com''',
+]
+
+[[allowlists]]
+description = "Allow localhost URLs"
+regexTarget = "line"
+regexes = ['''localhost''', '''127\.0\.0\.1''']
