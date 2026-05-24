@@ -1,4 +1,4 @@
-spring:
+﻿spring:
   application:
     name: notification-service
 
@@ -118,7 +118,7 @@ management:
 logging:
   level:
     root: INFO
-    com.monat.ecommerce: DEBUG
+    com.monat.ecommerce: INFO
     org.springframework.kafka: INFO
 
 # Application specific

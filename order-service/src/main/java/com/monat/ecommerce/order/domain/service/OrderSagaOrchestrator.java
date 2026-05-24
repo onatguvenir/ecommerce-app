@@ -388,6 +388,7 @@ public class OrderSagaOrchestrator {
                             .orderNumber(order.getOrderNumber())
                             .userId(order.getUserId().toString())
                             .reason(reason)
+                            .cancelledBy("SYSTEM")
                             .build();
 
             String payload = objectMapper.writeValueAsString(event);

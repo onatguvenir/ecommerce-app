@@ -1,4 +1,4 @@
-spring:
+﻿spring:
   profiles:
     active: dev
   application:
@@ -104,7 +104,7 @@ management:
 logging:
   level:
     root: INFO
-    com.monat.ecommerce: DEBUG
+    com.monat.ecommerce: INFO
 
 resilience4j:
   circuitbreaker:
@@ -166,3 +166,5 @@ application:
     batch-size: 100
   reporting:
     materialized-view-refresh-ms: 300000
+  config:
+    cart-service-url: http://localhost:8084

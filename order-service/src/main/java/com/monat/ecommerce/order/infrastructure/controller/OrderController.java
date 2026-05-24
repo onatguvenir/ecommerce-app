@@ -88,6 +88,16 @@ public class OrderController {
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
+    @PostMapping("/{orderId}/cancel")
+    @Operation(summary = "Cancel a pending order")
+    public ResponseEntity<ApiResponse<OrderResponse>> cancelOrder(
+            @PathVariable(name = "orderId") UUID orderId,
+            @RequestParam(required = false, name = "reason") String reason) {
+
+        OrderResponse response = orderApplicationService.cancelOrder(orderId, reason);
+        return ResponseEntity.ok(ApiResponse.success(response, "Order cancelled successfully"));
+    }
+
     @GetMapping("/reports/daily-sales")
     @Operation(summary = "Get daily sales report from materialized view")
     public ResponseEntity<ApiResponse<List<DailySalesReportResponse>>> getDailySalesReport(

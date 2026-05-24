@@ -1,23 +1,36 @@
-<?xml version="1.0" encoding="UTF-8"?>
+﻿<?xml version="1.0" encoding="UTF-8"?>
 <configuration>
-    <!-- Console appender with human-readable format and trace context -->
     <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
             <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%X{traceId:-},%X{spanId:-},%X{correlationId:-}] %-5level %logger{36} - %msg%n</pattern>
         </encoder>
     </appender>
 
-    <!-- Root logger -->
     <root level="INFO">
         <appender-ref ref="CONSOLE"/>
     </root>
 
-    <!-- Application loggers -->
-    <logger name="com.monat.ecommerce" level="DEBUG"/>
-    <logger name="org.springframework.web" level="DEBUG"/>
-    <logger name="org.hibernate.SQL" level="DEBUG"/>
+    <!-- Application: INFO — business events, errors, saga steps, order/payment state changes -->
+    <logger name="com.monat.ecommerce" level="INFO"/>
 
-    <!-- Reduce noise from some libraries -->
+    <!-- Framework noise suppression -->
+    <logger name="org.springframework.web" level="WARN"/>
+    <logger name="org.springframework.web.servlet" level="WARN"/>
+    <logger name="org.springframework.security" level="WARN"/>
+    <logger name="org.springframework.cloud.gateway" level="WARN"/>
+    <logger name="org.springframework.data.mongodb" level="WARN"/>
+    <logger name="org.springframework.data.elasticsearch" level="WARN"/>
+    <logger name="org.springframework.transaction" level="WARN"/>
+    <logger name="org.hibernate.SQL" level="WARN"/>
+    <logger name="org.hibernate.type" level="WARN"/>
+    <logger name="org.hibernate.orm" level="WARN"/>
     <logger name="org.apache.kafka" level="WARN"/>
     <logger name="org.springframework.kafka" level="WARN"/>
+    <logger name="org.mongodb.driver" level="WARN"/>
+    <logger name="co.elastic.clients" level="WARN"/>
+    <logger name="reactor.netty" level="WARN"/>
+    <logger name="io.netty" level="WARN"/>
+    <logger name="com.zaxxer.hikari" level="WARN"/>
+    <logger name="io.github.resilience4j" level="WARN"/>
+    <logger name="net.devh.boot.grpc" level="WARN"/>
 </configuration>

@@ -5,7 +5,7 @@ service: order-service
 port-http: 8085
 port-grpc: none
 db: PostgreSQL (orderdb)
-last-updated: 2026-04-27
+last-updated: 2026-05-09
 ---
 
 # order-service Domain Spec
@@ -42,18 +42,19 @@ On failure at any step:
   → COMPENSATION_COMPLETED
 ```
 
-## Critical: Saga runs on raw Thread
-`OrderApplicationService:112`: `new Thread(() -> saga.executeOrderSaga(...)).start()`  
-Order returns PENDING immediately; saga runs async. Cart deleted only after saga completes successfully.
+## Critical: Saga runs on managed async executor
+`OrderApplicationService`: saga triggered via `@Async("sagaTaskExecutor")` on `OrderSagaOrchestrator.executeOrderSaga(UUID orderId, String cartId)`.  
+Order returns PENDING immediately; saga reloads Order from DB inside its own `@Transactional` to avoid detached entity. Cart deleted only after saga completes successfully.
 
 ## Outbox Events Published
 
 | Topic | Event Class | Trigger |
 |---|---|---|
+| `order.created` | `OrderCreatedEvent` | `createOrder()` — same transaction as order save |
 | `order.completed` | `OrderCompletedEvent` | Saga completeOrder step |
 | `order.cancelled` | `OrderCancelledEvent` | Saga compensation |
 
-**Missing**: `order.created` is NOT published (see remaining-issues.md #3).
+`order.created` fixed 2026-05-04: `publishOrderCreatedEvent()` writes to `outbox_events` in same `@Transactional` as order save. `OutboxEventPublisher` routes `OrderCreated` → `order.created` topic.
 
 ## DB Tables
 - `orders`, `order_items`, `shipping_address` (embedded)

@@ -50,3 +50,7 @@ test_endpoints.py
 CLAUDE.local.md
 docs/superpowers/
 *.txt
+graphify-out/
+.graphify_python
+.graphify_incremental.json
+.codex/hooks.json

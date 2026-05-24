@@ -1,4 +1,4 @@
-spring:
+﻿spring:
   application:
     name: order-service
   threads:
@@ -104,7 +104,7 @@ management:
 logging:
   level:
     root: INFO
-    com.monat.ecommerce: DEBUG
+    com.monat.ecommerce: INFO
 
 resilience4j:
   circuitbreaker:

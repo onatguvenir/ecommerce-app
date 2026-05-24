@@ -1,4 +1,4 @@
-spring:
+﻿spring:
   profiles:
     active: dev
   application:
@@ -127,7 +127,7 @@ resilience4j:
 logging:
   level:
     root: INFO
-    com.monat.ecommerce: DEBUG
+    com.monat.ecommerce: INFO
     org.springframework.data.elasticsearch: DEBUG
     io.github.resilience4j: DEBUG
     org.springframework.cache: DEBUG

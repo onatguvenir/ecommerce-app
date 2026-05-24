@@ -1,4 +1,4 @@
-spring:
+﻿spring:
   application:
     name: cart-service
 
@@ -86,7 +86,7 @@ management:
 logging:
   level:
     root: INFO
-    com.monat.ecommerce: DEBUG
+    com.monat.ecommerce: INFO
 
 # Application-specific configuration
 application:

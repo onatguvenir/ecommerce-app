@@ -39,5 +39,7 @@ public interface ProductMapper {
     @Mapping(target = "additionalSpecs", source = "additionalSpecs")
     ProductSpecifications toSpecifications(UpdateProductCommand command);
 
+    @Mapping(target = "images", expression = "java(java.util.List.of())")
+    @Mapping(target = "additionalSpecs", expression = "java(java.util.Map.of())")
     ProductResponse toResponse(ProductSearchDocument doc);
 }

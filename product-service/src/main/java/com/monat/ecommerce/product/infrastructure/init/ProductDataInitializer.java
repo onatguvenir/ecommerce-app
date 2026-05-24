@@ -5,36 +5,73 @@ import com.monat.ecommerce.product.domain.model.ProductSpecifications;
 import com.monat.ecommerce.product.domain.model.ProductStatus;
 import com.monat.ecommerce.product.domain.repository.ProductRepository;
 import com.monat.ecommerce.product.domain.service.ProductSyncService;
+import com.monat.ecommerce.product.infrastructure.search.ProductSearchDocument;
+import com.monat.ecommerce.product.infrastructure.search.ProductSearchRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.data.elasticsearch.core.ElasticsearchOperations;
+import org.springframework.data.elasticsearch.core.IndexOperations;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.List;
 
-/**
- * Initialize sample product data on startup
- */
 @Slf4j
 @Component
 @RequiredArgsConstructor
 public class ProductDataInitializer implements CommandLineRunner {
 
     private final ProductRepository productRepository;
+    private final ProductSearchRepository searchRepository;
     private final ProductSyncService syncService;
+    private final ElasticsearchOperations elasticsearchOperations;
 
     @Override
     public void run(String... args) {
-        if (productRepository.count() > 0) {
-            log.info("Products already initialized, skipping...");
+        ensureEsIndex();
+
+        long mongoCount = productRepository.count();
+
+        if (mongoCount == 0) {
+            log.info("Initializing sample products...");
+            productRepository.saveAll(sampleProducts());
+            log.info("Saved {} products to MongoDB", productRepository.count());
+            syncService.reindexAll();
             return;
         }
 
-        log.info("Initializing sample products...");
+        long esCount = searchRepository.count();
 
-        List<Product> products = Arrays.asList(
+        if (esCount == 0) {
+            log.info("ES index empty, full reindex ({} products from MongoDB)...", mongoCount);
+            syncService.reindexAll();
+        } else if (esCount < mongoCount) {
+            log.info("ES has {}/{} products, indexing {} missing...",
+                    esCount, mongoCount, mongoCount - esCount);
+            syncService.indexMissingProducts();
+        } else {
+            log.info("ES in sync ({} documents), skipping reindex.", esCount);
+        }
+    }
+
+    /**
+     * Creates the ES index with mapping only if it does not already exist.
+     * Does NOT drop or recreate — preserves existing indexed data across restarts.
+     * For mapping changes: drop the index manually and restart (triggers full reindex via esCount == 0 branch).
+     */
+    private void ensureEsIndex() {
+        IndexOperations indexOps = elasticsearchOperations.indexOps(ProductSearchDocument.class);
+        if (!indexOps.exists()) {
+            indexOps.create();
+            indexOps.putMapping();
+            log.info("Created 'products' Elasticsearch index with mapping.");
+        }
+    }
+
+    private List<Product> sampleProducts() {
+        return Arrays.asList(
                 createProduct("PROD-001", "Laptop Pro 15", "High-performance laptop with 15-inch display",
                         "Electronics", "TechPro", new BigDecimal("1299.99"),
                         Arrays.asList("laptop", "computer", "electronics", "productivity"),
@@ -85,21 +122,12 @@ public class ProductDataInitializer implements CommandLineRunner {
                         Arrays.asList("pen", "stationery", "writing", "office"),
                         "100g", "15.0 x 10.0 x 2.0 cm", "Mixed", "Metal")
         );
-
-        productRepository.saveAll(products);
-        log.info("Saved {} products to MongoDB", products.size());
-
-        // Index in Elasticsearch
-        syncService.reindexAll(products);
-
-        log.info("Product initialization complete!");
     }
 
     private Product createProduct(String productId, String name, String description,
                                    String category, String brand, BigDecimal price,
                                    List<String> tags,
                                    String weight, String dimensions, String color, String material) {
-
         ProductSpecifications specs = ProductSpecifications.builder()
                 .weight(weight)
                 .dimensions(dimensions)

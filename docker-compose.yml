@@ -1,5 +1,12 @@
-# Monat E-Commerce Infrastructure & Monitoring
+﻿# Monat E-Commerce Infrastructure & Monitoring
 # Removed deprecated version: '3.8' for Compose V2 compatibility
+
+# Shared log rotation — applied to every service via <<: *default-logging
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "50m"   # per-file cap
+    max-file: "3"     # 3 files × 50 MB = 150 MB max per container; oldest file auto-deleted
 
 services:
   # ============================================
@@ -10,6 +17,7 @@ services:
   postgres:
     image: postgres:16-alpine
     container_name: monat-postgres
+    logging: *default-logging
     command: ["postgres", "-c", "wal_level=logical"]
     environment:
       POSTGRES_USER: postgres
@@ -31,6 +39,7 @@ services:
   mongodb:
     image: mongo:7
     container_name: monat-mongodb
+    logging: *default-logging
     command: ["mongod", "--replSet", "rs0", "--bind_ip_all"]
     ports:
       - "27017:27017"
@@ -52,6 +61,7 @@ services:
   mongodb-init:
     image: mongo:7
     container_name: monat-mongodb-init
+    logging: *default-logging
     depends_on:
       mongodb:
         # service_healthy: mongod'un tamamen ayağa kalktığını ve 'ping'e
@@ -89,6 +99,7 @@ services:
   redis:
     image: redis:7-alpine
     container_name: monat-redis
+    logging: *default-logging
     ports:
       - "6379:6379"
     volumes:
@@ -105,6 +116,7 @@ services:
   rabbitmq:
     image: rabbitmq:3.13-management-alpine
     container_name: monat-rabbitmq
+    logging: *default-logging
     hostname: rabbitmq
     ports:
       - "5672:5672"
@@ -120,13 +132,14 @@ services:
       test: ["CMD", "rabbitmq-diagnostics", "ping"]
       interval: 15s
       timeout: 10s
-      retries: 5
-      start_period: 120s
+      retries: 8
+      start_period: 180s
 
   # Kafka - Event streaming (KRaft mode, no ZooKeeper)
   kafka:
     image: confluentinc/cp-kafka:7.5.0
     container_name: monat-kafka
+    logging: *default-logging
     ports:
       - "9092:9092"
     environment:
@@ -159,6 +172,7 @@ services:
   akhq:
     image: tchiotludo/akhq:0.24.0
     container_name: monat-akhq
+    logging: *default-logging
     depends_on:
       kafka:
         condition: service_healthy
@@ -185,6 +199,7 @@ services:
   debezium-connect:
     image: debezium/connect:2.4
     container_name: monat-debezium-connect
+    logging: *default-logging
     ports:
       - "8089:8083"
     environment:
@@ -198,26 +213,50 @@ services:
         condition: service_healthy
       postgres:
         condition: service_healthy
+      mongodb:
+        condition: service_healthy
+      mongodb-init:
+        condition: service_completed_successfully
     networks:
       - monat-network
     healthcheck:
       test: ["CMD-SHELL", "curl -sf http://localhost:8083/connectors || exit 1"]
       interval: 10s
       timeout: 5s
-      retries: 10
-      start_period: 30s
+      retries: 15
+      start_period: 60s
 
-  # Connector Init - Registers Debezium connectors after Connect is ready
+  # Connector Init - Registers Debezium connectors after Connect is ready.
+  # Idempotent: 201 = created, 409 = already registered (skip). Any other status = error.
   connector-init:
     image: curlimages/curl:latest
     container_name: monat-connector-init
+    logging: *default-logging
     depends_on:
       debezium-connect:
         condition: service_healthy
     entrypoint: ["/bin/sh"]
     command:
       - -c
-      - "echo 'Registering inventory connector...' && curl -sf -X POST http://debezium-connect:8083/connectors -H 'Content-Type: application/json' -d @/connectors/inventory-connector.json && echo 'Registering product connector...' && curl -sf -X POST http://debezium-connect:8083/connectors -H 'Content-Type: application/json' -d @/connectors/product-connector.json && echo 'All connectors registered.'"
+      - |
+        register_connector() {
+          NAME=$1
+          FILE=$2
+          echo "Registering $NAME..."
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" -X POST http://debezium-connect:8083/connectors \
+            -H 'Content-Type: application/json' -d @"$FILE")
+          if [ "$STATUS" = "201" ]; then
+            echo "$NAME registered."
+          elif [ "$STATUS" = "409" ]; then
+            echo "$NAME already registered, skipping."
+          else
+            echo "Failed to register $NAME: HTTP $STATUS"
+            exit 1
+          fi
+        }
+        register_connector inventory-connector /connectors/inventory-connector.json
+        register_connector product-connector /connectors/product-connector.json
+        echo 'All connectors ready.'
     volumes:
       - ./docker:/connectors:ro
     networks:
@@ -228,6 +267,7 @@ services:
   redisinsight:
     image: redis/redisinsight:latest
     container_name: monat-redisinsight
+    logging: *default-logging
     depends_on:
       redis:
         condition: service_healthy
@@ -242,6 +282,7 @@ services:
   maildev:
     image: maildev/maildev
     container_name: monat-maildev
+    logging: *default-logging
     ports:
       - "1080:1080"
       - "1025:1025"
@@ -261,6 +302,7 @@ services:
   sonar-db:
     image: postgres:16-alpine
     container_name: monat-sonar-db
+    logging: *default-logging
     environment:
       POSTGRES_USER: sonar
       POSTGRES_PASSWORD: sonar
@@ -274,6 +316,7 @@ services:
   sonarqube:
     image: sonarqube:community
     container_name: monat-sonarqube
+    logging: *default-logging
     depends_on:
       - sonar-db
     ports:
@@ -293,6 +336,7 @@ services:
   otel-collector:
     image: otel/opentelemetry-collector-contrib:latest
     container_name: monat-otel-collector
+    logging: *default-logging
     command: ["--config=/etc/otel-collector-config.yaml"]
     volumes:
       - ./docker/otel-collector-config.yaml:/etc/otel-collector-config.yaml
@@ -308,6 +352,7 @@ services:
   prometheus:
     image: prom/prometheus:latest
     container_name: monat-prometheus
+    logging: *default-logging
     ports:
       - "9090:9090"
     volumes:
@@ -322,6 +367,7 @@ services:
   grafana:
     image: grafana/grafana:latest
     container_name: monat-grafana
+    logging: *default-logging
     depends_on:
       - prometheus
     ports:
@@ -337,6 +383,7 @@ services:
   jaeger:
     image: jaegertracing/all-in-one:latest
     container_name: monat-jaeger
+    logging: *default-logging
     ports:
       - "16686:16686"  # UI
       - "14268:14268"  # Collector HTTP
@@ -354,6 +401,7 @@ services:
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
     container_name: monat-elasticsearch
+    logging: *default-logging
     environment:
       - discovery.type=single-node
       - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
@@ -377,6 +425,7 @@ services:
   logstash:
     image: docker.elastic.co/logstash/logstash:8.11.0
     container_name: monat-logstash
+    logging: *default-logging
     volumes:
       - ./docker/logstash.conf:/usr/share/logstash/pipeline/logstash.conf:ro
     ports:
@@ -393,13 +442,14 @@ services:
       test: ["CMD-SHELL", "curl -f http://localhost:9600/_node/stats || exit 1"]
       interval: 30s
       timeout: 10s
-      retries: 5
-      start_period: 120s
+      retries: 8
+      start_period: 180s
 
   # Kibana - Log visualization and search UI
   kibana:
     image: docker.elastic.co/kibana/kibana:8.11.0
     container_name: monat-kibana
+    logging: *default-logging
     ports:
       - "5601:5601"
     environment:
@@ -421,6 +471,7 @@ services:
   filebeat:
     image: docker.elastic.co/beats/filebeat:8.11.0
     container_name: monat-filebeat
+    logging: *default-logging
     user: root
     volumes:
       - ./docker/filebeat.yml:/usr/share/filebeat/filebeat.yml:ro
@@ -444,6 +495,7 @@ services:
       context: .
       dockerfile: api-gateway/Dockerfile
     container_name: monat-api-gateway
+    logging: *default-logging
     depends_on:
       redis:
         condition: service_healthy
@@ -469,6 +521,7 @@ services:
       context: .
       dockerfile: user-service/Dockerfile
     container_name: monat-user-service
+    logging: *default-logging
     depends_on:
       postgres:
         condition: service_healthy
@@ -493,6 +546,7 @@ services:
       context: .
       dockerfile: product-service/Dockerfile
     container_name: monat-product-service
+    logging: *default-logging
     depends_on:
       mongodb:
         condition: service_healthy
@@ -523,6 +577,7 @@ services:
       context: .
       dockerfile: inventory-service/Dockerfile
     container_name: monat-inventory-service
+    logging: *default-logging
     depends_on:
       postgres:
         condition: service_healthy
@@ -557,6 +612,7 @@ services:
       context: .
       dockerfile: cart-service/Dockerfile
     container_name: monat-cart-service
+    logging: *default-logging
     depends_on:
       redis:
         condition: service_healthy
@@ -583,6 +639,7 @@ services:
       context: .
       dockerfile: order-service/Dockerfile
     container_name: monat-order-service
+    logging: *default-logging
     depends_on:
       postgres:
         condition: service_healthy
@@ -619,6 +676,7 @@ services:
       context: .
       dockerfile: payment-service/Dockerfile
     container_name: monat-payment-service
+    logging: *default-logging
     depends_on:
       postgres:
         condition: service_healthy
@@ -646,6 +704,7 @@ services:
       context: .
       dockerfile: notification-service/Dockerfile
     container_name: monat-notification-service
+    logging: *default-logging
     depends_on:
       postgres:
         condition: service_healthy
@@ -678,6 +737,7 @@ services:
       context: .
       dockerfile: fraud-service/Dockerfile
     container_name: monat-fraud-service
+    logging: *default-logging
     depends_on:
       kafka:
         condition: service_healthy

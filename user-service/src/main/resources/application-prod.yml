@@ -1,4 +1,4 @@
-spring:
+﻿spring:
   application:
     name: user-service
 
@@ -112,7 +112,7 @@ application:
 logging:
   level:
     root: INFO
-    com.monat.ecommerce: DEBUG
+    com.monat.ecommerce: INFO
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss} [%X{traceId:-},%X{spanId:-}] - %msg%n"
     file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] [%X{traceId:-},%X{spanId:-}] %-5level %logger{36} - %msg%n"

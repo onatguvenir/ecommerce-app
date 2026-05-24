@@ -8,6 +8,8 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.elasticsearch.annotations.Document;
 import org.springframework.data.elasticsearch.annotations.Field;
 import org.springframework.data.elasticsearch.annotations.FieldType;
+import org.springframework.data.elasticsearch.annotations.InnerField;
+import org.springframework.data.elasticsearch.annotations.MultiField;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -34,10 +36,16 @@ public class ProductSearchDocument {
     @Field(type = FieldType.Text, analyzer = "standard")
     private String description;
 
-    @Field(type = FieldType.Keyword)
+    @MultiField(
+        mainField = @Field(type = FieldType.Text, analyzer = "standard"),
+        otherFields = { @InnerField(suffix = "keyword", type = FieldType.Keyword) }
+    )
     private String category;
 
-    @Field(type = FieldType.Keyword)
+    @MultiField(
+        mainField = @Field(type = FieldType.Text, analyzer = "standard"),
+        otherFields = { @InnerField(suffix = "keyword", type = FieldType.Keyword) }
+    )
     private String brand;
 
     @Field(type = FieldType.Double)

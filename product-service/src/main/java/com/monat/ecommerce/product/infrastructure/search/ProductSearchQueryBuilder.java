@@ -21,11 +21,11 @@ import java.math.BigDecimal;
  * - CriteriaQuery expresses the Elasticsearch DSL via a Java API.
  * <p>
  * Query Strategy:
- * - If keyword is present: multi-match across name^3, description^2, category, and brand fields.
- * - If category is present: exact match (Keyword field).
- * - If brand is present: exact match (Keyword field).
- * - If price range is present: range filter.
- * All criteria are combined using AND logic.
+ * - keyword: name match^3 + name prefix^2 + description match^1.5 + category wildcard + brand wildcard
+ * - category filter: exact term (Keyword field)
+ * - brand filter: exact term (Keyword field)
+ * - price range: range filter
+ * All criteria combined with AND logic.
  */
 @Component
 @RequiredArgsConstructor
@@ -55,27 +55,32 @@ public class ProductSearchQueryBuilder {
         Criteria criteria = new Criteria();
         boolean hasCriteria = false;
 
-        // Full-text search: Search multiple fields with boosting
         if (keyword != null && !keyword.isBlank()) {
-            // Apply 3x boost to name field and 2x boost to description
+            // name (Text): match = full token hit; startsWith = prefix query on analyzed token
+            // description (Text): match only — prefix on long text produces noise
+            // category/brand (Keyword): contains = wildcard *kw* — case-sensitive but handles substrings;
+            //   matches would generate a case-sensitive term query with no substring support
             Criteria keywordCriteria = new Criteria("name").boost(3f).matches(keyword)
-                    .or(new Criteria("description").boost(2f).matches(keyword))
+                    .or(new Criteria("name").boost(2f).startsWith(keyword))
+                    .or(new Criteria("description").boost(1.5f).matches(keyword))
                     .or(new Criteria("category").matches(keyword))
-                    .or(new Criteria("brand").matches(keyword));
+                    .or(new Criteria("category").startsWith(keyword))
+                    .or(new Criteria("brand").matches(keyword))
+                    .or(new Criteria("brand").startsWith(keyword));
             criteria = hasCriteria ? criteria.and(keywordCriteria) : keywordCriteria;
             hasCriteria = true;
         }
 
-        // Category filter: Keyword field — exact match
+        // Category filter: .keyword subfield — exact match (MultiField Keyword subfield)
         if (category != null && !category.isBlank()) {
-            Criteria categoryCriteria = new Criteria("category").is(category);
+            Criteria categoryCriteria = new Criteria("category.keyword").is(category);
             criteria = hasCriteria ? criteria.and(categoryCriteria) : categoryCriteria;
             hasCriteria = true;
         }
 
-        // Brand filter: Keyword field — exact match
+        // Brand filter: .keyword subfield — exact match (MultiField Keyword subfield)
         if (brand != null && !brand.isBlank()) {
-            Criteria brandCriteria = new Criteria("brand").is(brand);
+            Criteria brandCriteria = new Criteria("brand.keyword").is(brand);
             criteria = hasCriteria ? criteria.and(brandCriteria) : brandCriteria;
             hasCriteria = true;
         }

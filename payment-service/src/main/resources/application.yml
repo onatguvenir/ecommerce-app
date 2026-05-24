@@ -1,4 +1,4 @@
-spring:
+﻿spring:
   profiles:
     active: dev
   application:
@@ -115,7 +115,7 @@ resilience4j:
 logging:
   level:
     root: INFO
-    com.monat.ecommerce: DEBUG
+    com.monat.ecommerce: INFO
 
 # Application specific
 application:

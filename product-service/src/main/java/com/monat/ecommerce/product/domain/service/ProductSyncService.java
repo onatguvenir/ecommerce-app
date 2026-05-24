@@ -4,13 +4,21 @@ import com.monat.ecommerce.product.domain.event.ProductCreatedEvent;
 import com.monat.ecommerce.product.domain.event.ProductDeletedEvent;
 import com.monat.ecommerce.product.domain.event.ProductUpdatedEvent;
 import com.monat.ecommerce.product.domain.model.Product;
+import com.monat.ecommerce.product.domain.repository.ProductRepository;
 import com.monat.ecommerce.product.infrastructure.search.ProductSearchDocument;
 import com.monat.ecommerce.product.infrastructure.search.ProductSearchRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 /**
  * Elasticsearch Synchronization Service — Event-Driven & Async.
@@ -35,7 +43,10 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class ProductSyncService {
 
+    private static final int REINDEX_BATCH_SIZE = 500;
+
     private final ProductSearchRepository searchRepository;
+    private final ProductRepository productRepository;
 
     /**
      * Listener for ProductCreatedEvent.
@@ -46,7 +57,7 @@ public class ProductSyncService {
     @Async
     @EventListener
     public void onProductCreated(ProductCreatedEvent event) {
-        log.info("Async ES indexing triggered for new product: {}", event.getProduct().getProductId());
+        log.debug("Async ES indexing triggered for new product: {}", event.getProduct().getProductId());
         indexProduct(event.getProduct());
     }
 
@@ -57,7 +68,7 @@ public class ProductSyncService {
     @Async
     @EventListener
     public void onProductUpdated(ProductUpdatedEvent event) {
-        log.info("Async ES re-indexing triggered for updated product: {}", event.getProduct().getProductId());
+        log.debug("Async ES re-indexing triggered for updated product: {}", event.getProduct().getProductId());
         indexProduct(event.getProduct());
     }
 
@@ -68,22 +79,78 @@ public class ProductSyncService {
     @Async
     @EventListener
     public void onProductDeleted(ProductDeletedEvent event) {
-        log.info("Async ES removal triggered for deleted product: {}", event.getProductId());
+        log.debug("Async ES removal triggered for deleted product: {}", event.getProductId());
         removeFromIndex(event.getMongoId());
     }
 
     /**
-     * Re-indexes all products (maintenance operation).
-     * Can be called from an admin endpoint or a scheduled job.
+     * Indexes only products that are present in MongoDB but missing from Elasticsearch.
+     * Used on startup when ES has fewer documents than MongoDB (e.g., ES data loss,
+     * products created while the app was down).
+     * Per batch: one MongoDB read + one ES _mget — does not load all documents into memory.
      */
-    public void reindexAll(Iterable<Product> products) {
-        log.info("Starting full ES reindex...");
-        int count = 0;
-        for (Product product : products) {
-            indexProduct(product);
-            count++;
-        }
-        log.info("Reindexed {} products in Elasticsearch", count);
+    public void indexMissingProducts() {
+        log.info("Scanning for unindexed products...");
+        int pageNum = 0;
+        long totalIndexed = 0;
+
+        Page<Product> page;
+        do {
+            page = productRepository.findAll(PageRequest.of(pageNum, REINDEX_BATCH_SIZE));
+            if (page.isEmpty()) break;
+
+            List<String> ids = page.getContent().stream()
+                    .map(Product::getId)
+                    .toList();
+
+            Set<String> indexedIds = StreamSupport
+                    .stream(searchRepository.findAllById(ids).spliterator(), false)
+                    .map(ProductSearchDocument::getId)
+                    .collect(Collectors.toSet());
+
+            List<ProductSearchDocument> missing = page.getContent().stream()
+                    .filter(p -> !indexedIds.contains(p.getId()))
+                    .map(this::mapToSearchDocument)
+                    .toList();
+
+            if (!missing.isEmpty()) {
+                searchRepository.saveAll(missing);
+                totalIndexed += missing.size();
+                log.info("Indexed {} missing products (page {})", missing.size(), pageNum);
+            }
+
+            pageNum++;
+        } while (page.hasNext());
+
+        log.info("Missing product index complete: {} products indexed", totalIndexed);
+    }
+
+    /**
+     * Re-indexes all products using paginated MongoDB reads and ES bulk writes.
+     * Avoids loading all products into memory and uses ES Bulk API for efficiency.
+     */
+    public void reindexAll() {
+        log.info("Starting full ES reindex (batch size: {})...", REINDEX_BATCH_SIZE);
+        int pageNum = 0;
+        long totalIndexed = 0;
+
+        Page<Product> page;
+        do {
+            page = productRepository.findAll(PageRequest.of(pageNum, REINDEX_BATCH_SIZE));
+            if (page.isEmpty()) break;
+
+            List<ProductSearchDocument> docs = page.getContent().stream()
+                    .map(this::mapToSearchDocument)
+                    .toList();
+
+            searchRepository.saveAll(docs);
+            totalIndexed += docs.size();
+            pageNum++;
+
+            log.info("Reindexed {}/{} products", totalIndexed, page.getTotalElements());
+        } while (page.hasNext());
+
+        log.info("Full ES reindex complete: {} products", totalIndexed);
     }
 
     // ---- Private helpers ----

@@ -4,6 +4,8 @@ application:
       url: jdbc:postgresql://postgres:5432/orderdb
     replica:
       url: jdbc:postgresql://postgres:5432/orderdb
+  config:
+    cart-service-url: http://cart-service:8084
 
 spring:
   kafka:

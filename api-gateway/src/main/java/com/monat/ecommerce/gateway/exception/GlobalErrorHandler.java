@@ -11,6 +11,7 @@ import org.springframework.http.server.reactive.ServerHttpResponse;
 import org.springframework.stereotype.Component;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.server.ServerWebExchange;
+import org.springframework.lang.NonNull;
 import reactor.core.publisher.Mono;
 
 import java.nio.charset.StandardCharsets;
@@ -30,8 +31,8 @@ import java.nio.charset.StandardCharsets;
 public class GlobalErrorHandler implements ErrorWebExceptionHandler {
 
     @Override
-    @org.springframework.lang.NonNull
-    public Mono<Void> handle(@org.springframework.lang.NonNull ServerWebExchange exchange, @org.springframework.lang.NonNull Throwable ex) {
+    @NonNull
+    public Mono<Void> handle(@NonNull ServerWebExchange exchange, @NonNull Throwable ex) {
         ServerHttpResponse response = exchange.getResponse();
 
         if (response.isCommitted()) {

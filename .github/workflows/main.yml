@@ -160,7 +160,7 @@ jobs:
 
       - name: SonarQube Analysis
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GTHB_TOKEN: ${{ secrets.GTHB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: |
           mvn -B sonar:sonar \

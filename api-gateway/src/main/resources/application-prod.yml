@@ -1,4 +1,4 @@
-spring:
+﻿spring:
   application:
     name: api-gateway
   
@@ -198,8 +198,8 @@ management:
 logging:
   level:
     root: INFO
-    com.monat.ecommerce: DEBUG
-    org.springframework.cloud.gateway: DEBUG
+    com.monat.ecommerce: INFO
+    org.springframework.cloud.gateway: WARN
 
 # JWT Configuration
 jwt:

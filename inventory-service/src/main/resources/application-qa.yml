@@ -1,4 +1,4 @@
-spring:
+﻿spring:
   application:
     name: inventory-service
 
@@ -148,7 +148,7 @@ management:
 logging:
   level:
     root: INFO
-    com.monat.ecommerce: DEBUG
+    com.monat.ecommerce: INFO
 
 
 # Application specific

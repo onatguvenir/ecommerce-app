@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.monat.ecommerce.common.dto.ApiResponse;
 import com.monat.ecommerce.common.dto.PagedResponse;
 import com.monat.ecommerce.common.exception.ResourceNotFoundException;
+import com.monat.ecommerce.events.order.OrderCancelledEvent;
 import com.monat.ecommerce.events.order.OrderCreatedEvent;
 import com.monat.ecommerce.order.application.dto.*;
 import com.monat.ecommerce.order.domain.model.Order;
@@ -23,8 +24,10 @@ import com.monat.ecommerce.order.infrastructure.reporting.OrderSummaryReadModel;
 
 import io.micrometer.core.instrument.Timer;
 import io.micrometer.observation.annotation.Observed;
+import com.monat.ecommerce.order.domain.event.OrderSagaStartedEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -60,6 +63,7 @@ public class OrderApplicationService {
     private final OrderRepository orderRepository;
     private final OrderMapper orderMapper;
     private final OrderSagaOrchestrator sagaOrchestrator;
+    private final ApplicationEventPublisher eventPublisher;
     private final CartClient cartClient;
     private final OrderMetrics orderMetrics;
     private final OrderAnalyticsRepository orderAnalyticsRepository;
@@ -115,7 +119,7 @@ public class OrderApplicationService {
                     request.cartId() != null && !request.cartId().isBlank() ? "cart" : "direct");
 
             publishOrderCreatedEvent(order, orderItems);
-            sagaOrchestrator.executeOrderSaga(order.getId(), request.cartId());
+            eventPublisher.publishEvent(new OrderSagaStartedEvent(order.getId(), request.cartId()));
 
             return orderMapper.toOrderResponse(order);
         } catch (RuntimeException ex) {
@@ -168,6 +172,25 @@ public class OrderApplicationService {
                 pageable.getPageNumber(),
                 pageable.getPageSize());
         return toPagedResponse(result, pageable);
+    }
+
+    @Transactional
+    public OrderResponse cancelOrder(UUID orderId, String reason) {
+        Order order = orderRepository.findByIdWithItems(orderId)
+                .orElseThrow(() -> new ResourceNotFoundException("Order", orderId.toString()));
+
+        if (order.getStatus() != OrderStatus.PENDING) {
+            throw new IllegalStateException(
+                    "Only PENDING orders can be cancelled. Current status: " + order.getStatus());
+        }
+
+        String cancellationReason = (reason != null && !reason.isBlank()) ? reason : "Cancelled by user";
+        order.markAsCancelled(cancellationReason);
+        order = orderRepository.save(order);
+
+        publishOrderCancelledEvent(order, cancellationReason, "USER");
+
+        return orderMapper.toOrderResponse(order);
     }
 
     @Transactional(readOnly = true)
@@ -246,6 +269,29 @@ public class OrderApplicationService {
                     .build());
         } catch (JsonProcessingException e) {
             throw new RuntimeException("Failed to serialize OrderCreatedEvent for order " + order.getId(), e);
+        }
+    }
+
+    private void publishOrderCancelledEvent(Order order, String reason, String cancelledBy) {
+        try {
+            OrderCancelledEvent event = OrderCancelledEvent.builder()
+                    .orderId(order.getId().toString())
+                    .orderNumber(order.getOrderNumber())
+                    .userId(order.getUserId().toString())
+                    .reason(reason)
+                    .cancelledBy(cancelledBy)
+                    .build();
+
+            String payload = objectMapper.writeValueAsString(event);
+
+            outboxEventRepository.save(OutboxEvent.builder()
+                    .aggregateType("Order")
+                    .aggregateId(order.getId().toString())
+                    .eventType("OrderCancelled")
+                    .payload(payload)
+                    .build());
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException("Failed to serialize OrderCancelledEvent for order " + order.getId(), e);
         }
     }
 
