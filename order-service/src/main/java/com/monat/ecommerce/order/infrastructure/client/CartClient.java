@@ -14,6 +14,9 @@ public interface CartClient {
     @GetMapping("/api/cart/{cartId}")
     ApiResponse<CartDto> getCart(@PathVariable("cartId") String cartId);
 
-    @DeleteMapping("/api/cart/{cartId}")
+    // Idempotent removal of the whole cart. Targets the dedicated internal endpoint —
+    // NOT DELETE /api/cart/{cartId}, which is the customer "clear cart" operation and
+    // throws when the cart is absent.
+    @DeleteMapping("/api/cart/internal/{cartId}")
     ApiResponse<Void> deleteCart(@PathVariable("cartId") String cartId);
 }

@@ -47,10 +47,20 @@ last-updated: 2026-04-27
 **Issue**: No tests for gRPC server implementations — only unit tests for application services.  
 **Fix**: Add `@SpringBootTest(webEnvironment=NONE)` + `GrpcInProcessChannelFactory` tests.
 
-### 10. Cart deletion failure silently swallowed
-**File**: `OrderSagaOrchestrator.completeOrder():258`  
-**Issue**: `cartClient.deleteCart()` failure is caught and logged but ignored. Cart may not be deleted.  
-**Fix**: Add retry logic or compensation tracking for cart deletion.
+### ~~10. Cart deletion failure silently swallowed~~ ✅ FIXED 2026-06-09
+**File**: `OrderSagaOrchestrator.deleteCartAfterCompletion()`
+**Fix applied**: Cart removal extracted into a dedicated method that (a) retries up to
+3 attempts on transient failure, (b) targets a new **idempotent** cart-service endpoint
+`DELETE /api/cart/internal/{cartId}` (→ `CartApplicationService.deleteCart`, tolerates a
+missing cart) instead of `DELETE /api/cart/{cartId}` which maps to the customer
+`clearCart` (throws when the cart is absent), and (c) on final failure logs at ERROR and
+increments `order_saga_step_total{step=delete_cart,result=failed}` instead of silently
+swallowing — orphaned carts are now observable via metric/alert.
+**Out of scope (still open)**: the *dominant* runtime cause is the saga aborting before
+`completeOrder` (e.g. `ObjectOptimisticLockingFailureException` on `OrderSagaState`), which
+correctly leaves the cart in place for a genuinely failed order — but the spurious
+optimistic-lock failure itself is a separate saga-internal defect. See
+`cart-not-deleted-root-cause.md` İhtimal 1b.
 
 ### 11. OrderNumber generation not collision-safe
 **File**: `OrderApplicationService.generateOrderNumber()`  
@@ -69,6 +79,36 @@ Some services have `show-sql: true` (dev convenience) — should be `false` ever
 ### 14. No integration tests for outbox publisher
 **Files**: `OutboxEventPublisher` (order), `PaymentOutboxEventPublisher` (payment)  
 **Issue**: No integration test verifying outbox → Kafka publish pipeline end-to-end.
+
+### ~~16. payment-service outbox events never published to Kafka~~ ✅ FIXED 2026-06-10
+**Files**: `PaymentServiceApplication`, `common-lib/.../config/ShedLockConfig.java`
+**Symptom**: `PaymentOutboxEventPublisher.@Scheduled publishPendingEvents()` never ran →
+persisted `payment_outbox_events` rows stayed `processed=false` → `PaymentCompleted`/
+`PaymentFailed` never reached Kafka (notification-service got no payment events). Saga itself
+unaffected (gRPC-synchronous), so orders still COMPLETED — the gap was invisible until the
+outbox `@Version`/manual-id bug (#10 / payment fix) was fixed and rows first started to persist.
+**Two causes, both fixed**:
+1. `PaymentServiceApplication` was missing `@EnableScheduling` (order-service & inventory-service
+   have it) → poller never fired. Added `@EnableScheduling`.
+2. After enabling, poller threw `NoSuchBeanDefinitionException: LockProvider`. common-lib
+   `ShedLockConfig` declared the `LockProvider` bean as `@ConditionalOnBean(DataSource.class)`,
+   but in a component-scanned user `@Configuration` that condition is evaluated **before**
+   `DataSourceAutoConfiguration` runs. order-service passed the condition only because it defines
+   an explicit early `DataSource` bean (`OrderDataSourceConfig`); payment-service relies on the
+   auto-configured `DataSource`, so the condition was `false` and no `LockProvider` was created.
+**Robust fix (applied to common-lib, hardens all services)**: rewrote `ShedLockConfig.lockProvider`
+   to resolve the `DataSource` lazily via `ObjectProvider<DataSource>` instead of
+   `@ConditionalOnBean`. The bean is now created deterministically at instantiation time (after
+   `DataSourceAutoConfiguration`): services with a relational `DataSource` (order, payment,
+   inventory) get the real `JdbcTemplateLockProvider`; Redis-only services (cart) get a harmless
+   no-op provider they never exercise. Note: a pure `@AutoConfiguration(after =
+   DataSourceAutoConfiguration.class)` was rejected because `com.monat.ecommerce.common` is
+   component-scanned by every service, so an auto-config class there would be double-registered and
+   still condition-checked at scan time. The earlier payment-local `SchedulerLockConfig` workaround
+   was removed (the common bean now provides it; keeping both would duplicate the `lockProvider`
+   bean name and fail startup).
+**Verified e2e**: shedlock row `pollAndPublishPaymentEvents` active, both pending rows
+`processed=t`, 2 messages on Kafka topic `payment.completed`, 0 scheduler errors.
 
 ### 15. api-gateway JWT config not confirmed
 **Issue**: JWT secret/JWKS URL configuration for api-gateway not visible in current review. Verify `application.yml` of api-gateway has correct JWT validation setup.

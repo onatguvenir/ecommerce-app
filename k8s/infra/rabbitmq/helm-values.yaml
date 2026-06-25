@@ -1,0 +1,26 @@
+# Bitnami RabbitMQ chart values — local K8s dev
+# helm install rabbitmq bitnami/rabbitmq -n infra -f k8s/infra/rabbitmq/helm-values.yaml
+replicaCount: 1
+
+auth:
+  username: guest
+  password: guest
+  erlangCookie: "monat-local-erlang-cookie"
+
+resources:
+  requests:
+    memory: 128Mi
+    cpu: 100m
+  limits:
+    memory: 512Mi
+    cpu: 500m
+
+persistence:
+  enabled: true
+  size: 1Gi
+
+service:
+  type: ClusterIP
+  ports:
+    amqp: 5672
+    manager: 15672

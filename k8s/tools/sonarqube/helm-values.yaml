@@ -1,0 +1,25 @@
+# Bitnami SonarQube chart values — local dev
+# helm install sonarqube bitnami/sonarqube -n tools -f k8s/tools/sonarqube/helm-values.yaml
+sonarqubeUsername: admin
+sonarqubePassword: admin
+
+postgresql:
+  enabled: true
+  auth:
+    postgresPassword: sonar
+    username: sonar
+    password: sonar
+    database: sonarqube
+
+resources:
+  requests:
+    memory: 512Mi
+    cpu: 200m
+  limits:
+    memory: 2Gi
+    cpu: 1000m
+
+service:
+  type: NodePort
+  nodePorts:
+    http: 30900

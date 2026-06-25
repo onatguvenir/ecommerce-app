@@ -1,0 +1,24 @@
+# Bitnami MongoDB chart values — local K8s dev
+# helm install mongodb bitnami/mongodb -n infra -f k8s/infra/mongodb/helm-values.yaml
+# Single-member replica set (required by product-service and Debezium)
+architecture: replicaset
+replicaCount: 1
+replicaSetName: rs0
+
+auth:
+  enabled: false
+
+arbiter:
+  enabled: false
+
+resources:
+  requests:
+    memory: 256Mi
+    cpu: 100m
+  limits:
+    memory: 512Mi
+    cpu: 500m
+
+persistence:
+  enabled: true
+  size: 5Gi

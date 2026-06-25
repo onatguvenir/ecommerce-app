@@ -1,0 +1,60 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: akhq
+  namespace: tools
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: akhq
+  template:
+    metadata:
+      labels:
+        app: akhq
+    spec:
+      containers:
+        - name: akhq
+          image: tchiotludo/akhq:0.24.0
+          ports:
+            - containerPort: 9000
+              name: http
+          env:
+            - name: MICRONAUT_SERVER_PORT
+              value: "9000"
+            - name: AKHQ_CONFIGURATION
+              value: |
+                akhq:
+                  connections:
+                    monat-kafka:
+                      properties:
+                        bootstrap.servers: "kafka.infra.svc.cluster.local:9092"
+          resources:
+            requests:
+              memory: 128Mi
+              cpu: 100m
+            limits:
+              memory: 256Mi
+              cpu: 500m
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 28081
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            failureThreshold: 5
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: akhq
+  namespace: tools
+spec:
+  selector:
+    app: akhq
+  type: NodePort
+  ports:
+    - name: http
+      port: 9000
+      targetPort: 9000
+      nodePort: 30900

@@ -1,0 +1,29 @@
+# Bitnami PostgreSQL chart values — local K8s dev
+# helm install postgres bitnami/postgresql -n infra -f k8s/infra/postgres/helm-values.yaml
+auth:
+  postgresPassword: "postgres"
+  username: "postgres"
+  password: "postgres"
+  database: "postgres"
+
+primary:
+  # wal_level=logical required for Debezium CDC connectors
+  extendedConfiguration: |
+    wal_level = logical
+    max_replication_slots = 10
+    max_wal_senders = 10
+  initdb:
+    scriptsConfigMap: "postgres-init"
+  resources:
+    requests:
+      memory: 256Mi
+      cpu: 100m
+    limits:
+      memory: 512Mi
+      cpu: 500m
+  persistence:
+    enabled: true
+    size: 5Gi
+
+readReplicas:
+  replicaCount: 0

@@ -1,0 +1,70 @@
+# kube-prometheus-stack values — local dev
+# helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+# helm install prometheus-stack prometheus-community/kube-prometheus-stack -n observability \
+#   -f k8s/observability/prometheus-stack/helm-values.yaml
+prometheus:
+  prometheusSpec:
+    scrapeInterval: 15s
+    retention: 7d
+    additionalScrapeConfigs:
+      - job_name: "otel-collector"
+        static_configs:
+          - targets: ["otel-collector.observability.svc.cluster.local:8889"]
+      - job_name: "microservices"
+        metrics_path: /actuator/prometheus
+        kubernetes_sd_configs:
+          - role: pod
+            namespaces:
+              names: [apps]
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+            action: keep
+            regex: "true"
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+            action: replace
+            target_label: __metrics_path__
+            regex: (.+)
+          - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+            action: replace
+            regex: ([^:]+)(?::\d+)?;(\d+)
+            replacement: $1:$2
+            target_label: __address__
+          - source_labels: [__meta_kubernetes_pod_label_app]
+            target_label: service
+    resources:
+      requests:
+        memory: 512Mi
+        cpu: 200m
+      limits:
+        memory: 1Gi
+        cpu: 1000m
+
+grafana:
+  adminPassword: "admin"
+  service:
+    type: NodePort
+    nodePort: 30300
+  resources:
+    requests:
+      memory: 128Mi
+      cpu: 100m
+    limits:
+      memory: 256Mi
+      cpu: 500m
+
+alertmanager:
+  enabled: false
+
+nodeExporter:
+  enabled: true
+
+kubeStateMetrics:
+  enabled: true
+
+# Reduce default dashboards to save memory
+defaultRules:
+  create: true
+  rules:
+    alertmanager: false
+    etcd: false
+    configReloaders: false

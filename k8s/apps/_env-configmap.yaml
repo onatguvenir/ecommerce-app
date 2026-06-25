@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: monat-shared-env
+  namespace: apps
+data:
+  SPRING_KAFKA_BOOTSTRAP_SERVERS: "kafka.infra.svc.cluster.local:9092"
+  SPRING_DATA_REDIS_HOST: "redis-master.infra.svc.cluster.local"
+  SPRING_DATA_REDIS_PORT: "6379"
+  JAVA_TOOL_OPTIONS: "-Dfile.encoding=UTF-8"
+  MANAGEMENT_OTLP_TRACING_ENDPOINT: "http://otel-collector.observability.svc.cluster.local:4318/v1/traces"
+  SPRING_DATASOURCE_USERNAME: "postgres"
+  SPRING_DATASOURCE_PASSWORD: "postgres"

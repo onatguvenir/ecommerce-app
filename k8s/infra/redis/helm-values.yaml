@@ -1,0 +1,18 @@
+# Bitnami Redis chart values — local K8s dev
+# helm install redis bitnami/redis -n infra -f k8s/infra/redis/helm-values.yaml
+architecture: standalone
+
+auth:
+  enabled: false
+
+master:
+  resources:
+    requests:
+      memory: 64Mi
+      cpu: 50m
+    limits:
+      memory: 256Mi
+      cpu: 200m
+  persistence:
+    enabled: true
+    size: 1Gi

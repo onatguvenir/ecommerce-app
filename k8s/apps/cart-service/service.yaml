@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: cart-service
+  namespace: apps
+spec:
+  selector:
+    app: cart-service
+  ports:
+    - name: http
+      port: 8084
+      targetPort: 8084

@@ -1,0 +1,52 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: maildev
+  namespace: tools
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: maildev
+  template:
+    metadata:
+      labels:
+        app: maildev
+    spec:
+      containers:
+        - name: maildev
+          image: maildev/maildev
+          ports:
+            - containerPort: 1080
+              name: web
+            - containerPort: 1025
+              name: smtp
+          resources:
+            requests:
+              memory: 32Mi
+              cpu: 50m
+            limits:
+              memory: 128Mi
+              cpu: 200m
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 1080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: maildev
+  namespace: tools
+spec:
+  selector:
+    app: maildev
+  ports:
+    - name: web
+      port: 1080
+      targetPort: 1080
+    - name: smtp
+      port: 1025
+      targetPort: 1025

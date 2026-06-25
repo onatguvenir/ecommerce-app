@@ -1,0 +1,103 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: connector-configs
+  namespace: tools
+data:
+  inventory-connector.json: |
+    {
+      "name": "inventory-connector",
+      "config": {
+        "connector.class": "io.debezium.connector.postgresql.PostgresConnector",
+        "tasks.max": "1",
+        "database.hostname": "postgres-postgresql.infra.svc.cluster.local",
+        "database.port": "5432",
+        "database.user": "postgres",
+        "database.password": "postgres",
+        "database.dbname": "inventorydb",
+        "topic.prefix": "cdc",
+        "table.include.list": "public.inventory",
+        "plugin.name": "pgoutput",
+        "slot.name": "inventory_slot",
+        "publication.name": "inventory_pub",
+        "key.converter": "org.apache.kafka.connect.json.JsonConverter",
+        "key.converter.schemas.enable": "false",
+        "value.converter": "org.apache.kafka.connect.json.JsonConverter",
+        "value.converter.schemas.enable": "false"
+      }
+    }
+  product-connector.json: |
+    {
+      "name": "product-connector",
+      "config": {
+        "connector.class": "io.debezium.connector.mongodb.MongoDbConnector",
+        "tasks.max": "1",
+        "mongodb.connection.string": "mongodb://mongodb.infra.svc.cluster.local:27017/?replicaSet=rs0&directConnection=true",
+        "database.include.list": "productdb",
+        "collection.include.list": "productdb.products",
+        "topic.prefix": "cdc",
+        "key.converter": "org.apache.kafka.connect.json.JsonConverter",
+        "key.converter.schemas.enable": "false",
+        "value.converter": "org.apache.kafka.connect.json.JsonConverter",
+        "value.converter.schemas.enable": "false"
+      }
+    }
+---
+# Run once after debezium-connect is healthy
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: connector-init
+  namespace: tools
+spec:
+  backoffLimit: 5
+  template:
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: connector-init
+          image: curlimages/curl:latest
+          command:
+            - /bin/sh
+            - -c
+            - |
+              register_connector() {
+                NAME=$1
+                FILE=$2
+                echo "Registering $NAME..."
+                STATUS=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
+                  http://debezium-connect.tools.svc.cluster.local:8083/connectors \
+                  -H 'Content-Type: application/json' -d @"$FILE")
+                if [ "$STATUS" = "201" ]; then
+                  echo "$NAME registered."
+                elif [ "$STATUS" = "409" ]; then
+                  echo "$NAME already registered, skipping."
+                else
+                  echo "Failed to register $NAME: HTTP $STATUS"
+                  exit 1
+                fi
+              }
+
+              # Wait for Debezium Connect to be ready
+              until curl -sf http://debezium-connect.tools.svc.cluster.local:8083/connectors; do
+                echo "Waiting for Debezium Connect..."
+                sleep 5
+              done
+
+              register_connector inventory-connector /connectors/inventory-connector.json
+              register_connector product-connector /connectors/product-connector.json
+              echo "All connectors ready."
+          volumeMounts:
+            - name: connector-configs
+              mountPath: /connectors
+          resources:
+            requests:
+              memory: 32Mi
+              cpu: 50m
+            limits:
+              memory: 64Mi
+              cpu: 100m
+      volumes:
+        - name: connector-configs
+          configMap:
+            name: connector-configs

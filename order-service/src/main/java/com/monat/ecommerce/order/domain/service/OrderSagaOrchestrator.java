@@ -41,6 +41,8 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class OrderSagaOrchestrator {
 
+    private static final int CART_DELETE_MAX_ATTEMPTS = 3;
+
     private final OrderRepository orderRepository;
     private final OrderSagaStateRepository sagaStateRepository;
     private final OutboxEventRepository outboxEventRepository;
@@ -259,12 +261,40 @@ public class OrderSagaOrchestrator {
         publishOrderCompletedEvent(order);
 
         // Delete cart only after order is confirmed complete
-        if (cartId != null && !cartId.isBlank()) {
+        deleteCartAfterCompletion(cartId);
+    }
+
+    /**
+     * Removes the cart after a successful order.
+     *
+     * <p>Reliability: the call is idempotent (cart-service delete tolerates a missing
+     * cart) and retried on transient failure. A final failure is recorded as a
+     * {@code delete_cart=failed} metric and logged at ERROR rather than silently
+     * swallowed, so an orphaned cart is observable instead of invisible.
+     *
+     * <p>Failure here never aborts the order: the order is already paid and completed.
+     */
+    void deleteCartAfterCompletion(String cartId) {
+        if (cartId == null || cartId.isBlank()) {
+            return;
+        }
+        for (int attempt = 1; attempt <= CART_DELETE_MAX_ATTEMPTS; attempt++) {
             try {
                 cartClient.deleteCart(cartId);
                 log.info("Cart deleted after successful order: {}", cartId);
+                orderMetrics.incrementSagaStep("delete_cart", "success");
+                return;
             } catch (Exception e) {
-                log.warn("Failed to delete cart {} after order completion: {}", cartId, e.getMessage());
+                if (attempt < CART_DELETE_MAX_ATTEMPTS) {
+                    log.warn("Cart deletion attempt {}/{} failed for cart {}: {} — retrying",
+                            attempt, CART_DELETE_MAX_ATTEMPTS, cartId, e.getMessage());
+                    orderMetrics.incrementSagaStep("delete_cart", "retry");
+                } else {
+                    log.error("Cart deletion FAILED after {} attempts for cart {} "
+                                    + "(order completed, cart orphaned): {}",
+                            CART_DELETE_MAX_ATTEMPTS, cartId, e.getMessage(), e);
+                    orderMetrics.incrementSagaStep("delete_cart", "failed");
+                }
             }
         }
     }

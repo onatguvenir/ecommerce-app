@@ -244,8 +244,10 @@ public class PaymentDomainService {
         try {
             String payloadJson = objectMapper.writeValueAsString(payload);
             
+            // No manual id: the entity's @GeneratedValue assigns it on persist. Setting it
+            // here makes Hibernate treat the @Version row as detached ("uninitialized version
+            // value null"), which marks the tx rollback-only and fails the whole order saga.
             PaymentOutboxEvent outboxEvent = PaymentOutboxEvent.builder()
-                    .id(UUID.randomUUID())
                     .aggregateType("Payment")
                     .aggregateId(aggregateId)
                     .eventType(eventType)

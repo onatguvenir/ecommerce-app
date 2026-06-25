@@ -1,0 +1,68 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: product-service
+  namespace: apps
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: product-service
+  template:
+    metadata:
+      labels:
+        app: product-service
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/path: /actuator/prometheus
+        prometheus.io/port: "8082"
+    spec:
+      initContainers:
+        - name: wait-for-mongodb
+          image: busybox:1.36
+          command: ['sh', '-c', 'until nc -z mongodb.infra.svc.cluster.local 27017; do sleep 2; done']
+          resources:
+            limits:
+              memory: 16Mi
+              cpu: 50m
+        - name: wait-for-elasticsearch
+          image: busybox:1.36
+          command: ['sh', '-c', 'until nc -z elasticsearch-master.logging.svc.cluster.local 9200; do sleep 2; done']
+          resources:
+            limits:
+              memory: 16Mi
+              cpu: 50m
+      containers:
+        - name: product-service
+          image: k3d-monat-registry:5000/monat/product-service:latest
+          ports:
+            - containerPort: 8082
+              name: http
+          envFrom:
+            - configMapRef:
+                name: monat-shared-env
+          env:
+            - name: SPRING_DATA_MONGODB_URI
+              value: "mongodb://mongodb.infra.svc.cluster.local:27017/productdb?replicaSet=rs0&directConnection=true"
+            - name: SPRING_ELASTICSEARCH_URIS
+              value: "http://elasticsearch-master.logging.svc.cluster.local:9200"
+          resources:
+            requests:
+              memory: 384Mi
+              cpu: 150m
+            limits:
+              memory: 768Mi
+              cpu: 1000m
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: 8082
+            initialDelaySeconds: 60
+            periodSeconds: 10
+            failureThreshold: 8
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8082
+            initialDelaySeconds: 120
+            periodSeconds: 15

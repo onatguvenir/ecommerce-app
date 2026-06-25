@@ -103,6 +103,20 @@ public class CartController {
                                 .build());
         }
 
+        @DeleteMapping("/internal/{cartId}")
+        @Operation(summary = "Delete cart (internal)",
+                        description = "Idempotent removal of the whole cart. Used by order-service "
+                                        + "after an order completes. Unlike clear, tolerates a missing cart.")
+        public ResponseEntity<ApiResponse<Void>> deleteCart(@PathVariable(name = "cartId") String cartId) {
+                cartService.deleteCart(cartId);
+
+                return ResponseEntity.ok(ApiResponse.<Void>builder()
+                                .success(true)
+                                .message("Cart deleted")
+                                .timestamp(LocalDateTime.now())
+                                .build());
+        }
+
         @PostMapping("/merge")
         @Operation(summary = "Merge anonymous cart with user cart", description = "Merge anonymous session cart into authenticated user cart on login")
         public ResponseEntity<ApiResponse<CartResponse>> mergeCart(

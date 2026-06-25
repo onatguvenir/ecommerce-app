@@ -1,0 +1,61 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: user-service
+  namespace: apps
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: user-service
+  template:
+    metadata:
+      labels:
+        app: user-service
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/path: /actuator/prometheus
+        prometheus.io/port: "8081"
+    spec:
+      initContainers:
+        - name: wait-for-postgres
+          image: busybox:1.36
+          command: ['sh', '-c', 'until nc -z postgres-postgresql.infra.svc.cluster.local 5432; do sleep 2; done']
+          resources:
+            limits:
+              memory: 16Mi
+              cpu: 50m
+      containers:
+        - name: user-service
+          image: k3d-monat-registry:5000/monat/user-service:latest
+          ports:
+            - containerPort: 8081
+              name: http
+            - containerPort: 9081
+              name: grpc
+          envFrom:
+            - configMapRef:
+                name: monat-shared-env
+          env:
+            - name: SPRING_DATASOURCE_URL
+              value: "jdbc:postgresql://postgres-postgresql.infra.svc.cluster.local:5432/userdb"
+          resources:
+            requests:
+              memory: 384Mi
+              cpu: 150m
+            limits:
+              memory: 768Mi
+              cpu: 1000m
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: 8081
+            initialDelaySeconds: 45
+            periodSeconds: 10
+            failureThreshold: 6
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8081
+            initialDelaySeconds: 90
+            periodSeconds: 15

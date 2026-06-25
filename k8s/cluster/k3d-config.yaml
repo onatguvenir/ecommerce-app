@@ -1,0 +1,45 @@
+apiVersion: k3d.io/v1alpha5
+kind: Simple
+metadata:
+  name: monat
+servers: 1
+agents: 2
+ports:
+  - port: 8080:80      # API Gateway via Traefik ingress
+    nodeFilters:
+      - loadbalancer
+  - port: 9090:9090    # Prometheus (NodePort)
+    nodeFilters:
+      - loadbalancer
+  - port: 3000:3000    # Grafana (NodePort)
+    nodeFilters:
+      - loadbalancer
+  - port: 5601:5601    # Kibana (NodePort)
+    nodeFilters:
+      - loadbalancer
+  - port: 16686:16686  # Jaeger UI (NodePort)
+    nodeFilters:
+      - loadbalancer
+  - port: 9000:9000    # AKHQ Kafka UI (NodePort)
+    nodeFilters:
+      - loadbalancer
+  - port: 5432:5432    # PostgreSQL (NodePort - for local tools)
+    nodeFilters:
+      - loadbalancer
+  - port: 9200:9200    # Elasticsearch (NodePort)
+    nodeFilters:
+      - loadbalancer
+registries:
+  create:
+    name: monat-registry
+    host: localhost
+    hostPort: "5001"
+options:
+  k3d:
+    wait: true
+    timeout: "120s"
+  k3s:
+    extraArgs:
+      - arg: --kube-apiserver-arg=feature-gates=EphemeralContainers=true
+        nodeFilters:
+          - server:*
